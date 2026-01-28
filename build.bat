@@ -1,0 +1,29 @@
+@echo off
+setlocal
+set "EXENAME=VulkanApp.exe"
+set "CONFIG=Release"
+
+if not exist build mkdir build >nul 2>nul
+pushd build >nul 2>nul
+
+if exist "%EXENAME%" del "%EXENAME%" >nul 2>nul
+
+if not exist CMakeCache.txt (
+    cmake .. >nul 2>nul
+    if errorlevel 1 (
+        echo Cmake Configuration Failed.
+        popd
+        exit /b 1
+    )
+)
+
+cmake --build . --config "%CONFIG%" --parallel >nul 2>nul
+if errorlevel 1 (
+    echo CMake Build Failed.
+    popd
+    exit /b 1
+)
+
+"%EXENAME%"
+popd
+endlocal
