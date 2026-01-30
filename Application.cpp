@@ -180,7 +180,7 @@ uint32_t getQueueFamilyIndex(VkPhysicalDevice& physicalDevice) {
 
     return index;
 }
-VkResult createLogicalDevice(VkPhysicalDevice& physicalDevice, VkDevice& device) {
+VkResult createDevice(VkPhysicalDevice& physicalDevice, VkDevice& device) {
 
     uint32_t familyIndex = getQueueFamilyIndex(physicalDevice);
 
@@ -229,7 +229,7 @@ VkResult createLogicalDevice(VkPhysicalDevice& physicalDevice, VkDevice& device)
     return result;
 }
 
-void printInstanceLayers() {
+void printInstanceLayersAndExt() {
     uint32_t propertyCount = 0;
     std::vector<VkLayerProperties> layerProperties = {};
     vkEnumerateInstanceLayerProperties(&propertyCount, nullptr);
@@ -240,18 +240,46 @@ void printInstanceLayers() {
     for (int i = 0;i < propertyCount;i++) {
         std::cout << layerProperties[i].layerName << "\n";
     }
+
+    propertyCount = 0;
+    std::vector<VkExtensionProperties> extensionProperties = {};
+    vkEnumerateInstanceExtensionProperties(nullptr, &propertyCount, nullptr);
+
+    extensionProperties.resize(propertyCount);
+    vkEnumerateInstanceExtensionProperties(nullptr, &propertyCount, extensionProperties.data());
+    std::cout << "Instance Extensions:\n";
+    for (int i = 0;i < propertyCount;i++) {
+        std::cout << extensionProperties[i].extensionName << "\n";
+    }
 }
-void printDeviceLayers(VkPhysicalDevice& physicalDevice) {
+void printDeviceLayersAndExt(VkPhysicalDevice& physicalDevice) {
     uint32_t propertyCount = 0;
     std::vector<VkLayerProperties> layerProperties = {};
-    vkEnumerateDeviceLayerProperties(physicalDevice,&propertyCount, nullptr);
+    vkEnumerateDeviceLayerProperties(physicalDevice, &propertyCount, nullptr);
 
     layerProperties.resize(propertyCount);
-    vkEnumerateDeviceLayerProperties(physicalDevice,&propertyCount, layerProperties.data());
+    vkEnumerateDeviceLayerProperties(physicalDevice, &propertyCount, layerProperties.data());
     std::cout << "Device Layers:\n";
     for (int i = 0;i < propertyCount;i++) {
         std::cout << layerProperties[i].layerName << "\n";
     }
+
+    propertyCount = 0;
+    std::vector<VkExtensionProperties> extensionProperties = {};
+    vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &propertyCount, nullptr);
+
+    extensionProperties.resize(propertyCount);
+    vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &propertyCount, extensionProperties.data());
+
+    std::cout << "Device Extensions:\n";
+    for (int i = 0;i < propertyCount;i++) {
+        std::cout << extensionProperties[i].extensionName << "\n";
+    }
+}
+void Application::cleanup() {
+    vkDeviceWaitIdle(m_device);
+    vkDestroyDevice(m_device,nullptr);
+    vkDestroyInstance(m_instance,nullptr);
 }
 VkResult Application::init() {
     VkResult result = createInstance(m_instance);
@@ -266,15 +294,17 @@ VkResult Application::init() {
 
     getPhysicalDeviceProperties(m_physicalDevice);
 
-    result = createLogicalDevice(m_physicalDevice, m_device);
+    result = createDevice(m_physicalDevice, m_device);
     if (result != VK_SUCCESS) {
         return result;
     }
 
 
-    printInstanceLayers();
-    printDeviceLayers(m_physicalDevice);
+    printInstanceLayersAndExt();
+    printDeviceLayersAndExt(m_physicalDevice);
 
+
+    cleanup();
     return VK_SUCCESS;
 }
 

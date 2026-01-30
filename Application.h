@@ -2,14 +2,15 @@
 #define APPLICATION
 #include <vulkan/vulkan.h>
 #include <vector>
-class Application{
+class Application {
     VkInstance                      m_instance;
     VkPhysicalDevice                m_physicalDevice;
     VkDevice                        m_device;
 
-    public:
-    
+public:
+
     VkResult    init();
     void        run();
+    void        cleanup();
 };
 #endif
