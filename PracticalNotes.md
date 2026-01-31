@@ -204,3 +204,81 @@ void printInstanceLayers() {
     }
 }
 ```
+
+## Listing 1.5 Querying Instance Extensions
+
+```C++
+    uint32_t propertyCount = 0;
+    std::vector<VkExtensionProperties> extensionProperties = {};
+    vkEnumerateInstanceExtensionProperties(nullptr, &propertyCount, nullptr);
+
+    extensionProperties.resize(propertyCount);
+    vkEnumerateInstanceExtensionProperties(nullptr, &propertyCount, extensionProperties.data());
+    std::cout << "Instance Extensions:\n";
+    for (int i = 0;i < propertyCount;i++) {
+        std::cout << extensionProperties[i].extensionName << "\n";
+    }
+```
+
+# Chapter 2 : Memory and Resources
+
+## Listing 2.1 Declaration of a memory allocator
+
+```C++
+#include <vulkan/vulkan.h>
+class Allocator {
+public:
+    inline operator VkAllocationCallbacks() const {
+        VkAllocationCallbacks vulkanAllocator;
+
+        vulkanAllocator.pUserData = (void*)this;
+        vulkanAllocator.pfnAllocation = &allocation;
+        vulkanAllocator.pfnReallocation = &reAllocation;
+        vulkanAllocator.pfnFree = &free;
+
+        vulkanAllocator.pfnInternalAllocation = nullptr;
+        vulkanAllocator.pfnInternalFree = nullptr;
+
+        return vulkanAllocator;
+    }
+
+    static void* VKAPI_CALL allocation(void* pUserData, size_t size, size_t alignment, VkSystemAllocationScope allocationscope);
+    static void* VKAPI_CALL reAllocation(void* pUserData, void* pOriginal, size_t size, size_t alignment, VkSystemAllocationScope allocationScope);
+    static void VKAPI_CALL free(void* pUserData, void* pMemory);
+
+    void* allocation(size_t size, size_t alignment, VkSystemAllocationScope allocationScope);
+    void* reAllocation(void* pOriginal, size_t size, size_t alignment, VkSystemAllocationScope allocationScope);
+    void free(void* pMemory);
+};
+```
+
+## Listing 2.2 Implementation of a memory allocator
+
+```C++
+#include "Allocator.h"
+#include <cstdlib>
+
+void* Allocator::allocation(size_t size, size_t alignment, VkSystemAllocationScope allocationScope){
+    return _aligned_malloc(size,alignment);
+}
+
+void* Allocator::reAllocation(void*pOriginal, size_t size, size_t alignment, VkSystemAllocationScope allocationScope){
+    return _aligned_realloc(pOriginal,size,alignment);
+}
+
+void Allocator::free(void* pMemory){
+    _aligned_free(pMemory);
+}
+
+void* Allocator::allocation(void* pUserData, size_t size, size_t alignment, VkSystemAllocationScope allocationScope){
+    return static_cast<Allocator*>(pUserData)->allocation(size,alignment,allocationScope);
+}
+
+void* Allocator::reAllocation(void* pUserData, void* pOriginal, size_t size, size_t alignment, VkSystemAllocationScope allocationScope){
+    return static_cast<Allocator*>(pUserData)->reAllocation(pOriginal,size,alignment,allocationScope);
+}
+
+void Allocator::free(void* pUserData, void* pMemory){
+    static_cast<Allocator*>(pUserData)->free(pMemory);
+}
+```
