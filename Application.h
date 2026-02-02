@@ -7,7 +7,6 @@ class Application {
     VkInstance                      m_instance;
     VkPhysicalDevice                m_physicalDevice;
     VkDevice                        m_device;
-    Allocator                       m_allocator;
 
 public:
 

@@ -1,6 +1,7 @@
 #ifndef ALLOCATOR_H
 #define ALLOCATOR_H
 #include <vulkan/vulkan.h>
+#ifdef _WIN32
 class Allocator {
 public:
     inline operator VkAllocationCallbacks() const {
@@ -25,4 +26,6 @@ public:
     void* reAllocation(void* pOriginal, size_t size, size_t alignment, VkSystemAllocationScope allocationScope);
     void free(void* pMemory);
 };
+#endif
+
 #endif

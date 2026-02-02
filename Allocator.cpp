@@ -1,3 +1,4 @@
+#ifdef _WIN32
 #include "Allocator.h"
 #include <cstdlib>
 
@@ -24,3 +25,4 @@ void* Allocator::reAllocation(void* pUserData, void* pOriginal, size_t size, siz
 void Allocator::free(void* pUserData, void* pMemory){
     static_cast<Allocator*>(pUserData)->free(pMemory);
 }
+#endif

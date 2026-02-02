@@ -1,7 +1,7 @@
 #include "Application.h"
 #include <iostream>
 #define SELECTED_DEVICE 0
-static VkResult createInstance(VkInstance& instance,Allocator& allocator) {
+static VkResult createInstance(VkInstance& instance) {
     //Application Info
     VkApplicationInfo applicationInfo = {};
     applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -23,8 +23,7 @@ static VkResult createInstance(VkInstance& instance,Allocator& allocator) {
     instanceCreateInfo.ppEnabledExtensionNames = nullptr;
 
     //Create the Instance
-    VkAllocationCallbacks allocationCallbacks = (VkAllocationCallbacks)allocator;
-    VkResult result = vkCreateInstance(&instanceCreateInfo, &allocationCallbacks, &instance);
+    VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
 
     if (result == VK_SUCCESS) {
         std::cout << "Successfully Created Vulkan Instace\n";
@@ -280,11 +279,10 @@ void printDeviceLayersAndExt(VkPhysicalDevice& physicalDevice) {
 void Application::cleanup() {
     vkDeviceWaitIdle(m_device);
     vkDestroyDevice(m_device,nullptr);
-    VkAllocationCallbacks allocationCallbacks = (VkAllocationCallbacks)m_allocator;
-    vkDestroyInstance(m_instance,&allocationCallbacks);
+    vkDestroyInstance(m_instance,nullptr);
 }
 VkResult Application::init() {
-    VkResult result = createInstance(m_instance,m_allocator);
+    VkResult result = createInstance(m_instance);
     if (result != VK_SUCCESS) {
         return result;
     }
