@@ -6,7 +6,7 @@ find_package(Vulkan REQUIRED)
 
 set(VULKAN_INCLUDE "$ENV{VULKAN_SDK}/Include")
 
-file(GLOB SOURCES *.cpp *.h)
+file(GLOB SOURCES src/*.cpp src/*.h)
 
 add_executable(VulkanApp ${SOURCES})
 

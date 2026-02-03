@@ -27,3 +27,5 @@ if errorlevel 1 (
 "%EXENAME%"
 popd
 endlocal
+
+pause
