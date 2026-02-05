@@ -57,3 +57,36 @@ void* VKAPI_CALL Free(
     void* pMemory);
 ```
 
+the `pUserData` is the same as the one in `VkAllocationCallbacks` structure.
+
+one thing you can do is implement the memory allocator as a C++ class and pass its `this` pointer in pUserData.
+
+the `Allocation` function is responsible for making new allocations, 
+the `size` parameter gives the size of the allocation in bytes. the `alignment` parameter gives the alignment in bytes , hooking this to a naive allocator such as `malloc` will work for some time , but then randomly crash in some functions. 
+
+so if you are making your own allocator it must honor the `alignment` parameter. 
+
+the final parameter `allocationScope`, tells your application , what the scope ,or lifetime of the allocation is going to be. it is one of the `VkSystemAllocationScope` values which have the following meanings:
+
+<ul>
+<li>
+
+`VK_SYSTEM_ALLOCATION_SCOPE_COMMAND` : allocation will be live only for the duration of the command that provoked the allocation
+</li>
+<li>
+
+`VK_SYSTEM_ALLOCATION_SCOPE_OBJECT`: means that the allocation is directly associated with a Vulkan Object. this allocation will live atleast until the object is destroyed.
+</li>
+<li>
+
+`VK_SYSTEM_ALLOCATION_SCOPE_CACHE` : means that the allocation is associated with some form of internal cache or a `VkPipelineCache` object.
+</li>
+<li>
+
+`VK_SYSTEM_ALLOCATION_SCOPE_DEVICE` : means that the allocation is scoped to the device. this type of allocation is made when vulkan implementation needs memory associated with the device that is not tied to a single object. 
+</li>
+<li>
+
+`VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE` : means that the allocation is scoped to the instance. this type of allocation is made by layers during early parts of vulkan startup such as by `vkCreateInstance()` or `vkEnumeratePhysicalDevices`
+</li>
+</ul>
