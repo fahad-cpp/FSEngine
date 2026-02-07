@@ -9,7 +9,7 @@ pushd build >nul 2>nul
 if exist "%EXENAME%" del "%EXENAME%" >nul 2>nul
 
 if not exist CMakeCache.txt (
-    cmake .. >nul 2>nul
+    cmake .. -DCMAKE_BUILD_TYPE="%CONFIG%">nul 2>nul
     if errorlevel 1 (
         echo Cmake Configuration Failed.
         popd

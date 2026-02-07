@@ -90,3 +90,25 @@ the final parameter `allocationScope`, tells your application , what the scope ,
 `VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE` : means that the allocation is scoped to the instance. this type of allocation is made by layers during early parts of vulkan startup such as by `vkCreateInstance()` or `vkEnumeratePhysicalDevices`
 </li>
 </ul>
+
+then there is `pfnInternalAllocation` and `pfnInternalFree`: these functions are used only for notification so your application can keep track of how much memory vulkan is using. These functions have the same signature as `pfnAllocation` and `pfnFree` except that `pfnInternalAllocation` does not return a value, and `pfnInternalFree` shouldn't actually free memory.
+
+```cpp
+void VKAPI_CALL pfnInternalAllocationNotification (
+    void*                       pUserData,
+    size_t                      size, 
+    VkInternalAllocationType    allocationType,
+    VkSystemAllocationScope     allocationScope
+)
+
+void VKAPI_CALL pfnInternalFreeNotification (
+    void*                       pUserData
+    size_t                      size,
+    VkInternalAllocationType    allocationType,
+    VkSystemAllocationScope     allocationScope
+)
+```
+
+if you supply one function you must supply both , if you dont want to supply these functions you can pass `nullptr` to both functions.
+
+Listing 2.1 and Listing 2.2 added to [PracticalNotes.md](PracticalNotes.md)
