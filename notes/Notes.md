@@ -112,3 +112,19 @@ void VKAPI_CALL pfnInternalFreeNotification (
 if you supply one function you must supply both , if you dont want to supply these functions you can pass `nullptr` to both functions.
 
 Listing 2.1 and Listing 2.2 added to [PracticalNotes.md](PracticalNotes.md)
+
+## Resources
+
+Vulkan operates on data which is stored in resources which are backed by memory
+
+The fundamental types of resources in vulkan:<br>
+- buffers
+- images
+
+A **buffer** is a simple linear chunk of data , that can be used for almost anything , data structures, raw arrays, or even image data.
+
+**Images** are structured and have type and format information , can be multidimensional , form arrays of their own , and support advanced operations for reading and writing data to them.
+
+Both types of resources are constructed in two steps , first the resource itself is created , then the resource needs to be backed by memory. the reason for this is to allow application to manage memory itself. Memory management is complex and it is difficult for a driver to get it right all the time. What works well for one application might not work for the other application. therefore it is expected that applications can do a better job of managing memory than drivers can.
+
+For example: an application that that uses a small amount of very large resources and keeps them around for a long time might use one strategy in its memory allocator , while another application that continuously creates and destroys resources might implement another. 
