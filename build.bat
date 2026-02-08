@@ -4,9 +4,9 @@ set "EXENAME=VulkanApp.exe"
 set "CONFIG=Release"
 
 if not exist build mkdir build >nul 2>nul
+if exist "bin\%EXENAME%" del "bin\%EXENAME%" >nul 2>nul
 pushd build >nul 2>nul
 
-if exist "%EXENAME%" del "%EXENAME%" >nul 2>nul
 
 if not exist CMakeCache.txt (
     cmake .. -DCMAKE_BUILD_TYPE="%CONFIG%">nul 2>nul
@@ -23,9 +23,9 @@ if errorlevel 1 (
     popd
     exit /b 1
 )
-
-"%EXENAME%"
 popd
+
+"bin\%EXENAME%"
 endlocal
 
 pause

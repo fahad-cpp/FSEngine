@@ -22,5 +22,6 @@ if ! cmake --build . --config $CONFIG --parallel >/dev/null 2>error.txt ; then
 fi
 
 echo Successfully compiled to $EXENAME
+cd ..
 
-"./$EXENAME"
+"./bin/$EXENAME"
