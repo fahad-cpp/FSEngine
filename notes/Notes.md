@@ -111,7 +111,7 @@ void VKAPI_CALL pfnInternalFreeNotification (
 
 if you supply one function you must supply both , if you dont want to supply these functions you can pass `nullptr` to both functions.
 
-Listing 2.1 and Listing 2.2 added to [PracticalNotes.md](PracticalNotes.md)
+Listing 2.1 and Listing 2.2 added to [PracticalNotes](PracticalNotes.md)
 
 ## Resources
 
@@ -128,3 +128,66 @@ A **buffer** is a simple linear chunk of data , that can be used for almost anyt
 Both types of resources are constructed in two steps , first the resource itself is created , then the resource needs to be backed by memory. the reason for this is to allow application to manage memory itself. Memory management is complex and it is difficult for a driver to get it right all the time. What works well for one application might not work for the other application. therefore it is expected that applications can do a better job of managing memory than drivers can.
 
 For example: an application that that uses a small amount of very large resources and keeps them around for a long time might use one strategy in its memory allocator , while another application that continuously creates and destroys resources might implement another. 
+
+## Buffers 
+
+Buffers are the simplest type of resources but have a wide variety of usages in Vulkan. They are used to store linear structured or unstructured data. which can have a format or be raw in bytes.
+
+to create a new buffer we have to call `vkCreateBuffer()` , the prototype of which is:
+
+```cpp
+VkResult vkCreateBuffer(
+    VkDevice                        device,
+    const VkBufferCreateInfo*       pCreateInfo,
+    const VkAllocationCallbacks*    pAllocationCallbacks,
+    VkBuffer*                       pBuffer
+)
+```
+as with most parameters in vulkan that need more parameters , they are bundled up in a structure and passed to Vulkan as a pointer. Here , the `pCreateInfo` parameter is a pointer to `VkBufferCreateInfo` structure. the definition of which is:
+```cpp
+typedef struct VkBufferCreateInfo{
+    VkStructureType sType;
+    const void* pNext;
+    VkBufferCreateFlags flags;
+    VkDeviceSize size;
+    VkBufferUsageFlags usage;
+    VkSharingMode sharingMode;
+    uint32_t queueFamilyIndexCount;
+    const uint32_t* pQueueFamilyIndices;
+}VkBufferCreateInfo;
+```
+
+*`sType`* = `VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO`
+
+*`pNext`* = should be set to nullptr unless you are using extensions
+
+*`flags`* = Gives vulkan information about properties of the new buffer, in vulkan 1.0 only field defined are related to sparse buffers. for now flags can be set to 0 , the flags will be covered in this chapter later
+
+*`size`* = specifies the size of the buffer in bytes.
+
+*`usage`* = tells vulkan how you are going to use the buffer. it is a bitfield 
+made up of combinations of `VkBufferUsageFlagBits` enum , on some architectures , the intended usage of the buffer can have an effect on how it's created. the currently defined bits along with the sections where we'll discuss them are as follows:
+
+- `VK_BUFFER_USAGE_TRANSFER_SRC_BIT` and `VK_BUFFER_USAGE_TRANSFER_DST_BIT` :
+Means that the buffer can be source or destination, respectively of a transfer commands. Transfer operations are operations that copy data from a source to a destination they are convered in Chapter 4 "Moving Data"
+
+- `VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT` and `VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT` means that the buffer can be used to back a uniform or a storage texel buffer , respectively. texel buffers are formatted arrays of texels that can be used as the source or destination (in the case of storage buffers) of reads and writes by shaders running on the device. Texel buffers are covered in "Chapter 6 : Shaders and Pipelines".
+
+- `VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT` and `VK_BUFFER_USAGE_STORAGE_BUFFER_BIT` means that the buffer can be used to back uniform or a storage buffers, respectively. as opposed to texel buffers , regular uniform and storage buffers dont have a format associated with them , and therefore can be used to store arbitrary data and data structures. they are covered in "Chapter 6 : Storage and Pipelines".
+
+- `VK_BUFFER_USAGE_INDEX_BUFFER_BIT` and `VK_BUFFER_USAGE_VERTEX_BUFFER_BIT` means that the buffer can be used to store index or vertex data respectively , used in drawing commands. drawing commands including indexed drawing commands in "Chapter 8 : Drawing"
+
+- `VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT` means that the buffer can be used to store parameters used in indirect dispatch and drawing commands , which are commands that take their parameters directly from buffers rather than from your program. These are covered in "Chapter 6 : Shaders and Pipelines" and "Chapter 8 : Drawing"
+
+*`sharingMode`* = indicates how the buffer will behave parallely on multiple command queues supported by the device. because vulkan can execute commands in parallel it needs to know if the buffer will be used by single command at a time or multiple commands in parallel. setting *`sharingMode`* to `VK_SHARING_MODE_EXLUSIVE` says that buffer will only be used on a single queue , whereas setting *`sharingMode`* to `VK_SHARING_MODE_CONCURRENT` indicates that you plan to use the buffer on multiple queues at the same time.
+using `VK_SHARING_MODE_CONCURRENT` might result in lower performance on some systems , so unless you need this , set *`sharingMode`* to `VK_SHARING_MODE_EXCLUSINVE` , if you do set *`sharingMode`* to `VK_SHARING_MODE_CONCURRENT` you need to tell vulkan which queues you are going to use the buffer on. you can do this using the *`pQueueFamilyIndices`* member of the `VkBufferCreateInfo`
+
+*`queueFamilyIndexCount`* = size of the *`pQueueFamilyIndices`* array , number of the queue families that the buffer will be based on.
+
+*`pQueueFamilyIndices`* = pointer to an array of queue families that the buffer/resource will be used with.
+
+when *`sharingMode`* is set to `VK_SHARING_MODE_EXCLUSIVE` *`pQueueFamilyIndices`* and *`queueFamilyIndexCount`* both are ignored
+
+Listing 2.3 added to [PracticalNotes](PracticalNotes.md)
+
+After the code in Listing 2.3 is run , a new VkBuffer handle is created and placed in the `buffer` variable , the buffer is not yet fully usable because it first needs to be backed with memory. This operation is covered in "Device Memory Management" Later in this chapter 

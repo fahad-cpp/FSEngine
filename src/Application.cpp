@@ -236,10 +236,10 @@ void printInstanceLayersAndExt() {
 
     layerProperties.resize(propertyCount);
     vkEnumerateInstanceLayerProperties(&propertyCount, layerProperties.data());
-    std::cout << "Instance Layers:\n";
-    for (int i = 0;i < propertyCount;i++) {
-        std::cout << layerProperties[i].layerName << "\n";
-    }
+    std::cout << "Instance Layers:" << propertyCount << "\n";
+    // for (int i = 0;i < propertyCount;i++) {
+    //     std::cout << layerProperties[i].layerName << "\n";
+    // }
 
     propertyCount = 0;
     std::vector<VkExtensionProperties> extensionProperties = {};
@@ -247,10 +247,10 @@ void printInstanceLayersAndExt() {
 
     extensionProperties.resize(propertyCount);
     vkEnumerateInstanceExtensionProperties(nullptr, &propertyCount, extensionProperties.data());
-    std::cout << "Instance Extensions:\n";
-    for (int i = 0;i < propertyCount;i++) {
-        std::cout << extensionProperties[i].extensionName << "\n";
-    }
+    std::cout << "Instance Extensions:" << propertyCount << "\n";
+    // for (int i = 0;i < propertyCount;i++) {
+    //     std::cout << extensionProperties[i].extensionName << "\n";
+    // }
 }
 void printDeviceLayersAndExt(VkPhysicalDevice& physicalDevice) {
     uint32_t propertyCount = 0;
@@ -259,10 +259,10 @@ void printDeviceLayersAndExt(VkPhysicalDevice& physicalDevice) {
 
     layerProperties.resize(propertyCount);
     vkEnumerateDeviceLayerProperties(physicalDevice, &propertyCount, layerProperties.data());
-    std::cout << "Device Layers:\n";
-    for (int i = 0;i < propertyCount;i++) {
-        std::cout << layerProperties[i].layerName << "\n";
-    }
+    std::cout << "Device Layers:" << propertyCount << "\n";
+    // for (int i = 0;i < propertyCount;i++) {
+    //     std::cout << layerProperties[i].layerName << "\n";
+    // }
 
     propertyCount = 0;
     std::vector<VkExtensionProperties> extensionProperties = {};
@@ -271,15 +271,29 @@ void printDeviceLayersAndExt(VkPhysicalDevice& physicalDevice) {
     extensionProperties.resize(propertyCount);
     vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &propertyCount, extensionProperties.data());
 
-    std::cout << "Device Extensions:\n";
-    for (int i = 0;i < propertyCount;i++) {
-        std::cout << extensionProperties[i].extensionName << "\n";
-    }
+    std::cout << "Device Extensions:" << propertyCount << "\n";
+    // for (int i = 0;i < propertyCount;i++) {
+    //     std::cout << extensionProperties[i].extensionName << "\n";
+    // }
+}
+
+VkBuffer createBuffer(VkDevice& device, VkBuffer& buffer) {
+    static const VkBufferCreateInfo bufferCreateInfo = {
+        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        nullptr,
+        0,
+        1024 * 1024,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        VK_SHARING_MODE_EXCLUSIVE,
+        0 , nullptr
+    };
+
+    vkCreateBuffer(device, &bufferCreateInfo, nullptr, &buffer);
 }
 void Application::cleanup() {
     vkDeviceWaitIdle(m_device);
-    vkDestroyDevice(m_device,nullptr);
-    vkDestroyInstance(m_instance,nullptr);
+    vkDestroyDevice(m_device, nullptr);
+    vkDestroyInstance(m_instance, nullptr);
 }
 VkResult Application::init() {
     VkResult result = createInstance(m_instance);
@@ -302,7 +316,10 @@ VkResult Application::init() {
 
     printInstanceLayersAndExt();
     printDeviceLayersAndExt(m_physicalDevice);
-    
+
+    VkBuffer buffer = VK_NULL_HANDLE;
+    createBuffer(m_device, buffer);
+
     return VK_SUCCESS;
 }
 
