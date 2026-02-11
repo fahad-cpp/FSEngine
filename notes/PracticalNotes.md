@@ -282,3 +282,29 @@ void Allocator::free(void* pUserData, void* pMemory){
     static_cast<Allocator*>(pUserData)->free(pMemory);
 }
 ```
+
+## Listing 2.3 Creating a Buffer Object
+```cpp
+VkBuffer createBuffer(VkDevice& device, VkBuffer& buffer) {
+    static const VkBufferCreateInfo bufferCreateInfo = {
+        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        nullptr,
+        0,
+        1024 * 1024,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        VK_SHARING_MODE_EXCLUSIVE,
+        0 , nullptr
+    };
+
+    vkCreateBuffer(device, &bufferCreateInfo, nullptr, &buffer);
+}
+VkResult Application::init(){
+    ...
+    ...
+    
+    VkBuffer buffer = VK_NULL_HANDLE;
+    createBuffer(m_device, buffer);
+
+    return VK_SUCCESS;
+}
+```
