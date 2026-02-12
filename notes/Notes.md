@@ -191,3 +191,40 @@ when *`sharingMode`* is set to `VK_SHARING_MODE_EXCLUSIVE` *`pQueueFamilyIndices
 Listing 2.3 added to [PracticalNotes](PracticalNotes.md)
 
 After the code in Listing 2.3 is run , a new VkBuffer handle is created and placed in the `buffer` variable , the buffer is not yet fully usable because it first needs to be backed with memory. This operation is covered in "Device Memory Management" Later in this chapter 
+
+## Formats and Support
+
+while buffers are simple resources and do not have any notion of the format of the data they contain , images and buffer views (which will be covered later) do include information about their content. part of that information describes the format of the data in the resource . Some formats have special requirements / restrictions on their use in certain parts of the pipeline. For example, some formats might be readable but not writable , which common with compressed formats.
+
+to get level of support for a format you can call :
+vkGetPhysicalDeviceFormatProperties() , the prototype of which is:
+```cpp
+VkGetPhysicalDeviceFormatProperties(
+    VkPhysicalDevice    physicalDevice,
+    VkFormat            format,
+    VkFormatProperties* pFormatProperties
+);
+```
+
+*`physicalDevice`* = the physical device that you want to see support of the image in.
+
+*`format`* = the format which you want to see level of support for.
+
+*`pFormatProperties`* = properties of format will be output in instance of VkFormatProperties in this object.
+
+VkFormatProperties prototype:
+```cpp
+typedef struct VkFormatProperties{
+    VkFormatFeatureFlags    linearTilingFeatures;
+    VkFormatFeatureFlags    optimalTilingFeatures;
+    VKFormatFeatureFlags    bufferFeatures;
+}VkFormatProperties;
+```
+
+an image can be in one of two primary tiling modes : linear in which data is laid out linearly in memory , and optimal in which data is laid out in highly optimized pattern which make efficient use of device's memory subsystem. 
+
+*`linearTilingFeatures`* = level of support for a format in linear tiling mode
+
+*`optimalTilingFeatures`* = level of support for a format in optimal tiling mode
+
+*`bufferFeatures`* = level of support for a format when used in a buffer
