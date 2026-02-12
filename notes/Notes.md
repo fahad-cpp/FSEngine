@@ -197,9 +197,9 @@ After the code in Listing 2.3 is run , a new VkBuffer handle is created and plac
 while buffers are simple resources and do not have any notion of the format of the data they contain , images and buffer views (which will be covered later) do include information about their content. part of that information describes the format of the data in the resource . Some formats have special requirements / restrictions on their use in certain parts of the pipeline. For example, some formats might be readable but not writable , which common with compressed formats.
 
 to get level of support for a format you can call :
-vkGetPhysicalDeviceFormatProperties() , the prototype of which is:
+`vkGetPhysicalDeviceFormatProperties()` , the prototype of which is:
 ```cpp
-VkGetPhysicalDeviceFormatProperties(
+void vkGetPhysicalDeviceFormatProperties(
     VkPhysicalDevice    physicalDevice,
     VkFormat            format,
     VkFormatProperties* pFormatProperties
@@ -210,7 +210,7 @@ VkGetPhysicalDeviceFormatProperties(
 
 *`format`* = the format which you want to see level of support for.
 
-*`pFormatProperties`* = properties of format will be output in instance of VkFormatProperties in this object.
+*`pFormatProperties`* = properties of format will be output in instance of `VkFormatProperties` in this object.
 
 VkFormatProperties prototype:
 ```cpp
@@ -228,3 +228,103 @@ an image can be in one of two primary tiling modes : linear in which data is lai
 *`optimalTilingFeatures`* = level of support for a format in optimal tiling mode
 
 *`bufferFeatures`* = level of support for a format when used in a buffer
+
+the various bits that might be included in these bitfields are defined as below:
+
+- `VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT` : The format may be used in read only images that will be sampled by shaders.
+
+- `VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT` : Filter modes that include linear filtering may be used when this format is used for a sampled image.
+
+- `VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT` : The format may be used in read-write images that can be read or written by shaders.
+
+- `VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT` : The format may be used in read-write images that also support atomic operations by shaders.
+
+- `VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT` : The format may be used in read-only texel buffers that will be read from shaders.
+
+- `VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT` : The format may be used in read-write texel buffers that will be read from or written to by shaders.
+
+- `VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT` : The format may be used in read-write texel buffers that support atomic operations by shaders.
+
+- `VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT` : The format may be used as the source of the vertex data by the vertex-assembly stage of the graphics pipeline.
+
+- `VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT` : The format may be used as the color attachment by the color-blend stage of the graphics pipeline
+
+- `VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT` : Images with this format may be used as color attachments when blending is enabled.
+
+- `VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMMENT_BIT` : The format may be used as depth, stencil or depth-stencil attachment.
+
+- `VK_FORMAT_FEATURE_BLIT_SRC_BIT` : The format may be used as the source of data in an image copy operation.
+
+- `VK_FORMAT_FEATURE_BLIT_DST_BIT` : The format may be used as the destination in an image copy operation.
+
+Many formats will have a number of format support bits turned on. in fact , many formats are compulsory to support. A complete list of the mandatory formats is contained in the Vulkan spec. 
+
+The `vkGetPhysicalDeviceFormatProperties()` only shows whether a format may be used at all under particular scenarios. for images especially , there may be more complex interaction between a specific format and its effect on the level of support within an image. So to get even more information about a format when used in images:
+
+call : `vkGetPhysicalDeviceImageFormatProperties()` , the prototype of which is:
+
+```cpp
+VkResult vkGetPhysicalDeviceImageFormatProperties(
+    VkPhysicalDevice            physicalDevice,
+    VkFormat                    format,
+    VkImageType                 type,
+    VKImageTiling               tiling,
+    VkImageUsageFlags           usage,
+    VkImageCreateFlags          flags,
+    VkImageFormatProperties*    pImageFormatProperties
+);
+```
+
+like `vkGetPhysicalDeviceFormatProperties()`, `vkGetPhysicalDeviceImageFormatProperties()` takes a `physicalDevice` and `format`
+
+*`physicalDevice`* = physical device
+
+*`format`* = format you are querying support for
+
+*`type`* = The type of the image , 1D,2D or 3D :
+-  `VK_IMAGE_TYPE_1D`
+-  `VK_IMAGE_TYPE_2D`
+-  `VK_IMAGE_TYPE_3D`
+
+*`tiling`* = The tiling mode for the image:
+- `VK_IMAGE_TILING_LINEAR` OR
+- `VK_IMAGE_TILING_OPTIMAL`
+
+*`usage`* = bitfield indicating how the image is to be used , discussed ,later in this chapter.
+
+*`flags`* = should be set to the value used when creating the image which will use this format.
+
+*`pImageFormatProperties`* = information about the level of support is written to this instance of `VkImageFormatProperties`.
+
+The prototype of `VkImageFormatProperties` :
+
+```cpp
+typedef struct VkImageFormatProperties{
+    VkExtent3D          maxExtent;
+    uint32_t            maxMipLevels;
+    uint32_t            maxArrayLayers;
+    VkSampleCountFlags  sampleCounts;
+    VkDeviceSize        maxResourceSize;
+}VkImageFormatProperties;
+```
+
+*`maxExtent`* = maximum size of an image that can be created with this format. For example, images with fewer bits per pixel may support creating larger images than those with wider bits per pixel
+prototype of `VkExtent3D`
+
+```cpp
+typedef struct VkExtent3D{
+    uint32_t width;
+    uint32_t height;
+    uint32_t depth;
+}VkExtent3D;
+```
+
+*`maxMipLevels`* = maximum number of mipmap levels supported for an image of the requested format with the other parameters passed to `vkGetPhysicalDeviceImageFormatProperties()` , maxMipLevels will report 
+`log2(max(extent.x,extent.y,extent.z))` for the image when mipmaps are supported , or 1 when mipmaps are not supported.
+
+*`maxArrayLayers`* = maximum number of array layers supported for the image. this is supposed to be fairy high number if arrays are supported and 1 if arrays are not supported ,
+
+*`sampleCounts`* = supported sample counts , bitfield containing one bit for each supported sample count. if bit n is set then images with 2^n samples are supported. for example if bit 0 is set then it supports 1 sample per pixel if bit 2 is set then 2 for bit 3 it supports 4 samples and so on , if the format is supported at all atleast one bit will be set
+
+maxResourceSize = this field specifies maximum size in bytes that a resource in this format might be. this should not be confused with maximum extent, which reports maximum size in dimension that an image supports. if an implementation reports 16384 x 16384 pixels x 2048 Layers , with a format containing 128 bits per pixel then creating an image of the maximum extent in every dimension would produce 8 TiB of Image data.
+
