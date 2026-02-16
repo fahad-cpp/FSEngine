@@ -1,7 +1,7 @@
 #include "Application.h"
 #include <iostream>
 #define SELECTED_DEVICE 0
-static VkResult createInstance(VkInstance& instance,const char* instanceExtensions[]) {
+static VkResult createInstance(VkInstance& instance, const char* instanceExtensions[], const char* instanceLayers[]) {
     //Application Info
     VkApplicationInfo applicationInfo = {};
     applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -17,8 +17,8 @@ static VkResult createInstance(VkInstance& instance,const char* instanceExtensio
     instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceCreateInfo.pNext = nullptr;
     instanceCreateInfo.pApplicationInfo = &applicationInfo;
-    instanceCreateInfo.enabledLayerCount = 0;
-    instanceCreateInfo.ppEnabledLayerNames = nullptr;
+    instanceCreateInfo.enabledLayerCount = 1;
+    instanceCreateInfo.ppEnabledLayerNames = instanceLayers;
     instanceCreateInfo.enabledExtensionCount = 2;
     instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions;
 
@@ -151,7 +151,7 @@ void getPhysicalDeviceProperties(VkPhysicalDevice& physicalDevice) {
     //     std::cout << "\t\tQueue Flags:" << getQueueFlagString(queueFamilyProperties[j].queueFlags) << "\n";
     // }
 }
-uint32_t getQueueFamilyIndex(VkPhysicalDevice& physicalDevice) {
+uint32_t getQueueFamilyIndex(const VkPhysicalDevice& physicalDevice) {
     uint32_t index = 0;
     uint32_t propertyCount = 0;
     std::vector<VkQueueFamilyProperties> properties;
@@ -168,7 +168,7 @@ uint32_t getQueueFamilyIndex(VkPhysicalDevice& physicalDevice) {
 
     return index;
 }
-VkResult createDevice(VkPhysicalDevice& physicalDevice, VkDevice& device) {
+VkResult createDevice(VkPhysicalDevice& physicalDevice, VkDevice& device, const char* deviceLayers[],const char* deviceExtensions[]) {
 
     uint32_t familyIndex = getQueueFamilyIndex(physicalDevice);
 
@@ -184,13 +184,14 @@ VkResult createDevice(VkPhysicalDevice& physicalDevice, VkDevice& device) {
     requiredFeatures.geometryShader = VK_TRUE;
 
     //Queue Create Info
+    float priority = 1.f;
     VkDeviceQueueCreateInfo queueCreateInfo = {};
     queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
     queueCreateInfo.pNext = nullptr;
     queueCreateInfo.flags = 0;
     queueCreateInfo.queueCount = 1;
     queueCreateInfo.queueFamilyIndex = familyIndex;
-    queueCreateInfo.pQueuePriorities = nullptr;
+    queueCreateInfo.pQueuePriorities = &priority;
 
     //Device Create Info
     VkDeviceCreateInfo deviceCreateInfo = {};
@@ -199,10 +200,10 @@ VkResult createDevice(VkPhysicalDevice& physicalDevice, VkDevice& device) {
     deviceCreateInfo.flags = 0;
     deviceCreateInfo.queueCreateInfoCount = 1;
     deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
-    deviceCreateInfo.enabledLayerCount = 0;
-    deviceCreateInfo.ppEnabledLayerNames = nullptr;
-    deviceCreateInfo.enabledExtensionCount = 0;
-    deviceCreateInfo.ppEnabledExtensionNames = nullptr;
+    deviceCreateInfo.enabledLayerCount = 1;
+    deviceCreateInfo.ppEnabledLayerNames = deviceLayers;
+    deviceCreateInfo.enabledExtensionCount = 1;
+    deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions;
     deviceCreateInfo.pEnabledFeatures = &requiredFeatures;
 
     return vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device);
@@ -227,9 +228,9 @@ void printInstanceLayersAndExt() {
     extensionProperties.resize(propertyCount);
     vkEnumerateInstanceExtensionProperties(nullptr, &propertyCount, extensionProperties.data());
     std::cout << "Instance Extensions:" << propertyCount << "\n";
-    for (int i = 0;i < propertyCount;i++) {
-        std::cout << extensionProperties[i].extensionName << "\n";
-    }
+    // for (int i = 0;i < propertyCount;i++) {
+    //     std::cout << extensionProperties[i].extensionName << "\n";
+    // }
 }
 void printDeviceLayersAndExt(VkPhysicalDevice& physicalDevice) {
     uint32_t propertyCount = 0;
@@ -269,52 +270,89 @@ VkResult createBuffer(VkDevice& device, VkBuffer& buffer) {
 
     return vkCreateBuffer(device, &bufferCreateInfo, nullptr, &buffer);
 }
-VkResult createSurface(const VkInstance& instance,HWND& windowHandle,VkSurfaceKHR& surface){
-    #ifdef _WIN32
+VkResult createSurface(const VkInstance& instance, HWND& windowHandle, VkSurfaceKHR& surface) {
+#ifdef _WIN32
     VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
-    surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_DISPLAY_SURFACE_CREATE_INFO_KHR;
+    surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     surfaceCreateInfo.pNext = nullptr;
     surfaceCreateInfo.hwnd = windowHandle;
     surfaceCreateInfo.hinstance = GetModuleHandleA(nullptr);
-    return vkCreateWin32SurfaceKHR(instance,&surfaceCreateInfo,nullptr,&surface);
-    #elif __linux__
-    //vkCreateXlibSurfaceKHR();
-    #endif
+    return vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
+#elif __linux__
+    VkXlibSurfaceCreateInfoKHR surfaceCreateInfo = {};
+    surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
+    surfaceCreateInfo.pNext = nullptr;
+    return vkCreateXlibSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
+#endif
 }
-VkResult createSwapchain(const VkDevice& device,VkSwapchainKHR& swapchain){
-    VkSwapchainCreateInfoKHR swapchainCreateInfo;
+VkResult createSwapchain(const VkPhysicalDevice& physicalDevice, const VkDevice& device, const VkSurfaceKHR& surface, VkSwapchainKHR& swapchain) {
+    uint32_t formatCount;
+    std::vector<VkSurfaceFormatKHR> formats;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr);
+    formats.resize(formatCount);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, formats.data());
+
+    VkSurfaceCapabilitiesKHR caps;
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &caps);
+    VkSurfaceFormatKHR chosenFormat = formats[0];
+
+    VkSwapchainCreateInfoKHR swapchainCreateInfo = {};
     swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     swapchainCreateInfo.pNext = nullptr;
+    swapchainCreateInfo.surface = surface;
+    swapchainCreateInfo.minImageCount = (caps.minImageCount <= 2) ? 2 : caps.minImageCount;
+    swapchainCreateInfo.imageFormat = chosenFormat.format;
+    swapchainCreateInfo.imageColorSpace = chosenFormat.colorSpace;
+    swapchainCreateInfo.imageArrayLayers = 1;
+    swapchainCreateInfo.imageExtent = caps.currentExtent;
+    swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    swapchainCreateInfo.queueFamilyIndexCount = 0;
+    swapchainCreateInfo.pQueueFamilyIndices = nullptr;
+    swapchainCreateInfo.preTransform = caps.currentTransform;
+    swapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    swapchainCreateInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+    swapchainCreateInfo.clipped = VK_TRUE;
+    swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
-    return vkCreateSwapchainKHR(device,&swapchainCreateInfo,nullptr,&swapchain);
+    return vkCreateSwapchainKHR(device, &swapchainCreateInfo, nullptr, &swapchain);
 }
 void Application::cleanup() {
+    vkDestroySwapchainKHR(m_device,m_swapchain,nullptr);
+    vkDestroySurfaceKHR(m_instance,m_surface,nullptr);
+    vkDestroyBuffer(m_device,m_buffer,nullptr);
     vkDeviceWaitIdle(m_device);
     vkDestroyDevice(m_device, nullptr);
     vkDestroyInstance(m_instance, nullptr);
 }
+LRESULT windowProcedure(HWND window, UINT msg, WPARAM wParam, LPARAM lParam) {
+    return DefWindowProcA(window, msg, wParam, lParam);
+}
 int Application::init() {
-    if (createInstance(m_instance,instanceExtensions) != VK_SUCCESS) {
+    if (createInstance(m_instance, instanceExtensions, instanceLayers) != VK_SUCCESS) {
         std::cerr << "Failed to create Instance\n";
         return 1;
-    }else{
+    }
+    else {
         std::cout << "Successfully created Instance\n";
     }
 
     if (getPhysicalDevice(m_instance, m_physicalDevice) != VK_SUCCESS) {
         std::cerr << "Failed to query Physical Device\n";
         return 1;
-    }else{
+    }
+    else {
         std::cout << "Successfully Received Physical Device\n";
     }
 
     getPhysicalDeviceProperties(m_physicalDevice);
 
 
-    if (createDevice(m_physicalDevice, m_device) != VK_SUCCESS) {
+    if (createDevice(m_physicalDevice, m_device, deviceLayers,deviceExtensions) != VK_SUCCESS) {
         std::cerr << "Failed to create Logical Device\n";
         return 1;
-    }else{
+    }
+    else {
         std::cout << "Successfully created Logical Device\n";
     }
 
@@ -322,29 +360,44 @@ int Application::init() {
     printInstanceLayersAndExt();
     printDeviceLayersAndExt(m_physicalDevice);
 
-    VkBuffer buffer = VK_NULL_HANDLE;
-    if(createBuffer(m_device, buffer) != VK_SUCCESS){
+    if (createBuffer(m_device, m_buffer) != VK_SUCCESS) {
         std::cerr << "Failed to create buffer\n";
         return 1;
-    }else{
+    }
+    else {
         std::cout << "Successfully created buffer\n";
     }
-    WNDCLASSA windowClass = {};
-    windowClass.style = WS_OVERLAPPEDWINDOW;
-    windowClass.hInstance = GetModuleHandle(NULL);
-    windowClass.lpszClassName = "MyClassName";
-    HWND window = CreateWindowA(windowClass.lpszClassName,"Hello",WS_MAXIMIZE | WS_MINIMIZE,0,0,720,720,NULL,NULL,windowClass.hInstance,NULL);
+
+#ifdef _WIN32
+    WNDCLASSA mWindowClass = {};
+    mWindowClass.lpfnWndProc = windowProcedure;
+    mWindowClass.lpszClassName = "ClassName";
+    mWindowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+    mWindowClass.style = CS_HREDRAW | CS_VREDRAW;
+
+    RegisterClassA(&mWindowClass);
+
+    HWND window = CreateWindowA(mWindowClass.lpszClassName, "My lil Window", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 720, 720, NULL, NULL, NULL, NULL);
+#endif
+
     VkResult result;
-    if((result = createSurface(m_instance,window,m_surface)) != VK_SUCCESS){
+    if (createSurface(m_instance, window, m_surface) != VK_SUCCESS) {
         std::cerr << "Failed to create Surface\n";
-        std::cerr << result;
         return 1;
-    }else{
+    }
+    else {
         std::cout << "Successfully created surface\n";
+    }
+
+    if (createSwapchain(m_physicalDevice, m_device, m_surface, m_swapchain) != VK_SUCCESS) {
+        std::cerr << "Failed to create Swapchain\n";
+        return 1;
+    }
+    else {
+        std::cout << "Successfully created Swapchain\n";
     }
     return VK_SUCCESS;
 }
-
 void Application::run() {
     init();
     cleanup();

@@ -1,7 +1,7 @@
 @echo off
 setlocal
 set "EXENAME=VulkanApp.exe"
-set "CONFIG=Release"
+set "CONFIG=Debug"
 
 if not exist build mkdir build >nul 2>nul
 if exist "bin\%EXENAME%" del "bin\%EXENAME%" >nul 2>nul
@@ -27,5 +27,3 @@ popd
 
 "bin\%EXENAME%"
 endlocal
-
-pause
