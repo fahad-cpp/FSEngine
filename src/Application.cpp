@@ -1,7 +1,7 @@
 #include "Application.h"
 #include <iostream>
 #define SELECTED_DEVICE 0
-static VkResult createInstance(VkInstance& instance) {
+static VkResult createInstance(VkInstance& instance,const char* instanceExtensions[]) {
     //Application Info
     VkApplicationInfo applicationInfo = {};
     applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -19,20 +19,11 @@ static VkResult createInstance(VkInstance& instance) {
     instanceCreateInfo.pApplicationInfo = &applicationInfo;
     instanceCreateInfo.enabledLayerCount = 0;
     instanceCreateInfo.ppEnabledLayerNames = nullptr;
-    instanceCreateInfo.enabledExtensionCount = 0;
-    instanceCreateInfo.ppEnabledExtensionNames = nullptr;
+    instanceCreateInfo.enabledExtensionCount = 2;
+    instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions;
 
     //Create the Instance
-    VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
-
-    if (result == VK_SUCCESS) {
-        std::cout << "Successfully Created Vulkan Instace\n";
-    }
-    else {
-        std::cerr << "Failed to Create Vulkan Instance\n";
-    }
-
-    return result;
+    return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
 }
 VkResult getPhysicalDevice(VkInstance& instance, VkPhysicalDevice& physicalDevice) {
     //Enumerate Device
@@ -41,17 +32,14 @@ VkResult getPhysicalDevice(VkInstance& instance, VkPhysicalDevice& physicalDevic
     std::vector<VkPhysicalDevice> physicalDevices;
     result = vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr);
     if (result != VK_SUCCESS) {
-        std::cerr << "Failed to query Physical Devices\n";
         return result;
     }
 
     physicalDevices.resize(physicalDeviceCount);
     result = vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, physicalDevices.data());
     if (result != VK_SUCCESS) {
-        std::cerr << "Failed to receive Physical Devices\n";
         return result;
     }
-    std::cout << "Successfully received Physical Devices\n";
 
     //Select a device
     physicalDevice = physicalDevices[SELECTED_DEVICE];
@@ -217,16 +205,7 @@ VkResult createDevice(VkPhysicalDevice& physicalDevice, VkDevice& device) {
     deviceCreateInfo.ppEnabledExtensionNames = nullptr;
     deviceCreateInfo.pEnabledFeatures = &requiredFeatures;
 
-    VkResult result = vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device);
-
-    if (result != VK_SUCCESS) {
-        std::cerr << "Failed to create Logical Device\n";
-    }
-    else {
-        std::cout << "Successfully created Logical Device\n";
-    }
-
-    return result;
+    return vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device);
 }
 
 void printInstanceLayersAndExt() {
@@ -248,9 +227,9 @@ void printInstanceLayersAndExt() {
     extensionProperties.resize(propertyCount);
     vkEnumerateInstanceExtensionProperties(nullptr, &propertyCount, extensionProperties.data());
     std::cout << "Instance Extensions:" << propertyCount << "\n";
-    // for (int i = 0;i < propertyCount;i++) {
-    //     std::cout << extensionProperties[i].extensionName << "\n";
-    // }
+    for (int i = 0;i < propertyCount;i++) {
+        std::cout << extensionProperties[i].extensionName << "\n";
+    }
 }
 void printDeviceLayersAndExt(VkPhysicalDevice& physicalDevice) {
     uint32_t propertyCount = 0;
@@ -277,7 +256,7 @@ void printDeviceLayersAndExt(VkPhysicalDevice& physicalDevice) {
     // }
 }
 
-VkBuffer createBuffer(VkDevice& device, VkBuffer& buffer) {
+VkResult createBuffer(VkDevice& device, VkBuffer& buffer) {
     static const VkBufferCreateInfo bufferCreateInfo = {
         VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
         nullptr,
@@ -288,29 +267,55 @@ VkBuffer createBuffer(VkDevice& device, VkBuffer& buffer) {
         0 , nullptr
     };
 
-    vkCreateBuffer(device, &bufferCreateInfo, nullptr, &buffer);
+    return vkCreateBuffer(device, &bufferCreateInfo, nullptr, &buffer);
+}
+VkResult createSurface(const VkInstance& instance,HWND& windowHandle,VkSurfaceKHR& surface){
+    #ifdef _WIN32
+    VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
+    surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_DISPLAY_SURFACE_CREATE_INFO_KHR;
+    surfaceCreateInfo.pNext = nullptr;
+    surfaceCreateInfo.hwnd = windowHandle;
+    surfaceCreateInfo.hinstance = GetModuleHandleA(nullptr);
+    return vkCreateWin32SurfaceKHR(instance,&surfaceCreateInfo,nullptr,&surface);
+    #elif __linux__
+    //vkCreateXlibSurfaceKHR();
+    #endif
+}
+VkResult createSwapchain(const VkDevice& device,VkSwapchainKHR& swapchain){
+    VkSwapchainCreateInfoKHR swapchainCreateInfo;
+    swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    swapchainCreateInfo.pNext = nullptr;
+
+    return vkCreateSwapchainKHR(device,&swapchainCreateInfo,nullptr,&swapchain);
 }
 void Application::cleanup() {
     vkDeviceWaitIdle(m_device);
     vkDestroyDevice(m_device, nullptr);
     vkDestroyInstance(m_instance, nullptr);
 }
-VkResult Application::init() {
-    VkResult result = createInstance(m_instance);
-    if (result != VK_SUCCESS) {
-        return result;
+int Application::init() {
+    if (createInstance(m_instance,instanceExtensions) != VK_SUCCESS) {
+        std::cerr << "Failed to create Instance\n";
+        return 1;
+    }else{
+        std::cout << "Successfully created Instance\n";
     }
 
-    result = getPhysicalDevice(m_instance, m_physicalDevice);
-    if (result != VK_SUCCESS) {
-        return result;
+    if (getPhysicalDevice(m_instance, m_physicalDevice) != VK_SUCCESS) {
+        std::cerr << "Failed to query Physical Device\n";
+        return 1;
+    }else{
+        std::cout << "Successfully Received Physical Device\n";
     }
 
     getPhysicalDeviceProperties(m_physicalDevice);
 
-    result = createDevice(m_physicalDevice, m_device);
-    if (result != VK_SUCCESS) {
-        return result;
+
+    if (createDevice(m_physicalDevice, m_device) != VK_SUCCESS) {
+        std::cerr << "Failed to create Logical Device\n";
+        return 1;
+    }else{
+        std::cout << "Successfully created Logical Device\n";
     }
 
 
@@ -318,8 +323,25 @@ VkResult Application::init() {
     printDeviceLayersAndExt(m_physicalDevice);
 
     VkBuffer buffer = VK_NULL_HANDLE;
-    createBuffer(m_device, buffer);
-
+    if(createBuffer(m_device, buffer) != VK_SUCCESS){
+        std::cerr << "Failed to create buffer\n";
+        return 1;
+    }else{
+        std::cout << "Successfully created buffer\n";
+    }
+    WNDCLASSA windowClass = {};
+    windowClass.style = WS_OVERLAPPEDWINDOW;
+    windowClass.hInstance = GetModuleHandle(NULL);
+    windowClass.lpszClassName = "MyClassName";
+    HWND window = CreateWindowA(windowClass.lpszClassName,"Hello",WS_MAXIMIZE | WS_MINIMIZE,0,0,720,720,NULL,NULL,windowClass.hInstance,NULL);
+    VkResult result;
+    if((result = createSurface(m_instance,window,m_surface)) != VK_SUCCESS){
+        std::cerr << "Failed to create Surface\n";
+        std::cerr << result;
+        return 1;
+    }else{
+        std::cout << "Successfully created surface\n";
+    }
     return VK_SUCCESS;
 }
 
