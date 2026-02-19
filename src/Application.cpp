@@ -300,7 +300,7 @@ VkResult createSwapchain(const VkPhysicalDevice& physicalDevice, const VkDevice&
     swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     swapchainCreateInfo.pNext = nullptr;
     swapchainCreateInfo.surface = surface;
-    swapchainCreateInfo.minImageCount = (caps.minImageCount <= 2) ? 2 : caps.minImageCount;
+    swapchainCreateInfo.minImageCount = (caps.minImageCount <= 2 && caps.maxImageCount >= 2) ? 2 : caps.minImageCount;
     swapchainCreateInfo.imageFormat = chosenFormat.format;
     swapchainCreateInfo.imageColorSpace = chosenFormat.colorSpace;
     swapchainCreateInfo.imageArrayLayers = 1;
@@ -327,6 +327,19 @@ void Application::cleanup() {
 }
 LRESULT windowProcedure(HWND window, UINT msg, WPARAM wParam, LPARAM lParam) {
     return DefWindowProcA(window, msg, wParam, lParam);
+}
+HWND createWin32Window(){
+    WNDCLASSA mWindowClass = {};
+    mWindowClass.lpfnWndProc = windowProcedure;
+    mWindowClass.lpszClassName = "ClassName";
+    mWindowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+    mWindowClass.style = CS_HREDRAW | CS_VREDRAW;
+
+    RegisterClassA(&mWindowClass);
+
+    HWND window = CreateWindowA(mWindowClass.lpszClassName, "My lil Window", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 720, 720, NULL, NULL, NULL, NULL);
+
+    return window;
 }
 int Application::init() {
     if (createInstance(m_instance, instanceExtensions, instanceLayers) != VK_SUCCESS) {
@@ -369,15 +382,7 @@ int Application::init() {
     }
 
 #ifdef _WIN32
-    WNDCLASSA mWindowClass = {};
-    mWindowClass.lpfnWndProc = windowProcedure;
-    mWindowClass.lpszClassName = "ClassName";
-    mWindowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-    mWindowClass.style = CS_HREDRAW | CS_VREDRAW;
-
-    RegisterClassA(&mWindowClass);
-
-    HWND window = CreateWindowA(mWindowClass.lpszClassName, "My lil Window", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 720, 720, NULL, NULL, NULL, NULL);
+    HWND window =  createWin32Window();
 #endif
 
     VkResult result;
@@ -396,6 +401,9 @@ int Application::init() {
     else {
         std::cout << "Successfully created Swapchain\n";
     }
+    std::cin.get();
+
+    DestroyWindow(window);
     return VK_SUCCESS;
 }
 void Application::run() {
