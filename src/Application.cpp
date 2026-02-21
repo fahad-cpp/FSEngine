@@ -317,6 +317,28 @@ VkResult createSwapchain(const VkPhysicalDevice& physicalDevice, const VkDevice&
 
     return vkCreateSwapchainKHR(device, &swapchainCreateInfo, nullptr, &swapchain);
 }
+
+void getSwapchainImages(VkDevice& device,VkSwapchainKHR& swapchain,std::vector<VkImage>& swapchainImages){
+    uint32_t swapchainImageCount = 0;
+    vkGetSwapchainImagesKHR(device,swapchain,&swapchainImageCount,nullptr);
+    swapchainImages.resize(swapchainImageCount);
+    vkGetSwapchainImagesKHR(device,swapchain,&swapchainImageCount,swapchainImages.data());
+}
+
+VkResult createSwapchainImageViews(const VkDevice& device,std::vector<VkImage>& swapchainImages,std::vector<VkImageView>& swapchainImageViews){
+    VkResult result = VK_SUCCESS;
+    for(int i=0;i<swapchainImages.size();i++){
+        VkImageViewCreateInfo imageViewCreateInfo = {};
+        imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        imageViewCreateInfo.image = swapchainImages[i];
+        imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        
+        if((result = vkCreateImageView(device,&imageViewCreateInfo,nullptr,&swapchainImageViews[i])) != VK_SUCCESS){
+            return result;
+        }
+    }
+    return VK_SUCCESS;
+}
 void Application::cleanup() {
     vkDestroySwapchainKHR(m_device,m_swapchain,nullptr);
     vkDestroySurfaceKHR(m_instance,m_surface,nullptr);
@@ -401,7 +423,19 @@ int Application::init() {
     else {
         std::cout << "Successfully created Swapchain\n";
     }
+
+    getSwapchainImages(m_device,m_swapchain,m_swapchainImages);
+
+    if (createSwapchainImageViews(m_device,m_swapchainImages,m_swapchainImageViews) != VK_SUCCESS) {
+        std::cerr << "Failed to create Swapchain image views\n";
+        return 1;
+    }
+    else {
+        std::cout << "Successfully created Swapchain image views\n";
+    }
     std::cin.get();
+
+
 
     DestroyWindow(window);
     return VK_SUCCESS;

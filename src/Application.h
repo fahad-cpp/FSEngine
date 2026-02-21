@@ -16,6 +16,8 @@ class Application {
     VkSurfaceKHR                    m_surface;
     VkSwapchainKHR                  m_swapchain;
     VkBuffer                        m_buffer = VK_NULL_HANDLE;
+    std::vector<VkImage>            m_swapchainImages;
+    std::vector<VkImageView>        m_swapchainImageViews;
     const char* instanceLayers[1] = {
         "VK_LAYER_KHRONOS_validation"
     };
