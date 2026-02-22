@@ -2,24 +2,29 @@
 setlocal
 set "EXENAME=VulkanApp.exe"
 set "CONFIG=Debug"
+set "CLEANBUILD=NO"
 
 if not exist build mkdir build >nul 2>nul
 if exist "bin\%EXENAME%" del "bin\%EXENAME%" >nul 2>nul
 pushd build >nul 2>nul
 
+if not exist CMakeCache.txt set "CLEANBUILD=YES"
+if "%1" == "clean" set "CLEANBUILD=YES"
 
-if not exist CMakeCache.txt (
-    cmake .. -DCMAKE_BUILD_TYPE="%CONFIG%">nul 2>nul
+if "%CLEANBUILD%" == "YES" (
+    cmake .. -DCMAKE_BUILD_TYPE="%CONFIG%">nul 2>error.txt
     if errorlevel 1 (
         echo Cmake Configuration Failed.
+        type error.txt
         popd
         exit /b 1
     )
 )
 
-cmake --build . --config "%CONFIG%" --parallel >nul 2>nul
+cmake --build . --config "%CONFIG%" --parallel >error.txt 2>nul
 if errorlevel 1 (
     echo CMake Build Failed.
+    type error.txt
     popd
     exit /b 1
 )
