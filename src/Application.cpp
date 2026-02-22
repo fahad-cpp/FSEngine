@@ -270,6 +270,29 @@ VkResult createBuffer(VkDevice& device, VkBuffer& buffer) {
 
     return vkCreateBuffer(device, &bufferCreateInfo, nullptr, &buffer);
 }
+
+VkResult createImage(VkDevice& device,VkImage& image){
+    VkFormat selectedFormat = VK_FORMAT_R8G8B8A8_SRGB;
+    const VkImageCreateInfo imageCreateInfo = {
+        VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        nullptr, 0 , 
+        VK_IMAGE_TYPE_2D,
+        selectedFormat,
+        VkExtent3D{1920,1080,1},
+        10,
+        1,
+        VK_SAMPLE_COUNT_1_BIT,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_SHARING_MODE_EXCLUSIVE,
+        0,
+        nullptr,
+        VK_IMAGE_LAYOUT_UNDEFINED
+    };
+
+    return vkCreateImage(device,&imageCreateInfo,nullptr,&image);
+}
+
 VkResult createSurface(const VkInstance& instance, HWND& windowHandle, VkSurfaceKHR& surface) {
 #ifdef _WIN32
     VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
@@ -316,28 +339,6 @@ VkResult createSwapchain(const VkPhysicalDevice& physicalDevice, const VkDevice&
     swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
     return vkCreateSwapchainKHR(device, &swapchainCreateInfo, nullptr, &swapchain);
-}
-
-void getSwapchainImages(VkDevice& device,VkSwapchainKHR& swapchain,std::vector<VkImage>& swapchainImages){
-    uint32_t swapchainImageCount = 0;
-    vkGetSwapchainImagesKHR(device,swapchain,&swapchainImageCount,nullptr);
-    swapchainImages.resize(swapchainImageCount);
-    vkGetSwapchainImagesKHR(device,swapchain,&swapchainImageCount,swapchainImages.data());
-}
-
-VkResult createSwapchainImageViews(const VkDevice& device,std::vector<VkImage>& swapchainImages,std::vector<VkImageView>& swapchainImageViews){
-    VkResult result = VK_SUCCESS;
-    for(int i=0;i<swapchainImages.size();i++){
-        VkImageViewCreateInfo imageViewCreateInfo = {};
-        imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        imageViewCreateInfo.image = swapchainImages[i];
-        imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        
-        if((result = vkCreateImageView(device,&imageViewCreateInfo,nullptr,&swapchainImageViews[i])) != VK_SUCCESS){
-            return result;
-        }
-    }
-    return VK_SUCCESS;
 }
 void Application::cleanup() {
     vkDestroySwapchainKHR(m_device,m_swapchain,nullptr);
@@ -423,20 +424,16 @@ int Application::init() {
     else {
         std::cout << "Successfully created Swapchain\n";
     }
-
-    getSwapchainImages(m_device,m_swapchain,m_swapchainImages);
-
-    if (createSwapchainImageViews(m_device,m_swapchainImages,m_swapchainImageViews) != VK_SUCCESS) {
-        std::cerr << "Failed to create Swapchain image views\n";
+    
+    VkImage image;
+    if(createImage(m_device,image) != VK_SUCCESS){
+        std::cerr << "Failed to create Image\n";
         return 1;
-    }
-    else {
-        std::cout << "Successfully created Swapchain image views\n";
+    }else{
+        std::cout << "Successfully created Image\n";
     }
     std::cin.get();
-
-
-
+    vkDestroyImage(m_device,image,nullptr);
     DestroyWindow(window);
     return VK_SUCCESS;
 }
