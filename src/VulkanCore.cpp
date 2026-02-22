@@ -392,9 +392,15 @@ int VulkanCore::init() {
 
 #ifdef _WIN32
     HWND window = createWin32Window();
+    if (window) {
+        std::cout << "Successfully created Window\n";
+    }
+    else {
+        std::cerr << "Failed to create Window\n";
+        return 1;
+    }
 #endif
 
-    VkResult result;
     if (createSurface(m_instance, window, m_surface) != VK_SUCCESS) {
         std::cerr << "Failed to create Surface\n";
         return 1;
@@ -411,26 +417,26 @@ int VulkanCore::init() {
         std::cout << "Successfully created Swapchain\n";
     }
 
-    VkImage image;
-    if (createImage(m_device, image) != VK_SUCCESS) {
+
+    if (createImage(m_device, m_image) != VK_SUCCESS) {
         std::cerr << "Failed to create Image\n";
         return 1;
     }
     else {
         std::cout << "Successfully created Image\n";
     }
-    std::cin.get();
-    vkDestroyImage(m_device, image, nullptr);
-    std::cout << "Destroyed Image\n";
-    DestroyWindow(window);
     return VK_SUCCESS;
 }
 
 void VulkanCore::cleanup() {
+    vkDestroyImage(m_device, m_image, nullptr);
+    std::cout << "Destroyed Image\n";
     vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
     std::cout << "Destroyed Swapchain\n";
     vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
     std::cout << "Destroyed Surface\n";
+    DestroyWindow(m_window);
+    std::cout << "Destroyed Window\n";
     vkDestroyBuffer(m_device, m_buffer, nullptr);
     std::cout << "Destroyed Buffer\n";
     vkDeviceWaitIdle(m_device);

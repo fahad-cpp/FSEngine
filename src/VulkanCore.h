@@ -12,6 +12,7 @@ class VulkanCore {
     VkBuffer                        m_buffer = VK_NULL_HANDLE;
     std::vector<VkImage>            m_swapchainImages;
     std::vector<VkImageView>        m_swapchainImageViews;
+    VkImage                         m_image;
 
     //TODO(Abstract away window platform-specific)
     HWND                            m_window;
