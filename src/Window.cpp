@@ -16,4 +16,6 @@ HWND createWin32Window() {
 
     return window;
 }
+#elif __linux__
+
 #endif

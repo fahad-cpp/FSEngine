@@ -7,5 +7,6 @@ LRESULT windowProcedure(HWND window, UINT msg, WPARAM wParam, LPARAM lParam);
 HWND createWin32Window();
 #elif __linux__
 #define VK_USE_PLATFORM_XLIB_KHR
+#include <X11/Xlib.h>
 #endif
 #endif

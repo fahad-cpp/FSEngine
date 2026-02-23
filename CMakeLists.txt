@@ -13,4 +13,8 @@ add_executable(VulkanApp ${SOURCES})
 
 target_include_directories(VulkanApp PUBLIC ${VULKAN_INCLUDE})
 
+if(UNIX AND NOT APPLE)
+target_link_libraries(VulkanApp Vulkan::Vulkan X11)
+else()
 target_link_libraries(VulkanApp Vulkan::Vulkan)
+endif()

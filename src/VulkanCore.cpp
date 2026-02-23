@@ -244,9 +244,9 @@ void printDeviceLayersAndExt(VkPhysicalDevice& physicalDevice) {
     layerProperties.resize(propertyCount);
     vkEnumerateDeviceLayerProperties(physicalDevice, &propertyCount, layerProperties.data());
     std::cout << "Device Layers:" << propertyCount << "\n";
-    // for (int i = 0;i < propertyCount;i++) {
-    //     std::cout << layerProperties[i].layerName << "\n";
-    // }
+    for (int i = 0;i < propertyCount;i++) {
+        std::cout << layerProperties[i].layerName << "\n";
+    }
 
     propertyCount = 0;
     std::vector<VkExtensionProperties> extensionProperties = {};
@@ -256,9 +256,9 @@ void printDeviceLayersAndExt(VkPhysicalDevice& physicalDevice) {
     vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &propertyCount, extensionProperties.data());
 
     std::cout << "Device Extensions:" << propertyCount << "\n";
-    // for (int i = 0;i < propertyCount;i++) {
-    //     std::cout << extensionProperties[i].extensionName << "\n";
-    // }
+    for (int i = 0;i < propertyCount;i++) {
+        std::cout << extensionProperties[i].extensionName << "\n";
+    }
 }
 
 //Resources creation
@@ -300,8 +300,8 @@ VkResult createImage(VkDevice& device, VkImage& image) {
     return vkCreateImage(device, &imageCreateInfo, nullptr, &image);
 }
 
-VkResult createSurface(const VkInstance& instance, HWND& windowHandle, VkSurfaceKHR& surface) {
 #ifdef _WIN32
+VkResult createSurface(const VkInstance& instance, HWND& windowHandle, VkSurfaceKHR& surface) {
     VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
         .pNext = nullptr,
@@ -309,13 +309,19 @@ VkResult createSurface(const VkInstance& instance, HWND& windowHandle, VkSurface
         .hwnd = windowHandle
     };
     return vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
-#elif __linux__
-    VkXlibSurfaceCreateInfoKHR surfaceCreateInfo = {};
-    surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
-    surfaceCreateInfo.pNext = nullptr;
-    return vkCreateXlibSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
-#endif
 }
+#elif __linux__
+VkResult createSurface(const VkInstance& instance, Window& windowHandle, VkSurfaceKHR& surface){
+    VkXlibSurfaceCreateInfoKHR surfaceCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR,
+        .pNext = nullptr,
+        .flags = 0,
+        .dpy = XOpenDisplay(0),
+        .window = windowHandle
+    };
+    return vkCreateXlibSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
+}
+#endif
 VkResult createSwapchain(const VkPhysicalDevice& physicalDevice, const VkDevice& device, const VkSurfaceKHR& surface, VkSwapchainKHR& swapchain) {
     uint32_t formatCount;
     std::vector<VkSurfaceFormatKHR> formats;
@@ -331,7 +337,7 @@ VkResult createSwapchain(const VkPhysicalDevice& physicalDevice, const VkDevice&
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
         .pNext = nullptr,
         .surface = surface,
-        .minImageCount = (caps.minImageCount <= 2 && caps.maxImageCount >= 2) ? 2 : caps.minImageCount,
+        .minImageCount = (caps.minImageCount +1),
         .imageFormat = chosenFormat.format,
         .imageColorSpace = chosenFormat.colorSpace,
         .imageExtent = caps.currentExtent,
@@ -346,13 +352,14 @@ VkResult createSwapchain(const VkPhysicalDevice& physicalDevice, const VkDevice&
         .clipped = VK_TRUE,
         .oldSwapchain = VK_NULL_HANDLE
     };
-
     return vkCreateSwapchainKHR(device, &swapchainCreateInfo, nullptr, &swapchain);
 }
 
 int VulkanCore::init() {
-    if (createInstance(m_instance, instanceExtensions, instanceLayers) != VK_SUCCESS) {
+    VkResult result = createInstance(m_instance, instanceExtensions, instanceLayers);
+    if (result != VK_SUCCESS) {
         std::cerr << "Failed to create Instance\n";
+        std::cerr << result;
         return 1;
     }
     else {
@@ -391,17 +398,23 @@ int VulkanCore::init() {
     }
 
 #ifdef _WIN32
-    HWND window = createWin32Window();
-    if (window) {
+    m_window = createWin32Window();
+    if (m_window) {
         std::cout << "Successfully created Window\n";
     }
     else {
         std::cerr << "Failed to create Window\n";
         return 1;
     }
+#elif __linux__
+    m_display = XOpenDisplay(0);
+    Window RootWindow = XDefaultRootWindow(m_display);
+    m_window = XCreateSimpleWindow(m_display,RootWindow,0,0,720,720,0,0,0x000000);
+    XMapWindow(m_display,m_window);
+    XFlush(m_display);
 #endif
 
-    if (createSurface(m_instance, window, m_surface) != VK_SUCCESS) {
+    if (createSurface(m_instance, m_window, m_surface) != VK_SUCCESS) {
         std::cerr << "Failed to create Surface\n";
         return 1;
     }
@@ -435,7 +448,11 @@ void VulkanCore::cleanup() {
     std::cout << "Destroyed Swapchain\n";
     vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
     std::cout << "Destroyed Surface\n";
+    #ifdef _WIN32
     DestroyWindow(m_window);
+    #elif __linux__
+    XDestroyWindow(m_display,m_window);
+    #endif
     std::cout << "Destroyed Window\n";
     vkDestroyBuffer(m_device, m_buffer, nullptr);
     std::cout << "Destroyed Buffer\n";

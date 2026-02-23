@@ -15,17 +15,26 @@ class VulkanCore {
     VkImage                         m_image;
 
     //TODO(Abstract away window platform-specific)
+    #ifdef _WIN32
     HWND                            m_window;
+    #elif __linux__
+    Display*                        m_display;
+    Window                          m_window;
+    #endif
     const std::vector<const char*> instanceLayers = {
-        "VK_LAYER_KHRONOS_validation"
+        //"VK_LAYER_KHRONOS_validation"
     };
     const std::vector<const char*> instanceExtensions = {
         "VK_KHR_surface",
+        #ifdef _WIN32
         "VK_KHR_win32_surface"
+        #elif __linux__
+        "VK_KHR_xlib_surface"
+        #endif
     };
 
     const std::vector<const char*> deviceLayers = {
-        "VK_LAYER_KHRONOS_validation"
+        //"VK_LAYER_KHRONOS_validation"
     };
 
     const std::vector<const char*> deviceExtensions = {
