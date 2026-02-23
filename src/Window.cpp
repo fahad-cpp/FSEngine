@@ -17,5 +17,17 @@ HWND createWin32Window() {
     return window;
 }
 #elif __linux__
+Window createXlibWindow(){
+    Display* display = XOpenDisplay(0);
+    Window RootWindow = XDefaultRootWindow(display);
+    Window window = XCreateSimpleWindow(display,RootWindow,0,0,720,720,0,0,0x000000);
+    XMapWindow(display,window);
+    XFlush(display);
 
+    return window;
+}
+void deleteXlibWindow(Window& window){
+    Display* display = XOpenDisplay(0);
+    XDestroyWindow(display,window);
+}
 #endif

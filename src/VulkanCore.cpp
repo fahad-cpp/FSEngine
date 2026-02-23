@@ -220,7 +220,7 @@ void printInstanceLayersAndExt() {
 
     layerProperties.resize(propertyCount);
     vkEnumerateInstanceLayerProperties(&propertyCount, layerProperties.data());
-    std::cout << "Instance Layers:" << propertyCount << "\n";
+    //std::cout << "Instance Layers:" << propertyCount << "\n";
     // for (int i = 0;i < propertyCount;i++) {
     //     std::cout << layerProperties[i].layerName << "\n";
     // }
@@ -231,7 +231,7 @@ void printInstanceLayersAndExt() {
 
     extensionProperties.resize(propertyCount);
     vkEnumerateInstanceExtensionProperties(nullptr, &propertyCount, extensionProperties.data());
-    std::cout << "Instance Extensions:" << propertyCount << "\n";
+    //std::cout << "Instance Extensions:" << propertyCount << "\n";
     // for (int i = 0;i < propertyCount;i++) {
     //     std::cout << extensionProperties[i].extensionName << "\n";
     // }
@@ -243,10 +243,10 @@ void printDeviceLayersAndExt(VkPhysicalDevice& physicalDevice) {
 
     layerProperties.resize(propertyCount);
     vkEnumerateDeviceLayerProperties(physicalDevice, &propertyCount, layerProperties.data());
-    std::cout << "Device Layers:" << propertyCount << "\n";
-    for (int i = 0;i < propertyCount;i++) {
-        std::cout << layerProperties[i].layerName << "\n";
-    }
+    // std::cout << "Device Layers:" << propertyCount << "\n";
+    // for (int i = 0;i < propertyCount;i++) {
+    //     std::cout << layerProperties[i].layerName << "\n";
+    // }
 
     propertyCount = 0;
     std::vector<VkExtensionProperties> extensionProperties = {};
@@ -255,10 +255,10 @@ void printDeviceLayersAndExt(VkPhysicalDevice& physicalDevice) {
     extensionProperties.resize(propertyCount);
     vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &propertyCount, extensionProperties.data());
 
-    std::cout << "Device Extensions:" << propertyCount << "\n";
-    for (int i = 0;i < propertyCount;i++) {
-        std::cout << extensionProperties[i].extensionName << "\n";
-    }
+    // std::cout << "Device Extensions:" << propertyCount << "\n";
+    // for (int i = 0;i < propertyCount;i++) {
+    //     std::cout << extensionProperties[i].extensionName << "\n";
+    // }
 }
 
 //Resources creation
@@ -407,11 +407,14 @@ int VulkanCore::init() {
         return 1;
     }
 #elif __linux__
-    m_display = XOpenDisplay(0);
-    Window RootWindow = XDefaultRootWindow(m_display);
-    m_window = XCreateSimpleWindow(m_display,RootWindow,0,0,720,720,0,0,0x000000);
-    XMapWindow(m_display,m_window);
-    XFlush(m_display);
+    m_window = createXlibWindow();
+    if (m_window) {
+        std::cout << "Successfully created Window\n";
+    }
+    else {
+        std::cerr << "Failed to create Window\n";
+        return 1;
+    }
 #endif
 
     if (createSurface(m_instance, m_window, m_surface) != VK_SUCCESS) {
@@ -451,7 +454,7 @@ void VulkanCore::cleanup() {
     #ifdef _WIN32
     DestroyWindow(m_window);
     #elif __linux__
-    XDestroyWindow(m_display,m_window);
+    deleteXlibWindow(m_window);
     #endif
     std::cout << "Destroyed Window\n";
     vkDestroyBuffer(m_device, m_buffer, nullptr);
