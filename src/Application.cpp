@@ -1,6 +1,12 @@
 #include "Application.h"
 #include <iostream>
-
+/*
+    TODO(Fahad):
+    Make windowing seperate for different platforms
+    
+    Last learned:
+    -Images
+*/
 void Application::init() {
 
 }
