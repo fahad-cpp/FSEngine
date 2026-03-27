@@ -18,9 +18,9 @@ static VkResult createInstance(VkInstance& instance, const std::vector<const cha
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
         .pNext = nullptr,
         .pApplicationInfo = &applicationInfo,
-        .enabledLayerCount = instanceLayers.size(),
+        .enabledLayerCount = (uint32_t)instanceLayers.size(),
         .ppEnabledLayerNames = instanceLayers.data(),
-        .enabledExtensionCount = instanceExtensions.size(),
+        .enabledExtensionCount = (uint32_t)instanceExtensions.size(),
         .ppEnabledExtensionNames = instanceExtensions.data()
     };
 
@@ -203,9 +203,9 @@ VkResult createDevice(VkPhysicalDevice& physicalDevice, VkDevice& device, const 
         .flags = 0,
         .queueCreateInfoCount = 1,
         .pQueueCreateInfos = &queueCreateInfo,
-        .enabledLayerCount = deviceLayers.size(),
+        .enabledLayerCount = (uint32_t)deviceLayers.size(),
         .ppEnabledLayerNames = deviceLayers.data(),
-        .enabledExtensionCount = deviceExtensions.size(),
+        .enabledExtensionCount = (uint32_t)deviceExtensions.size(),
         .ppEnabledExtensionNames = deviceExtensions.data(),
         .pEnabledFeatures = &requiredFeatures
     };
