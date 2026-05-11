@@ -261,45 +261,6 @@ void printDeviceLayersAndExt(VkPhysicalDevice& physicalDevice) {
     // }
 }
 
-//Resources creation
-VkResult createBuffer(VkDevice& device, VkBuffer& buffer) {
-    static const VkBufferCreateInfo bufferCreateInfo = {
-        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .size = 1024 * 1024,
-        .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        .queueFamilyIndexCount = 0 ,
-        .pQueueFamilyIndices = nullptr
-    };
-
-    return vkCreateBuffer(device, &bufferCreateInfo, nullptr, &buffer);
-}
-
-VkResult createImage(VkDevice& device, VkImage& image) {
-    VkFormat selectedFormat = VK_FORMAT_R8G8B8A8_SRGB;
-    const VkImageCreateInfo imageCreateInfo = {
-        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .imageType = VK_IMAGE_TYPE_2D,
-        .format = selectedFormat,
-        .extent = VkExtent3D{1920,1080,1},
-        .mipLevels = 10,
-        .arrayLayers = 1,
-        .samples = VK_SAMPLE_COUNT_1_BIT,
-        .tiling = VK_IMAGE_TILING_OPTIMAL,
-        .usage = VK_IMAGE_USAGE_SAMPLED_BIT,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        .queueFamilyIndexCount = 0,
-        .pQueueFamilyIndices = nullptr,
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
-    };
-
-    return vkCreateImage(device, &imageCreateInfo, nullptr, &image);
-}
-
 #ifdef _WIN32
 VkResult createSurface(const VkInstance& instance, HWND& windowHandle, VkSurfaceKHR& surface) {
     VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {
@@ -311,7 +272,7 @@ VkResult createSurface(const VkInstance& instance, HWND& windowHandle, VkSurface
     return vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
 }
 #elif __linux__
-VkResult createSurface(const VkInstance& instance, Window& windowHandle, VkSurfaceKHR& surface){
+VkResult createSurface(const VkInstance& instance, Window& windowHandle, VkSurfaceKHR& surface) {
     VkXlibSurfaceCreateInfoKHR surfaceCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR,
         .pNext = nullptr,
@@ -337,7 +298,7 @@ VkResult createSwapchain(const VkPhysicalDevice& physicalDevice, const VkDevice&
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
         .pNext = nullptr,
         .surface = surface,
-        .minImageCount = (caps.minImageCount +1),
+        .minImageCount = (caps.minImageCount + 1),
         .imageFormat = chosenFormat.format,
         .imageColorSpace = chosenFormat.colorSpace,
         .imageExtent = caps.currentExtent,
@@ -355,10 +316,88 @@ VkResult createSwapchain(const VkPhysicalDevice& physicalDevice, const VkDevice&
     return vkCreateSwapchainKHR(device, &swapchainCreateInfo, nullptr, &swapchain);
 }
 
+//Resources creation
+VkResult createBuffer(VkDevice& device, VkBuffer& buffer) {
+    static const VkBufferCreateInfo bufferCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .size = 1024 * 1024,
+        .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .queueFamilyIndexCount = 0 ,
+        .pQueueFamilyIndices = nullptr
+    };
+
+    return vkCreateBuffer(device, &bufferCreateInfo, nullptr, &buffer);
+}
+
+VkResult createImage(VkPhysicalDevice& physicalDevice, VkDevice& device, VkImage& image) {
+    VkFormat selectedFormat = VK_FORMAT_R8G8B8A8_UNORM;
+    
+    //Optimal Image
+    // static const VkImageCreateInfo imageCreateInfo = {
+    //     .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+    //     .pNext = nullptr,
+    //     .flags = 0,
+    //     .imageType = VK_IMAGE_TYPE_2D,
+    //     .format = selectedFormat,
+    //     .extent = VkExtent3D{1920,1080,1},
+    //     .mipLevels = 10,
+    //     .arrayLayers = 1,
+    //     .samples = VK_SAMPLE_COUNT_1_BIT,
+    //     .tiling = VK_IMAGE_TILING_OPTIMAL,
+    //     .usage = VK_IMAGE_USAGE_SAMPLED_BIT,
+    //     .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+    //     .queueFamilyIndexCount = 0,
+    //     .pQueueFamilyIndices = nullptr,
+    //     .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+    // };
+
+    //Linear Image
+    static const VkImageCreateInfo imageCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .imageType = VK_IMAGE_TYPE_2D,
+        .format = selectedFormat,
+        .extent = VkExtent3D{1920,1080,1},
+        .mipLevels = 1,
+        .arrayLayers = 1,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .tiling = VK_IMAGE_TILING_LINEAR,
+        .usage = VK_IMAGE_USAGE_SAMPLED_BIT,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .queueFamilyIndexCount = 0,
+        .pQueueFamilyIndices = nullptr,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+    };
+    VkResult res = vkCreateImage(device, &imageCreateInfo, nullptr, &image);
+    if (res != VK_SUCCESS) {
+        return res;
+    }
+
+    const VkImageSubresource subresource = {
+        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .mipLevel = 0,
+        .arrayLayer = 0
+    };
+    VkSubresourceLayout subResLayout;
+    vkGetImageSubresourceLayout(device, image, &subresource, &subResLayout);
+
+    std::cout << "offset:" << subResLayout.offset << "\n";
+    std::cout << "size:" << subResLayout.size << "\n";
+    std::cout << "rowPitch:" << subResLayout.rowPitch << "\n";
+    std::cout << "arrayPitch:" << subResLayout.arrayPitch << "\n";
+    std::cout << "depthPitch:" << subResLayout.depthPitch << "\n";
+
+    return res;
+}
+
 int VulkanCore::init() {
     VkResult result = createInstance(m_instance, instanceExtensions, instanceLayers);
     if (result != VK_SUCCESS) {
-        std::cerr << "Failed to create Instance\n";
+        std::cerr << "Failed to create Instance:" << result << "\n";
         std::cerr << result;
         return 1;
     }
@@ -377,8 +416,8 @@ int VulkanCore::init() {
     getPhysicalDeviceProperties(m_physicalDevice);
 
 
-    if (createDevice(m_physicalDevice, m_device, deviceLayers, deviceExtensions) != VK_SUCCESS) {
-        std::cerr << "Failed to create Logical Device\n";
+    if ((result = createDevice(m_physicalDevice, m_device, deviceLayers, deviceExtensions)) != VK_SUCCESS) {
+        std::cerr << "Failed to create Logical Device:" << result << "\n";
         return 1;
     }
     else {
@@ -389,8 +428,8 @@ int VulkanCore::init() {
     printInstanceLayersAndExt();
     printDeviceLayersAndExt(m_physicalDevice);
 
-    if (createBuffer(m_device, m_buffer) != VK_SUCCESS) {
-        std::cerr << "Failed to create buffer\n";
+    if ((result = createBuffer(m_device, m_buffer)) != VK_SUCCESS) {
+        std::cerr << "Failed to create buffer:" << result << "\n";
         return 1;
     }
     else {
@@ -417,25 +456,25 @@ int VulkanCore::init() {
     }
 #endif
 
-    if (createSurface(m_instance, m_window, m_surface) != VK_SUCCESS) {
-        std::cerr << "Failed to create Surface\n";
+    if ((result = createSurface(m_instance, m_window, m_surface)) != VK_SUCCESS) {
+        std::cerr << "Failed to create Surface:" << result << "\n";
         return 1;
     }
     else {
         std::cout << "Successfully created surface\n";
     }
 
-    if (createSwapchain(m_physicalDevice, m_device, m_surface, m_swapchain) != VK_SUCCESS) {
-        std::cerr << "Failed to create Swapchain\n";
+    if ((result = createSwapchain(m_physicalDevice, m_device, m_surface, m_swapchain)) != VK_SUCCESS) {
+        std::cerr << "Failed to create Swapchain:" << result << "\n";
         return 1;
     }
     else {
         std::cout << "Successfully created Swapchain\n";
     }
 
-
-    if (createImage(m_device, m_image) != VK_SUCCESS) {
-        std::cerr << "Failed to create Image\n";
+    result = createImage(m_physicalDevice, m_device, m_image);
+    if (result != VK_SUCCESS) {
+        std::cerr << "Failed to create Image:" << result << "\n";
         return 1;
     }
     else {
@@ -451,11 +490,11 @@ void VulkanCore::cleanup() {
     std::cout << "Destroyed Swapchain\n";
     vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
     std::cout << "Destroyed Surface\n";
-    #ifdef _WIN32
+#ifdef _WIN32
     DestroyWindow(m_window);
-    #elif __linux__
+#elif __linux__
     deleteXlibWindow(m_window);
-    #endif
+#endif
     std::cout << "Destroyed Window\n";
     vkDestroyBuffer(m_device, m_buffer, nullptr);
     std::cout << "Destroyed Buffer\n";

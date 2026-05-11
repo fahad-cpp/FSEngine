@@ -111,7 +111,7 @@ void VKAPI_CALL pfnInternalFreeNotification (
 
 if you supply one function you must supply both , if you dont want to supply these functions you can pass `nullptr` to both functions.
 
-Listing 2.1 and Listing 2.2 added to [PracticalNotes](PracticalNotes.md)
+Listing 2.1 and Listing 2.2 added to [PracticalNotes](PracticalNotes.md#listing-21-declaration-of-a-memory-allocator)
 
 ## Resources
 
@@ -188,7 +188,7 @@ using `VK_SHARING_MODE_CONCURRENT` might result in lower performance on some sys
 
 when *`sharingMode`* is set to `VK_SHARING_MODE_EXCLUSIVE` *`pQueueFamilyIndices`* and *`queueFamilyIndexCount`* both are ignored
 
-Listing 2.3 added to [PracticalNotes](PracticalNotes.md)
+Listing 2.3 added to [PracticalNotes](PracticalNotes.md#listing-23-creating-a-buffer-object)
 
 After the code in Listing 2.3 is run , a new VkBuffer handle is created and placed in the `buffer` variable , the buffer is not yet fully usable because it first needs to be backed with memory. This operation is covered in "Device Memory Management" Later in this chapter 
 
@@ -327,4 +327,10 @@ typedef struct VkExtent3D{
 *`sampleCounts`* = supported sample counts , bitfield containing one bit for each supported sample count. if bit n is set then images with 2^n samples are supported. for example if bit 0 is set then it supports 1 sample per pixel if bit 2 is set then 2 for bit 3 it supports 4 samples and so on , if the format is supported at all atleast one bit will be set
 
 maxResourceSize = this field specifies maximum size in bytes that a resource in this format might be. this should not be confused with maximum extent, which reports maximum size in dimension that an image supports. if an implementation reports 16384 x 16384 pixels x 2048 Layers , with a format containing 128 bits per pixel then creating an image of the maximum extent in every dimension would produce 8 TiB of Image data.
+
+## Images
+
+*Listing 2.4* Added to [Practical Notes](PracticalNotes.md#listing-24-creating-an-image-object)
+
+### Linear images
 

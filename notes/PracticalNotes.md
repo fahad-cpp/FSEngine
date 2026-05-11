@@ -308,3 +308,30 @@ VkResult Application::init(){
     return VK_SUCCESS;
 }
 ```
+
+## Listing 2.4 Creating an Image Object
+
+```cpp
+VkResult createImage(VkDevice& device, VkImage& image) {
+    VkFormat selectedFormat = VK_FORMAT_R8G8B8A8_SRGB;
+    const VkImageCreateInfo imageCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .imageType = VK_IMAGE_TYPE_2D,
+        .format = selectedFormat,
+        .extent = VkExtent3D{1920,1080,1},
+        .mipLevels = 10,
+        .arrayLayers = 1,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .tiling = VK_IMAGE_TILING_OPTIMAL,
+        .usage = VK_IMAGE_USAGE_SAMPLED_BIT,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .queueFamilyIndexCount = 0,
+        .pQueueFamilyIndices = nullptr,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+    };
+
+    return vkCreateImage(device, &imageCreateInfo, nullptr, &image);
+}
+```

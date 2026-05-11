@@ -22,7 +22,7 @@ class VulkanCore {
     Window                          m_window;
     #endif
     const std::vector<const char*> instanceLayers = {
-        //"VK_LAYER_KHRONOS_validation"
+        "VK_LAYER_KHRONOS_validation"
     };
     const std::vector<const char*> instanceExtensions = {
         "VK_KHR_surface",
@@ -34,7 +34,7 @@ class VulkanCore {
     };
 
     const std::vector<const char*> deviceLayers = {
-        //"VK_LAYER_KHRONOS_validation"
+        "VK_LAYER_KHRONOS_validation"
     };
 
     const std::vector<const char*> deviceExtensions = {

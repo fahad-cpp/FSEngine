@@ -2,10 +2,11 @@
 #include <iostream>
 /*
     TODO(Fahad):
-    Make windowing seperate for different platforms
+    Integrate FSWindow into this for cross-platform linux-window windowing
+    (https://github.com/fahad-cpp/FSWindow)
     
     Last learned:
-    -Images
+    -Linear Images
 */
 void Application::init() {
 
@@ -16,5 +17,5 @@ void Application::run() {
 }
 
 void Application::cleanup() {
-
+    
 }
