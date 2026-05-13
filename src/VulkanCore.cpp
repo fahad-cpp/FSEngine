@@ -480,6 +480,15 @@ int VulkanCore::init() {
     else {
         std::cout << "Successfully created Image\n";
     }
+    
+    //Query Compressed formats support
+    VkPhysicalDeviceFeatures feat;
+    vkGetPhysicalDeviceFeatures(m_physicalDevice,&feat);
+    std::cout << ((feat.textureCompressionBC)? "BC texture compression supported\n" : "BC texture compression not supported\n");
+    std::cout << ((feat.textureCompressionETC2)? "ETC2 texture compression supported\n" : "ETC2 texture compression not supported\n");
+    std::cout << ((feat.textureCompressionASTC_LDR)? "ASTC texture compression supported\n" : "ASTC texture compression not supported\n");
+    
+    
     return VK_SUCCESS;
 }
 
