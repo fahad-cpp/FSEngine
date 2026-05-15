@@ -323,7 +323,7 @@ VkResult createBuffer(VkDevice& device, VkBuffer& buffer) {
         .pNext = nullptr,
         .flags = 0,
         .size = 1024 * 1024,
-        .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        .usage = VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT,
         .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
         .queueFamilyIndexCount = 0 ,
         .pQueueFamilyIndices = nullptr
@@ -488,7 +488,53 @@ int VulkanCore::init() {
     std::cout << ((feat.textureCompressionETC2)? "ETC2 texture compression supported\n" : "ETC2 texture compression not supported\n");
     std::cout << ((feat.textureCompressionASTC_LDR)? "ASTC texture compression supported\n" : "ASTC texture compression not supported\n");
     
-    
+    //Create buffer view
+    VkBufferViewCreateInfo bufferViewCreateInfo = {};
+    bufferViewCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
+    bufferViewCreateInfo.pNext = nullptr;
+    bufferViewCreateInfo.flags = 0;
+    bufferViewCreateInfo.buffer = m_buffer;
+    bufferViewCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    bufferViewCreateInfo.offset = 0;
+    bufferViewCreateInfo.range = 1024 * 1024;
+    VkBufferView bufferView;
+    result = vkCreateBufferView(m_device,&bufferViewCreateInfo,nullptr,&bufferView);
+    if(result != VK_SUCCESS){
+        std::cerr << "Failed to create Buffer View\n";
+    }else{
+        std::cout << "Successfully created buffer view\n";
+    }
+    vkDestroyBufferView(m_device,bufferView,nullptr);
+    std::cout << "Destoyed Buffer View\n";
+
+    VkImageSubresourceRange subresourceRange = {};
+    subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    subresourceRange.baseArrayLayer = 0;
+    subresourceRange.layerCount = 1;
+    subresourceRange.baseMipLevel = 0;
+    subresourceRange.levelCount = 1;
+
+    //Create Image View
+    VkImageViewCreateInfo imageViewCreateInfo = {};
+    imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    imageViewCreateInfo.pNext = nullptr;
+    imageViewCreateInfo.flags = 0;
+    imageViewCreateInfo.image = m_image;
+    imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    imageViewCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    imageViewCreateInfo.components = {};
+    imageViewCreateInfo.subresourceRange = subresourceRange;
+
+    VkImageView imageView;
+    result = vkCreateImageView(m_device,&imageViewCreateInfo,nullptr,&imageView);
+    if(result != VK_SUCCESS){
+        std::cerr << "Failed to create Image View\n";
+    }else{
+        std::cout << "Successfully created Image View\n";
+    }
+    vkDestroyImageView(m_device,imageView,nullptr);
+    std::cout << "Destroyed Image View\n";
+
     return VK_SUCCESS;
 }
 
