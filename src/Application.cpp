@@ -4,7 +4,7 @@
     TODO(Fahad):
     Integrate FSWindow into this for cross-platform linux-window windowing
     (https://github.com/fahad-cpp/FSWindow)
-    
+
     Last learned:
     -Linear Images
 */
@@ -17,5 +17,5 @@ void Application::run() {
 }
 
 void Application::cleanup() {
-    
+
 }

@@ -333,4 +333,3 @@ maxResourceSize = this field specifies maximum size in bytes that a resource in 
 *Listing 2.4* Added to [Practical Notes](PracticalNotes.md#listing-24-creating-an-image-object)
 
 ### Linear images
-
