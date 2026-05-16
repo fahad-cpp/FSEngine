@@ -20,9 +20,8 @@ class VulkanCore {
     std::vector<VkImage>            m_swapchainImages;
     std::vector<VkImageView>        m_swapchainImageViews;
     VkImage                         m_image;
-
-    //TODO(Abstract away window platform-specific)
     FS::Window* m_window;
+
     const std::vector<const char*> instanceLayers = {
         //"VK_LAYER_KHRONOS_validation"
     };
