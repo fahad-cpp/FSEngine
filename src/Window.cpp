@@ -12,7 +12,7 @@ HWND createWin32Window() {
 
     RegisterClassA(&mWindowClass);
 
-    HWND window = CreateWindowA(mWindowClass.lpszClassName, "My lil Window", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 720, 720, NULL, NULL, NULL, NULL);
+    HWND window = CreateWindowA(mWindowClass.lpszClassName, "VulkanApp Window", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 720, 720, NULL, NULL, NULL, NULL);
 
     return window;
 }
