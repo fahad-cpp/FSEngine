@@ -177,7 +177,7 @@ VkResult createDevice(VkPhysicalDevice& physicalDevice, VkDevice& device, const 
     VkPhysicalDeviceFeatures supportedFeatures;
     vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
 
-    //Specify required Features 
+    //Specify required Features
     //An Example where tesselation shader and geometry shaders are must have
     //and multiDrawIndirect is supported if the device supports it
     VkPhysicalDeviceFeatures requiredFeatures = {};
@@ -334,7 +334,7 @@ VkResult createBuffer(VkDevice& device, VkBuffer& buffer) {
 
 VkResult createImage(VkPhysicalDevice& physicalDevice, VkDevice& device, VkImage& image) {
     VkFormat selectedFormat = VK_FORMAT_R8G8B8A8_UNORM;
-    
+
     //Optimal Image
     // static const VkImageCreateInfo imageCreateInfo = {
     //     .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -480,14 +480,14 @@ int VulkanCore::init() {
     else {
         std::cout << "Successfully created Image\n";
     }
-    
+
     //Query Compressed formats support
     VkPhysicalDeviceFeatures feat;
     vkGetPhysicalDeviceFeatures(m_physicalDevice,&feat);
     std::cout << ((feat.textureCompressionBC)? "BC texture compression supported\n" : "BC texture compression not supported\n");
     std::cout << ((feat.textureCompressionETC2)? "ETC2 texture compression supported\n" : "ETC2 texture compression not supported\n");
     std::cout << ((feat.textureCompressionASTC_LDR)? "ASTC texture compression supported\n" : "ASTC texture compression not supported\n");
-    
+
     //Create buffer view
     VkBufferViewCreateInfo bufferViewCreateInfo = {};
     bufferViewCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
@@ -535,6 +535,63 @@ int VulkanCore::init() {
     vkDestroyImageView(m_device,imageView,nullptr);
     std::cout << "Destroyed Image View\n";
 
+
+    //Create Image Array (Cube map)
+    VkImageCreateInfo imageCreateInfo = {};
+    imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageCreateInfo.pNext = nullptr;
+    imageCreateInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+    imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    imageCreateInfo.extent = VkExtent3D{1080,1080,1}; // must be square for
+    imageCreateInfo.mipLevels = 1;
+    imageCreateInfo.arrayLayers = 6; //cube faces
+    imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    imageCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    imageCreateInfo.queueFamilyIndexCount = 0;
+    imageCreateInfo.pQueueFamilyIndices = nullptr;
+    imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    VkImage imageArray;
+    result = vkCreateImage(m_device, &imageCreateInfo, nullptr, &imageArray);
+    if (result != VK_SUCCESS) {
+        std::cerr << "Failed to create cubemap image object\n";
+    }else{
+        std::cout << "Successfully created cubemap image object\n";
+    }
+
+    VkImageSubresourceRange arraySubResRange;
+    arraySubResRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    arraySubResRange.baseArrayLayer = 0;
+    arraySubResRange.layerCount = 6;
+    arraySubResRange.baseMipLevel = 0;
+    arraySubResRange.levelCount = 1;
+
+    //Create Image Array View
+    VkImageViewCreateInfo arrayImageViewCreateInfo = {};
+    arrayImageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    arrayImageViewCreateInfo.pNext = nullptr;
+    arrayImageViewCreateInfo.flags = 0;
+    arrayImageViewCreateInfo.image = imageArray;
+    arrayImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+    arrayImageViewCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    arrayImageViewCreateInfo.components = {};
+    arrayImageViewCreateInfo.subresourceRange = arraySubResRange;
+
+    VkImageView arrayImageView;
+    result = vkCreateImageView(m_device, &arrayImageViewCreateInfo, nullptr, &arrayImageView);
+    if (result != VK_SUCCESS) {
+        std::cerr << "Failed to create cubemap image view\n";
+    }else{
+        std::cout << "Successfully created cubemap image view\n";
+    }
+
+    vkDestroyImageView(m_device, arrayImageView, nullptr);
+    std::cout << "Destoyed cubemap image view\n";
+    vkDestroyImage(m_device, imageArray, nullptr);
+    std::cout << "Destroyed cubemap image object";
     return VK_SUCCESS;
 }
 
