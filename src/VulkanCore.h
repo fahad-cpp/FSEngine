@@ -1,6 +1,13 @@
 #ifndef VULKANCORE_H
 #define VULKANCORE_H
-#include "Window.h"
+
+#ifdef _WIN32
+#define VK_USE_PLATFORM_WIN32_KHR
+#elif __linux__
+#define VK_USE_PLATFORM_XLIB_KHR
+#endif
+
+#include <FSWindow.h>
 #include <vulkan/vulkan.h>
 #include <vector>
 class VulkanCore {
@@ -15,14 +22,9 @@ class VulkanCore {
     VkImage                         m_image;
 
     //TODO(Abstract away window platform-specific)
-    #ifdef _WIN32
-    HWND                            m_window;
-    #elif __linux__
-    Display*                        m_display;
-    Window                          m_window;
-    #endif
+    FS::Window* m_window;
     const std::vector<const char*> instanceLayers = {
-        "VK_LAYER_KHRONOS_validation"
+        //"VK_LAYER_KHRONOS_validation"
     };
     const std::vector<const char*> instanceExtensions = {
         "VK_KHR_surface",
@@ -34,7 +36,7 @@ class VulkanCore {
     };
 
     const std::vector<const char*> deviceLayers = {
-        "VK_LAYER_KHRONOS_validation"
+        //"VK_LAYER_KHRONOS_validation"
     };
 
     const std::vector<const char*> deviceExtensions = {

@@ -262,23 +262,23 @@ void printDeviceLayersAndExt(VkPhysicalDevice& physicalDevice) {
 }
 
 #ifdef _WIN32
-VkResult createSurface(const VkInstance& instance, HWND& windowHandle, VkSurfaceKHR& surface) {
+VkResult createSurface(const VkInstance& instance, FS::Window& windowHandle, VkSurfaceKHR& surface) {
     VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
         .pNext = nullptr,
         .hinstance = GetModuleHandleA(nullptr),
-        .hwnd = windowHandle
+        .hwnd = windowHandle.getNative()
     };
     return vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
 }
 #elif __linux__
-VkResult createSurface(const VkInstance& instance, Window& windowHandle, VkSurfaceKHR& surface) {
+VkResult createSurface(const VkInstance& instance, FS::Window& windowHandle, VkSurfaceKHR& surface) {
     VkXlibSurfaceCreateInfoKHR surfaceCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR,
         .pNext = nullptr,
         .flags = 0,
         .dpy = XOpenDisplay(0),
-        .window = windowHandle
+        .window = windowHandle.getNative()
     };
     return vkCreateXlibSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
 }
@@ -436,27 +436,14 @@ int VulkanCore::init() {
         std::cout << "Successfully created buffer\n";
     }
 
-#ifdef _WIN32
-    m_window = createWin32Window();
-    if (m_window) {
-        std::cout << "Successfully created Window\n";
+    m_window = new FS::Window("Vulkan Window",720,720);
+    if(m_window->isOpen()){
+        std::cout << "Successfully created window\n";
+    }else{
+        std::cerr << "Failed to create window\n";
     }
-    else {
-        std::cerr << "Failed to create Window\n";
-        return 1;
-    }
-#elif __linux__
-    m_window = createXlibWindow();
-    if (m_window) {
-        std::cout << "Successfully created Window\n";
-    }
-    else {
-        std::cerr << "Failed to create Window\n";
-        return 1;
-    }
-#endif
 
-    if ((result = createSurface(m_instance, m_window, m_surface)) != VK_SUCCESS) {
+    if ((result = createSurface(m_instance, *m_window, m_surface)) != VK_SUCCESS) {
         std::cerr << "Failed to create Surface:" << result << "\n";
         return 1;
     }
@@ -602,11 +589,7 @@ void VulkanCore::cleanup() {
     std::cout << "Destroyed Swapchain\n";
     vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
     std::cout << "Destroyed Surface\n";
-#ifdef _WIN32
-    DestroyWindow(m_window);
-#elif __linux__
-    deleteXlibWindow(m_window);
-#endif
+    delete m_window;
     std::cout << "Destroyed Window\n";
     vkDestroyBuffer(m_device, m_buffer, nullptr);
     std::cout << "Destroyed Buffer\n";

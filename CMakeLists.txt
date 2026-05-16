@@ -11,11 +11,12 @@ set(VULKAN_INCLUDE "$ENV{VULKAN_SDK}/Include")
 file(GLOB SOURCES src/*.cpp src/*.h)
 
 add_executable(VulkanApp ${SOURCES})
+add_subdirectory(vendor/FSWindow)
 
 target_include_directories(VulkanApp PUBLIC ${VULKAN_INCLUDE})
 
 if(UNIX AND NOT APPLE)
-target_link_libraries(VulkanApp Vulkan::Vulkan X11)
+  target_link_libraries(VulkanApp Vulkan::Vulkan X11 FSWindow)
 else()
-target_link_libraries(VulkanApp Vulkan::Vulkan)
+  target_link_libraries(VulkanApp Vulkan::Vulkan FSWindow)
 endif()
