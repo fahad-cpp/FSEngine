@@ -5,13 +5,13 @@
     -Image Arrays
 */
 void Application::init() {
-
+    std::cout << "\nApplication::init()\n\n";
 }
 
 void Application::run() {
-    std::cin.get();
+    std::cout << "\nApplication::run()\n\n";
 }
 
 void Application::cleanup() {
-
+    std::cout << "\nApplication::cleanup()\n\n";
 }

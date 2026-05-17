@@ -1,7 +1,34 @@
 #include "VulkanCore.h"
 #include <iostream>
+#include <vector>
 #define SELECTED_DEVICE 0
-static VkResult createInstance(VkInstance& instance, const std::vector<const char*> instanceExtensions, const std::vector<const char*> instanceLayers) {
+const std::vector<const char*> checkSupportedInstanceLayers(const std::vector<const char*>& instanceLayers){
+    uint32_t layerCount = 0;
+    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+    std::vector<VkLayerProperties> layerProperties(layerCount);
+    vkEnumerateInstanceLayerProperties(&layerCount, layerProperties.data());
+    std::vector<const char*> finalLayers;
+    for(const std::string& layerName : instanceLayers){
+        bool supported = false;
+
+        for(const VkLayerProperties& layerProperty : layerProperties){
+            if(layerProperty.layerName == layerName){
+                supported = true;
+            }
+        }
+        if(supported){
+            finalLayers.push_back(layerName.c_str());
+        }else{
+            std::cout << "(WARN) Layer " << layerName << " is not supported , omitting it.\n";
+        }
+    }
+    return finalLayers;
+}
+
+static VkResult createInstance(VkInstance& instance, const std::vector<const char*>& instanceLayers, const std::vector<const char*>& instanceExtensions) {
+    //check for layers support
+    std::vector<const char*> finalLayers = checkSupportedInstanceLayers(instanceLayers);
+
     //Application Info
     VkApplicationInfo applicationInfo = {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -170,7 +197,7 @@ uint32_t getQueueFamilyIndex(const VkPhysicalDevice& physicalDevice) {
 
     return index;
 }
-VkResult createDevice(VkPhysicalDevice& physicalDevice, VkDevice& device, const std::vector<const char*> deviceLayers, const std::vector<const char*> deviceExtensions) {
+VkResult createDevice(VkPhysicalDevice& physicalDevice, VkDevice& device, const std::vector<const char*>& deviceLayers, const std::vector<const char*>& deviceExtensions) {
 
     uint32_t familyIndex = getQueueFamilyIndex(physicalDevice);
 
@@ -473,7 +500,8 @@ VkResult createImage(VkPhysicalDevice& physicalDevice, VkDevice& device, VkImage
 }
 
 int VulkanCore::init() {
-    VkResult result = createInstance(m_instance, instanceExtensions, instanceLayers);
+    //Create Instance
+    VkResult result = createInstance(m_instance, instanceLayers, instanceExtensions);
     if (result != VK_SUCCESS) {
         std::cerr << "Failed to create Instance:" << result << "\n";
         std::cerr << result;
@@ -483,6 +511,7 @@ int VulkanCore::init() {
         std::cout << "Successfully created Instance\n";
     }
 
+    //Get Physical Device
     if (getPhysicalDevice(m_instance, m_physicalDevice) != VK_SUCCESS) {
         std::cerr << "Failed to query Physical Device\n";
         return 1;
@@ -493,7 +522,7 @@ int VulkanCore::init() {
 
     getPhysicalDeviceProperties(m_physicalDevice);
 
-
+    //Create Device
     if ((result = createDevice(m_physicalDevice, m_device, deviceLayers, deviceExtensions)) != VK_SUCCESS) {
         std::cerr << "Failed to create Logical Device:" << result << "\n";
         return 1;
@@ -506,6 +535,7 @@ int VulkanCore::init() {
     //printInstanceLayersAndExt();
     //printDeviceLayersAndExt(m_physicalDevice);
 
+    //Create Buffer
     if ((result = createBuffer(m_device, m_buffer)) != VK_SUCCESS) {
         std::cerr << "Failed to create buffer:" << result << "\n";
         return 1;
@@ -514,13 +544,15 @@ int VulkanCore::init() {
         std::cout << "Successfully created buffer\n";
     }
 
+    //Create Window
     m_window = new FS::Window("Vulkan Window",720,720);
-    if(m_window->isOpen()){
-        std::cout << "Successfully created window\n";
-    }else{
+    if(!m_window->isOpen()){
         std::cerr << "Failed to create window\n";
+    }else{
+        std::cout << "Successfully created window\n";
     }
 
+    //Create Window Surface
     if ((result = createSurface(m_instance, *m_window, m_surface)) != VK_SUCCESS) {
         std::cerr << "Failed to create Surface:" << result << "\n";
         return 1;
@@ -529,6 +561,7 @@ int VulkanCore::init() {
         std::cout << "Successfully created surface\n";
     }
 
+    //Create Swapchain
     if ((result = createSwapchain(m_physicalDevice, m_device, m_surface, m_swapchain)) != VK_SUCCESS) {
         std::cerr << "Failed to create Swapchain:" << result << "\n";
         return 1;
@@ -537,6 +570,7 @@ int VulkanCore::init() {
         std::cout << "Successfully created Swapchain\n";
     }
 
+    //Create Image
     VkImage image;
     result = createImage(m_physicalDevice, m_device, image);
     if (result != VK_SUCCESS) {
