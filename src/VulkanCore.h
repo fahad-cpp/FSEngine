@@ -17,9 +17,11 @@ class VulkanCore {
     VkSurfaceKHR                    m_surface;
     VkSwapchainKHR                  m_swapchain;
     VkBuffer                        m_buffer = VK_NULL_HANDLE;
+    VkBufferView                    m_bufferView;
     std::vector<VkImage>            m_swapchainImages;
     std::vector<VkImageView>        m_swapchainImageViews;
-    VkImage                         m_image;
+    std::vector<VkImage>            m_images = {};
+    std::vector<VkImageView>        m_imageViews = {};
     FS::Window* m_window;
 
     const std::vector<const char*> instanceLayers = {

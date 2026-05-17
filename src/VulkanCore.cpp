@@ -220,10 +220,10 @@ void printInstanceLayersAndExt() {
 
     layerProperties.resize(propertyCount);
     vkEnumerateInstanceLayerProperties(&propertyCount, layerProperties.data());
-    //std::cout << "Instance Layers:" << propertyCount << "\n";
-    // for (int i = 0;i < propertyCount;i++) {
-    //     std::cout << layerProperties[i].layerName << "\n";
-    // }
+    std::cout << "Instance Layers:" << propertyCount << "\n";
+    for (int i = 0;i < propertyCount;i++) {
+        std::cout << layerProperties[i].layerName << "\n";
+    }
 
     propertyCount = 0;
     std::vector<VkExtensionProperties> extensionProperties = {};
@@ -231,10 +231,10 @@ void printInstanceLayersAndExt() {
 
     extensionProperties.resize(propertyCount);
     vkEnumerateInstanceExtensionProperties(nullptr, &propertyCount, extensionProperties.data());
-    //std::cout << "Instance Extensions:" << propertyCount << "\n";
-    // for (int i = 0;i < propertyCount;i++) {
-    //     std::cout << extensionProperties[i].extensionName << "\n";
-    // }
+    std::cout << "Instance Extensions:" << propertyCount << "\n";
+    for (int i = 0;i < propertyCount;i++) {
+        std::cout << extensionProperties[i].extensionName << "\n";
+    }
 }
 void printDeviceLayersAndExt(VkPhysicalDevice& physicalDevice) {
     uint32_t propertyCount = 0;
@@ -243,10 +243,10 @@ void printDeviceLayersAndExt(VkPhysicalDevice& physicalDevice) {
 
     layerProperties.resize(propertyCount);
     vkEnumerateDeviceLayerProperties(physicalDevice, &propertyCount, layerProperties.data());
-    // std::cout << "Device Layers:" << propertyCount << "\n";
-    // for (int i = 0;i < propertyCount;i++) {
-    //     std::cout << layerProperties[i].layerName << "\n";
-    // }
+    std::cout << "Device Layers:" << propertyCount << "\n";
+    for (int i = 0;i < propertyCount;i++) {
+        std::cout << layerProperties[i].layerName << "\n";
+    }
 
     propertyCount = 0;
     std::vector<VkExtensionProperties> extensionProperties = {};
@@ -255,10 +255,10 @@ void printDeviceLayersAndExt(VkPhysicalDevice& physicalDevice) {
     extensionProperties.resize(propertyCount);
     vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &propertyCount, extensionProperties.data());
 
-    // std::cout << "Device Extensions:" << propertyCount << "\n";
-    // for (int i = 0;i < propertyCount;i++) {
-    //     std::cout << extensionProperties[i].extensionName << "\n";
-    // }
+    std::cout << "Device Extensions:" << propertyCount << "\n";
+    for (int i = 0;i < propertyCount;i++) {
+        std::cout << extensionProperties[i].extensionName << "\n";
+    }
 }
 
 #ifdef _WIN32
@@ -330,6 +330,84 @@ VkResult createBuffer(VkDevice& device, VkBuffer& buffer) {
     };
 
     return vkCreateBuffer(device, &bufferCreateInfo, nullptr, &buffer);
+}
+
+VkResult createBufferView(VkDevice& device,VkBuffer& buffer,VkBufferView& bufferView){
+    static const VkBufferViewCreateInfo bufferViewCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .buffer = buffer,
+        .format = VK_FORMAT_R8G8B8A8_UNORM,
+        .offset = 0,
+        .range = 1024 * 1024
+    };
+
+    return vkCreateBufferView(device , &bufferViewCreateInfo, nullptr, &bufferView);
+}
+
+VkResult createImageView(VkDevice& device,VkImage& image,VkImageView& imageView){
+    VkImageSubresourceRange subresourceRange = {};
+    subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    subresourceRange.baseArrayLayer = 0;
+    subresourceRange.layerCount = 1;
+    subresourceRange.baseMipLevel = 0;
+    subresourceRange.levelCount = 1;
+
+    VkImageViewCreateInfo imageViewCreateInfo = {};
+    imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    imageViewCreateInfo.pNext = nullptr;
+    imageViewCreateInfo.flags = 0;
+    imageViewCreateInfo.image = image;
+    imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    imageViewCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    imageViewCreateInfo.components = {};
+    imageViewCreateInfo.subresourceRange = subresourceRange;
+
+    return vkCreateImageView(device,&imageViewCreateInfo,nullptr,&imageView);
+}
+
+VkResult createCubemap(VkDevice& device,VkImage& cubemap){
+    VkImageCreateInfo imageCreateInfo = {};
+    imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageCreateInfo.pNext = nullptr;
+    imageCreateInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+    imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    imageCreateInfo.extent = VkExtent3D{1080,1080,1}; // must be square for
+    imageCreateInfo.mipLevels = 1;
+    imageCreateInfo.arrayLayers = 6; //cube faces
+    imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    imageCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    imageCreateInfo.queueFamilyIndexCount = 0;
+    imageCreateInfo.pQueueFamilyIndices = nullptr;
+    imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    return vkCreateImage(device, &imageCreateInfo, nullptr, &cubemap);
+}
+
+VkResult createCubemapView(VkDevice& device,VkImage& cubemap,VkImageView& cubemapView){
+    VkImageSubresourceRange arraySubResRange;
+    arraySubResRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    arraySubResRange.baseArrayLayer = 0;
+    arraySubResRange.layerCount = 6;
+    arraySubResRange.baseMipLevel = 0;
+    arraySubResRange.levelCount = 1;
+
+    //Create Image Array View
+    VkImageViewCreateInfo arrayImageViewCreateInfo = {};
+    arrayImageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    arrayImageViewCreateInfo.pNext = nullptr;
+    arrayImageViewCreateInfo.flags = 0;
+    arrayImageViewCreateInfo.image = cubemap;
+    arrayImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+    arrayImageViewCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    arrayImageViewCreateInfo.components = {};
+    arrayImageViewCreateInfo.subresourceRange = arraySubResRange;
+
+    return vkCreateImageView(device, &arrayImageViewCreateInfo, nullptr, &cubemapView);
 }
 
 VkResult createImage(VkPhysicalDevice& physicalDevice, VkDevice& device, VkImage& image) {
@@ -425,8 +503,8 @@ int VulkanCore::init() {
     }
 
 
-    printInstanceLayersAndExt();
-    printDeviceLayersAndExt(m_physicalDevice);
+    //printInstanceLayersAndExt();
+    //printDeviceLayersAndExt(m_physicalDevice);
 
     if ((result = createBuffer(m_device, m_buffer)) != VK_SUCCESS) {
         std::cerr << "Failed to create buffer:" << result << "\n";
@@ -459,7 +537,8 @@ int VulkanCore::init() {
         std::cout << "Successfully created Swapchain\n";
     }
 
-    result = createImage(m_physicalDevice, m_device, m_image);
+    VkImage image;
+    result = createImage(m_physicalDevice, m_device, image);
     if (result != VK_SUCCESS) {
         std::cerr << "Failed to create Image:" << result << "\n";
         return 1;
@@ -467,6 +546,7 @@ int VulkanCore::init() {
     else {
         std::cout << "Successfully created Image\n";
     }
+    m_images.push_back(image);
 
     //Query Compressed formats support
     VkPhysicalDeviceFeatures feat;
@@ -476,126 +556,79 @@ int VulkanCore::init() {
     std::cout << ((feat.textureCompressionASTC_LDR)? "ASTC texture compression supported\n" : "ASTC texture compression not supported\n");
 
     //Create buffer view
-    VkBufferViewCreateInfo bufferViewCreateInfo = {};
-    bufferViewCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
-    bufferViewCreateInfo.pNext = nullptr;
-    bufferViewCreateInfo.flags = 0;
-    bufferViewCreateInfo.buffer = m_buffer;
-    bufferViewCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-    bufferViewCreateInfo.offset = 0;
-    bufferViewCreateInfo.range = 1024 * 1024;
     VkBufferView bufferView;
-    result = vkCreateBufferView(m_device,&bufferViewCreateInfo,nullptr,&bufferView);
+    result = createBufferView(m_device,m_buffer,bufferView);
     if(result != VK_SUCCESS){
         std::cerr << "Failed to create Buffer View\n";
     }else{
         std::cout << "Successfully created buffer view\n";
     }
+    //Destroy buffer view
     vkDestroyBufferView(m_device,bufferView,nullptr);
     std::cout << "Destoyed Buffer View\n";
 
-    VkImageSubresourceRange subresourceRange = {};
-    subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    subresourceRange.baseArrayLayer = 0;
-    subresourceRange.layerCount = 1;
-    subresourceRange.baseMipLevel = 0;
-    subresourceRange.levelCount = 1;
-
     //Create Image View
-    VkImageViewCreateInfo imageViewCreateInfo = {};
-    imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    imageViewCreateInfo.pNext = nullptr;
-    imageViewCreateInfo.flags = 0;
-    imageViewCreateInfo.image = m_image;
-    imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    imageViewCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-    imageViewCreateInfo.components = {};
-    imageViewCreateInfo.subresourceRange = subresourceRange;
-
     VkImageView imageView;
-    result = vkCreateImageView(m_device,&imageViewCreateInfo,nullptr,&imageView);
+    result = createImageView(m_device, m_images[0],imageView);
     if(result != VK_SUCCESS){
         std::cerr << "Failed to create Image View\n";
     }else{
         std::cout << "Successfully created Image View\n";
     }
-    vkDestroyImageView(m_device,imageView,nullptr);
-    std::cout << "Destroyed Image View\n";
+    m_imageViews.push_back(imageView);
 
 
-    //Create Image Array (Cube map)
-    VkImageCreateInfo imageCreateInfo = {};
-    imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageCreateInfo.pNext = nullptr;
-    imageCreateInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-    imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-    imageCreateInfo.extent = VkExtent3D{1080,1080,1}; // must be square for
-    imageCreateInfo.mipLevels = 1;
-    imageCreateInfo.arrayLayers = 6; //cube faces
-    imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    imageCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    imageCreateInfo.queueFamilyIndexCount = 0;
-    imageCreateInfo.pQueueFamilyIndices = nullptr;
-    imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-    VkImage imageArray;
-    result = vkCreateImage(m_device, &imageCreateInfo, nullptr, &imageArray);
+    //Create Cubemap
+    VkImage cubemap;
+    result = createCubemap(m_device, cubemap);
     if (result != VK_SUCCESS) {
         std::cerr << "Failed to create cubemap image object\n";
     }else{
         std::cout << "Successfully created cubemap image object\n";
     }
+    m_images.push_back(cubemap);
 
-    VkImageSubresourceRange arraySubResRange;
-    arraySubResRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    arraySubResRange.baseArrayLayer = 0;
-    arraySubResRange.layerCount = 6;
-    arraySubResRange.baseMipLevel = 0;
-    arraySubResRange.levelCount = 1;
-
-    //Create Image Array View
-    VkImageViewCreateInfo arrayImageViewCreateInfo = {};
-    arrayImageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    arrayImageViewCreateInfo.pNext = nullptr;
-    arrayImageViewCreateInfo.flags = 0;
-    arrayImageViewCreateInfo.image = imageArray;
-    arrayImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-    arrayImageViewCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-    arrayImageViewCreateInfo.components = {};
-    arrayImageViewCreateInfo.subresourceRange = arraySubResRange;
-
-    VkImageView arrayImageView;
-    result = vkCreateImageView(m_device, &arrayImageViewCreateInfo, nullptr, &arrayImageView);
+    //Create Cubemap view
+    VkImageView cubemapView;
+    result = createCubemapView(m_device, cubemap, cubemapView);
     if (result != VK_SUCCESS) {
         std::cerr << "Failed to create cubemap image view\n";
     }else{
         std::cout << "Successfully created cubemap image view\n";
     }
+    m_imageViews.push_back(cubemapView);
 
-    vkDestroyImageView(m_device, arrayImageView, nullptr);
-    std::cout << "Destoyed cubemap image view\n";
-    vkDestroyImage(m_device, imageArray, nullptr);
-    std::cout << "Destroyed cubemap image object";
     return VK_SUCCESS;
 }
 
 void VulkanCore::cleanup() {
-    vkDestroyImage(m_device, m_image, nullptr);
-    std::cout << "Destroyed Image\n";
+    for(VkImageView& imageView : m_imageViews){
+        vkDestroyImageView(m_device, imageView, nullptr);
+    }
+    std::cout << "Destroyed Image Views\n";
+
+    for(VkImage& image : m_images){
+        vkDestroyImage(m_device, image, nullptr);
+    }
+    m_images.clear();
+    std::cout << "Destroyed Images\n";
+
     vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
     std::cout << "Destroyed Swapchain\n";
+
     vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
     std::cout << "Destroyed Surface\n";
+
     delete m_window;
     std::cout << "Destroyed Window\n";
+
     vkDestroyBuffer(m_device, m_buffer, nullptr);
     std::cout << "Destroyed Buffer\n";
+
     vkDeviceWaitIdle(m_device);
     vkDestroyDevice(m_device, nullptr);
     std::cout << "Destroyed Device\n";
+
     vkDestroyInstance(m_instance, nullptr);
     std::cout << "Destroyed Instance\n";
 }
