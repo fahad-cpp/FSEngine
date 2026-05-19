@@ -22,10 +22,11 @@ class VulkanCore {
     std::vector<VkImageView>        m_swapchainImageViews;
     std::vector<VkImage>            m_images = {};
     std::vector<VkImageView>        m_imageViews = {};
+    std::vector<VkDeviceMemory>     m_memory = {};
     FS::Window* m_window;
 
     const std::vector<const char*> instanceLayers = {
-        //"VK_LAYER_KHRONOS_validation"
+        "VK_LAYER_KHRONOS_validation"
     };
     const std::vector<const char*> instanceExtensions = {
         "VK_KHR_surface",
@@ -37,7 +38,7 @@ class VulkanCore {
     };
 
     const std::vector<const char*> deviceLayers = {
-        //"VK_LAYER_KHRONOS_validation"
+        "VK_LAYER_KHRONOS_validation"
     };
 
     const std::vector<const char*> deviceExtensions = {

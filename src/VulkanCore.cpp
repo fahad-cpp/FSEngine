@@ -1,5 +1,7 @@
 #include "VulkanCore.h"
+#include <cstdint>
 #include <iostream>
+#include <malloc.h>
 #include <vector>
 #define SELECTED_DEVICE 0
 const std::vector<const char*> checkSupportedInstanceLayers(const std::vector<const char*>& instanceLayers){
@@ -343,8 +345,35 @@ VkResult createSwapchain(const VkPhysicalDevice& physicalDevice, const VkDevice&
     return vkCreateSwapchainKHR(device, &swapchainCreateInfo, nullptr, &swapchain);
 }
 
+uint32_t getMemoryIndex(VkPhysicalDevice& physicalDevice,VkMemoryRequirements& requirements,const VkMemoryPropertyFlags& preferredFlags,const VkMemoryPropertyFlags& requiredFlags){
+    VkPhysicalDeviceMemoryProperties memoryProperties;
+    vkGetPhysicalDeviceMemoryProperties(physicalDevice , &memoryProperties);
+    uint32_t selectedType = ~0u;
+    for(uint32_t memoryType = 0 ;memoryType < 32; ++memoryType){
+        if(requirements.memoryTypeBits & (1 << memoryType)){
+            const VkMemoryType& type = memoryProperties.memoryTypes[memoryType];
+            if((type.propertyFlags & preferredFlags) == preferredFlags){
+                selectedType = memoryType;
+                break;
+            }
+        }
+    }
+    if(selectedType == ~0u){
+        for(uint32_t memoryType = 0;memoryType < 32;++memoryType){
+            if(requirements.memoryTypeBits & (1 << memoryType)){
+                const VkMemoryType& type = memoryProperties.memoryTypes[memoryType];
+                if((type.propertyFlags & requiredFlags) == requiredFlags){
+                    selectedType = memoryType;
+                    break;
+                }
+            }
+        }
+    }
+    return selectedType;
+}
+
 //Resources creation
-VkResult createBuffer(VkDevice& device, VkBuffer& buffer) {
+VkResult createBuffer(VkDevice& device, VkBuffer& buffer,VkPhysicalDevice& physicalDevice,VkDeviceMemory& memory) {
     static const VkBufferCreateInfo bufferCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
         .pNext = nullptr,
@@ -356,7 +385,24 @@ VkResult createBuffer(VkDevice& device, VkBuffer& buffer) {
         .pQueueFamilyIndices = nullptr
     };
 
-    return vkCreateBuffer(device, &bufferCreateInfo, nullptr, &buffer);
+    VkResult result = vkCreateBuffer(device, &bufferCreateInfo, nullptr, &buffer);
+    if(result != VK_SUCCESS){
+        return result;
+    }
+    VkMemoryRequirements memoryRequirements;
+    vkGetBufferMemoryRequirements(device, buffer, &memoryRequirements);
+
+    uint32_t memoryIndex = getMemoryIndex(physicalDevice,memoryRequirements ,0,0);
+
+    VkMemoryAllocateInfo memoryAllocateInfo;
+    memoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    memoryAllocateInfo.pNext = nullptr;
+    memoryAllocateInfo.allocationSize = memoryRequirements.size;
+    memoryAllocateInfo.memoryTypeIndex = memoryIndex;
+    vkAllocateMemory(device, &memoryAllocateInfo,nullptr, &memory);
+    vkBindBufferMemory(device, buffer, memory, 0);
+
+    return result;
 }
 
 VkResult createBufferView(VkDevice& device,VkBuffer& buffer,VkBufferView& bufferView){
@@ -394,7 +440,7 @@ VkResult createImageView(VkDevice& device,VkImage& image,VkImageView& imageView)
     return vkCreateImageView(device,&imageViewCreateInfo,nullptr,&imageView);
 }
 
-VkResult createCubemap(VkDevice& device,VkImage& cubemap){
+VkResult createCubemap(VkPhysicalDevice& physicalDevice,VkDevice& device,VkImage& cubemap,VkDeviceMemory& memory){
     VkImageCreateInfo imageCreateInfo = {};
     imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageCreateInfo.pNext = nullptr;
@@ -412,7 +458,25 @@ VkResult createCubemap(VkDevice& device,VkImage& cubemap){
     imageCreateInfo.pQueueFamilyIndices = nullptr;
     imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-    return vkCreateImage(device, &imageCreateInfo, nullptr, &cubemap);
+    VkResult result = vkCreateImage(device, &imageCreateInfo, nullptr, &cubemap);
+    if(result != VK_SUCCESS){
+        return result;
+    }
+
+    VkMemoryRequirements memoryRequirements;
+    vkGetImageMemoryRequirements(device, cubemap, &memoryRequirements);
+
+    uint32_t memoryIndex = getMemoryIndex(physicalDevice , memoryRequirements, 0, 0);
+
+    VkMemoryAllocateInfo allocateInfo;
+    allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocateInfo.pNext = nullptr;
+    allocateInfo.allocationSize = memoryRequirements.size;
+    allocateInfo.memoryTypeIndex = memoryIndex;
+
+    vkAllocateMemory(device, &allocateInfo , nullptr, &memory);
+    vkBindImageMemory(device, cubemap, memory , 0);
+    return result;
 }
 
 VkResult createCubemapView(VkDevice& device,VkImage& cubemap,VkImageView& cubemapView){
@@ -437,7 +501,7 @@ VkResult createCubemapView(VkDevice& device,VkImage& cubemap,VkImageView& cubema
     return vkCreateImageView(device, &arrayImageViewCreateInfo, nullptr, &cubemapView);
 }
 
-VkResult createImage(VkPhysicalDevice& physicalDevice, VkDevice& device, VkImage& image) {
+VkResult createImage(VkPhysicalDevice& physicalDevice, VkDevice& device, VkImage& image,VkDeviceMemory& memory) {
     VkFormat selectedFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
     //Optimal Image
@@ -490,11 +554,20 @@ VkResult createImage(VkPhysicalDevice& physicalDevice, VkDevice& device, VkImage
     VkSubresourceLayout subResLayout;
     vkGetImageSubresourceLayout(device, image, &subresource, &subResLayout);
 
-    std::cout << "offset:" << subResLayout.offset << "\n";
-    std::cout << "size:" << subResLayout.size << "\n";
-    std::cout << "rowPitch:" << subResLayout.rowPitch << "\n";
-    std::cout << "arrayPitch:" << subResLayout.arrayPitch << "\n";
-    std::cout << "depthPitch:" << subResLayout.depthPitch << "\n";
+    VkMemoryRequirements memoryRequirements;
+    vkGetImageMemoryRequirements(device, image, &memoryRequirements);
+
+    uint32_t memoryIndex = getMemoryIndex(physicalDevice, memoryRequirements, 0, 0);
+
+    VkMemoryAllocateInfo allocateInfo;
+    allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocateInfo.pNext = nullptr;
+    allocateInfo.allocationSize = memoryRequirements.size;
+    allocateInfo.memoryTypeIndex = memoryIndex;
+
+    vkAllocateMemory(device, &allocateInfo, nullptr, &memory);
+
+    vkBindImageMemory(device, image, memory, 0);
 
     return res;
 }
@@ -536,13 +609,15 @@ int VulkanCore::init() {
     //printDeviceLayersAndExt(m_physicalDevice);
 
     //Create Buffer
-    if ((result = createBuffer(m_device, m_buffer)) != VK_SUCCESS) {
+    VkDeviceMemory bufferMemory;
+    if ((result = createBuffer(m_device, m_buffer,m_physicalDevice,bufferMemory)) != VK_SUCCESS) {
         std::cerr << "Failed to create buffer:" << result << "\n";
         return 1;
     }
     else {
         std::cout << "Successfully created buffer\n";
     }
+    m_memory.push_back(bufferMemory);
 
     //Create Window
     m_window = new FS::Window("Vulkan Window",720,720);
@@ -572,7 +647,8 @@ int VulkanCore::init() {
 
     //Create Image
     VkImage image;
-    result = createImage(m_physicalDevice, m_device, image);
+    VkDeviceMemory imageMemory;
+    result = createImage(m_physicalDevice, m_device, image,imageMemory);
     if (result != VK_SUCCESS) {
         std::cerr << "Failed to create Image:" << result << "\n";
         return 1;
@@ -581,6 +657,7 @@ int VulkanCore::init() {
         std::cout << "Successfully created Image\n";
     }
     m_images.push_back(image);
+    m_memory.push_back(imageMemory);
 
     //Query Compressed formats support
     VkPhysicalDeviceFeatures feat;
@@ -614,14 +691,15 @@ int VulkanCore::init() {
 
     //Create Cubemap
     VkImage cubemap;
-    result = createCubemap(m_device, cubemap);
+    VkDeviceMemory cubemapMemory;
+    result = createCubemap(m_physicalDevice,m_device, cubemap,cubemapMemory);
     if (result != VK_SUCCESS) {
         std::cerr << "Failed to create cubemap image object\n";
     }else{
         std::cout << "Successfully created cubemap image object\n";
     }
     m_images.push_back(cubemap);
-
+    m_memory.push_back(cubemapMemory);
     //Create Cubemap view
     VkImageView cubemapView;
     result = createCubemapView(m_device, cubemap, cubemapView);
@@ -636,6 +714,7 @@ int VulkanCore::init() {
 }
 
 void VulkanCore::cleanup() {
+
     for(VkImageView& imageView : m_imageViews){
         vkDestroyImageView(m_device, imageView, nullptr);
     }
@@ -658,6 +737,10 @@ void VulkanCore::cleanup() {
 
     vkDestroyBuffer(m_device, m_buffer, nullptr);
     std::cout << "Destroyed Buffer\n";
+
+    for(VkDeviceMemory& memory : m_memory){
+        vkFreeMemory(m_device, memory, nullptr);
+    }
 
     vkDeviceWaitIdle(m_device);
     vkDestroyDevice(m_device, nullptr);
