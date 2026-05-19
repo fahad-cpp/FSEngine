@@ -1,37 +1,64 @@
 #include "VulkanCore.h"
 #include <cstdint>
 #include <iostream>
-#include <malloc.h>
 #include <vector>
 #define SELECTED_DEVICE 0
-const std::vector<const char*> checkSupportedInstanceLayers(const std::vector<const char*>& instanceLayers){
+void checkSupportedInstanceLayers(const std::vector<const char *> &instanceLayers, std::vector<std::string> &finalLayers) {
     uint32_t layerCount = 0;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
     std::vector<VkLayerProperties> layerProperties(layerCount);
     vkEnumerateInstanceLayerProperties(&layerCount, layerProperties.data());
-    std::vector<const char*> finalLayers;
-    for(const std::string& layerName : instanceLayers){
+    for (const std::string &layerName : instanceLayers) {
         bool supported = false;
 
-        for(const VkLayerProperties& layerProperty : layerProperties){
-            if(layerProperty.layerName == layerName){
+        for (const VkLayerProperties &layerProperty : layerProperties) {
+            if (layerProperty.layerName == layerName) {
                 supported = true;
             }
         }
-        if(supported){
-            finalLayers.push_back(layerName.c_str());
-        }else{
+        if (supported) {
+            finalLayers.push_back(layerName);
+        } else {
             std::cout << "(WARN) Layer " << layerName << " is not supported , omitting it.\n";
         }
     }
-    return finalLayers;
 }
 
-static VkResult createInstance(VkInstance& instance, const std::vector<const char*>& instanceLayers, const std::vector<const char*>& instanceExtensions) {
-    //check for layers support
-    std::vector<const char*> finalLayers = checkSupportedInstanceLayers(instanceLayers);
+void checkSupportedDeviceLayers(VkPhysicalDevice &physicalDevice, const std::vector<const char *> &deviceLayers, std::vector<std::string> &finalLayers) {
+    uint32_t layerCount = 0;
+    vkEnumerateDeviceLayerProperties(physicalDevice, &layerCount, nullptr);
+    std::vector<VkLayerProperties> layerProperties(layerCount);
+    vkEnumerateDeviceLayerProperties(physicalDevice, &layerCount, layerProperties.data());
+    for (const std::string &layerName : deviceLayers) {
+        bool supported = false;
 
-    //Application Info
+        for (const VkLayerProperties &layerProperty : layerProperties) {
+            if (layerProperty.layerName == layerName) {
+                supported = true;
+            }
+        }
+        if (supported) {
+            finalLayers.push_back(layerName);
+        } else {
+            std::cout << "(WARN) Layer " << layerName << " is not supported , omitting it.\n";
+        }
+    }
+}
+
+static VkResult createInstance(VkInstance &instance, const std::vector<const char *> &instanceLayers, const std::vector<const char *> &instanceExtensions) {
+    // check for layers support
+    std::vector<std::string> finalLayers = {};
+    checkSupportedInstanceLayers(instanceLayers, finalLayers);
+    std::vector<const char *> finalLayersstr = {};
+    for (const std::string &layer : finalLayers) {
+        finalLayersstr.push_back(layer.c_str());
+    }
+    std::cout << "Final Instance Layers:" << finalLayers.size() << "\n";
+    for (const char *str : instanceLayers) {
+        std::cout << "|" << str << "|\n";
+    }
+
+    // Application Info
     VkApplicationInfo applicationInfo = {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
         .pNext = nullptr,
@@ -42,22 +69,23 @@ static VkResult createInstance(VkInstance& instance, const std::vector<const cha
         .apiVersion = VK_MAKE_VERSION(1, 0, 0)
     };
 
-    //Instance Create Info
+    // Instance Create Info
+    std::vector<std::string> test;
     VkInstanceCreateInfo instanceCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
         .pNext = nullptr,
         .pApplicationInfo = &applicationInfo,
-        .enabledLayerCount = (uint32_t)instanceLayers.size(),
-        .ppEnabledLayerNames = instanceLayers.data(),
+        .enabledLayerCount = (uint32_t)finalLayers.size(),
+        .ppEnabledLayerNames = finalLayersstr.data(),
         .enabledExtensionCount = (uint32_t)instanceExtensions.size(),
         .ppEnabledExtensionNames = instanceExtensions.data()
     };
 
-    //Create the Instance
+    // Create the Instance
     return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
 }
-VkResult getPhysicalDevice(VkInstance& instance, VkPhysicalDevice& physicalDevice) {
-    //Enumerate Device
+VkResult getPhysicalDevice(VkInstance &instance, VkPhysicalDevice &physicalDevice) {
+    // Enumerate Device
     VkResult result = VK_SUCCESS;
     uint32_t physicalDeviceCount = 0;
     std::vector<VkPhysicalDevice> physicalDevices;
@@ -72,7 +100,7 @@ VkResult getPhysicalDevice(VkInstance& instance, VkPhysicalDevice& physicalDevic
         return result;
     }
 
-    //Select a device
+    // Select a device
     physicalDevice = physicalDevices[SELECTED_DEVICE];
     return VK_SUCCESS;
 }
@@ -141,14 +169,14 @@ std::string getQueueFlagString(VkQueueFlags flags) {
 
     return res;
 }
-void getPhysicalDeviceProperties(VkPhysicalDevice& physicalDevice) {
-    //PhysicalDeviceProperties
+void getPhysicalDeviceProperties(VkPhysicalDevice &physicalDevice) {
+    // PhysicalDeviceProperties
     VkPhysicalDeviceProperties properties;
     vkGetPhysicalDeviceProperties(physicalDevice, &properties);
     std::cout << "Selected Device: ";
     std::cout << properties.deviceName << "\n";
 
-    //PhysicalDeviceMemoryProperties
+    // PhysicalDeviceMemoryProperties
     VkPhysicalDeviceMemoryProperties memoryProperties;
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
     // std::cout << "\tMemory Types:\n";
@@ -163,7 +191,7 @@ void getPhysicalDeviceProperties(VkPhysicalDevice& physicalDevice) {
     //     std::cout <<"\t\t Heap Flags:" << getMemoryHeapFlagString(memoryProperties.memoryHeaps[j].flags) << "\n";
     // }
 
-    //PhysicalDeviceQueueFamilyProperties
+    // PhysicalDeviceQueueFamilyProperties
     std::vector<VkQueueFamilyProperties> queueFamilyProperties;
     uint32_t qfpropertyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &qfpropertyCount, nullptr);
@@ -182,7 +210,7 @@ void getPhysicalDeviceProperties(VkPhysicalDevice& physicalDevice) {
     //     std::cout << "\t\tQueue Flags:" << getQueueFlagString(queueFamilyProperties[j].queueFlags) << "\n";
     // }
 }
-uint32_t getQueueFamilyIndex(const VkPhysicalDevice& physicalDevice) {
+uint32_t getQueueFamilyIndex(const VkPhysicalDevice &physicalDevice) {
     uint32_t index = 0;
     uint32_t propertyCount = 0;
     std::vector<VkQueueFamilyProperties> properties;
@@ -190,7 +218,7 @@ uint32_t getQueueFamilyIndex(const VkPhysicalDevice& physicalDevice) {
     properties.resize(propertyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &propertyCount, properties.data());
 
-    for (uint32_t i = 0;i < propertyCount;i++) {
+    for (uint32_t i = 0; i < propertyCount; i++) {
         if (properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             index = i;
             break;
@@ -199,22 +227,29 @@ uint32_t getQueueFamilyIndex(const VkPhysicalDevice& physicalDevice) {
 
     return index;
 }
-VkResult createDevice(VkPhysicalDevice& physicalDevice, VkDevice& device, const std::vector<const char*>& deviceLayers, const std::vector<const char*>& deviceExtensions) {
+VkResult createDevice(VkPhysicalDevice &physicalDevice, VkDevice &device, const std::vector<const char *> &deviceLayers, const std::vector<const char *> &deviceExtensions) {
+
+    std::vector<std::string> finalLayers = {};
+    checkSupportedDeviceLayers(physicalDevice, deviceLayers, finalLayers);
+    std::vector<const char *> finalLayersstr = {};
+    for (const std::string &layer : finalLayers) {
+        finalLayersstr.push_back(layer.c_str());
+    }
 
     uint32_t familyIndex = getQueueFamilyIndex(physicalDevice);
 
     VkPhysicalDeviceFeatures supportedFeatures;
     vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
 
-    //Specify required Features
-    //An Example where tesselation shader and geometry shaders are must have
-    //and multiDrawIndirect is supported if the device supports it
+    // Specify required Features
+    // An Example where tesselation shader and geometry shaders are must have
+    // and multiDrawIndirect is supported if the device supports it
     VkPhysicalDeviceFeatures requiredFeatures = {};
     requiredFeatures.multiDrawIndirect = supportedFeatures.multiDrawIndirect;
     requiredFeatures.tessellationShader = VK_TRUE;
     requiredFeatures.geometryShader = VK_TRUE;
 
-    //Queue Create Info
+    // Queue Create Info
     float priority = 1.f;
     VkDeviceQueueCreateInfo queueCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
@@ -225,15 +260,15 @@ VkResult createDevice(VkPhysicalDevice& physicalDevice, VkDevice& device, const 
         .pQueuePriorities = &priority
     };
 
-    //Device Create Info
+    // Device Create Info
     VkDeviceCreateInfo deviceCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         .pNext = nullptr,
         .flags = 0,
         .queueCreateInfoCount = 1,
         .pQueueCreateInfos = &queueCreateInfo,
-        .enabledLayerCount = (uint32_t)deviceLayers.size(),
-        .ppEnabledLayerNames = deviceLayers.data(),
+        .enabledLayerCount = (uint32_t)finalLayers.size(),
+        .ppEnabledLayerNames = finalLayersstr.data(),
         .enabledExtensionCount = (uint32_t)deviceExtensions.size(),
         .ppEnabledExtensionNames = deviceExtensions.data(),
         .pEnabledFeatures = &requiredFeatures
@@ -250,7 +285,7 @@ void printInstanceLayersAndExt() {
     layerProperties.resize(propertyCount);
     vkEnumerateInstanceLayerProperties(&propertyCount, layerProperties.data());
     std::cout << "Instance Layers:" << propertyCount << "\n";
-    for (int i = 0;i < propertyCount;i++) {
+    for (int i = 0; i < propertyCount; i++) {
         std::cout << layerProperties[i].layerName << "\n";
     }
 
@@ -261,11 +296,11 @@ void printInstanceLayersAndExt() {
     extensionProperties.resize(propertyCount);
     vkEnumerateInstanceExtensionProperties(nullptr, &propertyCount, extensionProperties.data());
     std::cout << "Instance Extensions:" << propertyCount << "\n";
-    for (int i = 0;i < propertyCount;i++) {
+    for (int i = 0; i < propertyCount; i++) {
         std::cout << extensionProperties[i].extensionName << "\n";
     }
 }
-void printDeviceLayersAndExt(VkPhysicalDevice& physicalDevice) {
+void printDeviceLayersAndExt(VkPhysicalDevice &physicalDevice) {
     uint32_t propertyCount = 0;
     std::vector<VkLayerProperties> layerProperties = {};
     vkEnumerateDeviceLayerProperties(physicalDevice, &propertyCount, nullptr);
@@ -273,7 +308,7 @@ void printDeviceLayersAndExt(VkPhysicalDevice& physicalDevice) {
     layerProperties.resize(propertyCount);
     vkEnumerateDeviceLayerProperties(physicalDevice, &propertyCount, layerProperties.data());
     std::cout << "Device Layers:" << propertyCount << "\n";
-    for (int i = 0;i < propertyCount;i++) {
+    for (int i = 0; i < propertyCount; i++) {
         std::cout << layerProperties[i].layerName << "\n";
     }
 
@@ -285,13 +320,13 @@ void printDeviceLayersAndExt(VkPhysicalDevice& physicalDevice) {
     vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &propertyCount, extensionProperties.data());
 
     std::cout << "Device Extensions:" << propertyCount << "\n";
-    for (int i = 0;i < propertyCount;i++) {
+    for (int i = 0; i < propertyCount; i++) {
         std::cout << extensionProperties[i].extensionName << "\n";
     }
 }
 
 #ifdef _WIN32
-VkResult createSurface(const VkInstance& instance, FS::Window& windowHandle, VkSurfaceKHR& surface) {
+VkResult createSurface(const VkInstance &instance, FS::Window &windowHandle, VkSurfaceKHR &surface) {
     VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
         .pNext = nullptr,
@@ -301,7 +336,7 @@ VkResult createSurface(const VkInstance& instance, FS::Window& windowHandle, VkS
     return vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
 }
 #elif __linux__
-VkResult createSurface(const VkInstance& instance, FS::Window& windowHandle, VkSurfaceKHR& surface) {
+VkResult createSurface(const VkInstance &instance, FS::Window &windowHandle, VkSurfaceKHR &surface) {
     VkXlibSurfaceCreateInfoKHR surfaceCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR,
         .pNext = nullptr,
@@ -312,7 +347,7 @@ VkResult createSurface(const VkInstance& instance, FS::Window& windowHandle, VkS
     return vkCreateXlibSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
 }
 #endif
-VkResult createSwapchain(const VkPhysicalDevice& physicalDevice, const VkDevice& device, const VkSurfaceKHR& surface, VkSwapchainKHR& swapchain) {
+VkResult createSwapchain(const VkPhysicalDevice &physicalDevice, const VkDevice &device, const VkSurfaceKHR &surface, VkSwapchainKHR &swapchain) {
     uint32_t formatCount;
     std::vector<VkSurfaceFormatKHR> formats;
     vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr);
@@ -345,35 +380,35 @@ VkResult createSwapchain(const VkPhysicalDevice& physicalDevice, const VkDevice&
     return vkCreateSwapchainKHR(device, &swapchainCreateInfo, nullptr, &swapchain);
 }
 
-uint32_t getMemoryIndex(VkPhysicalDevice& physicalDevice,VkMemoryRequirements& requirements,const VkMemoryPropertyFlags& preferredFlags,const VkMemoryPropertyFlags& requiredFlags){
-    VkPhysicalDeviceMemoryProperties memoryProperties;
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice , &memoryProperties);
+uint32_t getMemoryIndex(VkPhysicalDevice &physicalDevice, VkMemoryRequirements requirements, VkMemoryPropertyFlags requiredFlags, VkMemoryPropertyFlags preferredFlags) {
     uint32_t selectedType = ~0u;
-    for(uint32_t memoryType = 0 ;memoryType < 32; ++memoryType){
-        if(requirements.memoryTypeBits & (1 << memoryType)){
-            const VkMemoryType& type = memoryProperties.memoryTypes[memoryType];
-            if((type.propertyFlags & preferredFlags) == preferredFlags){
+    VkPhysicalDeviceMemoryProperties memoryProperties;
+    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
+
+    for (uint32_t memoryType = 0; memoryType < VK_MAX_MEMORY_TYPES; ++memoryType) {
+        if (requirements.memoryTypeBits & (1 << memoryType)) {
+            const VkMemoryType &type = memoryProperties.memoryTypes[memoryType];
+            if ((type.propertyFlags & preferredFlags) == preferredFlags) {
                 selectedType = memoryType;
                 break;
             }
         }
     }
-    if(selectedType == ~0u){
-        for(uint32_t memoryType = 0;memoryType < 32;++memoryType){
-            if(requirements.memoryTypeBits & (1 << memoryType)){
-                const VkMemoryType& type = memoryProperties.memoryTypes[memoryType];
-                if((type.propertyFlags & requiredFlags) == requiredFlags){
-                    selectedType = memoryType;
-                    break;
+    if (selectedType == ~0u) {
+        for (uint32_t memoryType = 0; memoryType < VK_MAX_MEMORY_TYPES; ++memoryType) {
+            if (requirements.memoryTypeBits & (1 << memoryType)) {
+                const VkMemoryType &type = memoryProperties.memoryTypes[memoryType];
+                if ((type.propertyFlags & requiredFlags) == requiredFlags) {
                 }
             }
         }
     }
+
     return selectedType;
 }
 
-//Resources creation
-VkResult createBuffer(VkDevice& device, VkBuffer& buffer,VkPhysicalDevice& physicalDevice,VkDeviceMemory& memory) {
+// Resources creation
+VkResult createBuffer(VkDevice &device, VkBuffer &buffer, VkPhysicalDevice &physicalDevice, VkDeviceMemory &memory) {
     static const VkBufferCreateInfo bufferCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
         .pNext = nullptr,
@@ -381,31 +416,31 @@ VkResult createBuffer(VkDevice& device, VkBuffer& buffer,VkPhysicalDevice& physi
         .size = 1024 * 1024,
         .usage = VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT,
         .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        .queueFamilyIndexCount = 0 ,
+        .queueFamilyIndexCount = 0,
         .pQueueFamilyIndices = nullptr
     };
 
     VkResult result = vkCreateBuffer(device, &bufferCreateInfo, nullptr, &buffer);
-    if(result != VK_SUCCESS){
+    if (result != VK_SUCCESS) {
         return result;
     }
     VkMemoryRequirements memoryRequirements;
     vkGetBufferMemoryRequirements(device, buffer, &memoryRequirements);
 
-    uint32_t memoryIndex = getMemoryIndex(physicalDevice,memoryRequirements ,0,0);
+    uint32_t memoryIndex = getMemoryIndex(physicalDevice, memoryRequirements, 0, 0);
 
     VkMemoryAllocateInfo memoryAllocateInfo;
     memoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     memoryAllocateInfo.pNext = nullptr;
     memoryAllocateInfo.allocationSize = memoryRequirements.size;
     memoryAllocateInfo.memoryTypeIndex = memoryIndex;
-    vkAllocateMemory(device, &memoryAllocateInfo,nullptr, &memory);
+    vkAllocateMemory(device, &memoryAllocateInfo, nullptr, &memory);
     vkBindBufferMemory(device, buffer, memory, 0);
 
     return result;
 }
 
-VkResult createBufferView(VkDevice& device,VkBuffer& buffer,VkBufferView& bufferView){
+VkResult createBufferView(VkDevice &device, VkBuffer &buffer, VkBufferView &bufferView) {
     static const VkBufferViewCreateInfo bufferViewCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO,
         .pNext = nullptr,
@@ -416,10 +451,10 @@ VkResult createBufferView(VkDevice& device,VkBuffer& buffer,VkBufferView& buffer
         .range = 1024 * 1024
     };
 
-    return vkCreateBufferView(device , &bufferViewCreateInfo, nullptr, &bufferView);
+    return vkCreateBufferView(device, &bufferViewCreateInfo, nullptr, &bufferView);
 }
 
-VkResult createImageView(VkDevice& device,VkImage& image,VkImageView& imageView){
+VkResult createImageView(VkDevice &device, VkImage &image, VkImageView &imageView) {
     VkImageSubresourceRange subresourceRange = {};
     subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     subresourceRange.baseArrayLayer = 0;
@@ -437,19 +472,19 @@ VkResult createImageView(VkDevice& device,VkImage& image,VkImageView& imageView)
     imageViewCreateInfo.components = {};
     imageViewCreateInfo.subresourceRange = subresourceRange;
 
-    return vkCreateImageView(device,&imageViewCreateInfo,nullptr,&imageView);
+    return vkCreateImageView(device, &imageViewCreateInfo, nullptr, &imageView);
 }
 
-VkResult createCubemap(VkPhysicalDevice& physicalDevice,VkDevice& device,VkImage& cubemap,VkDeviceMemory& memory){
+VkResult createCubemap(VkPhysicalDevice &physicalDevice, VkDevice &device, VkImage &cubemap, VkDeviceMemory &memory) {
     VkImageCreateInfo imageCreateInfo = {};
     imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageCreateInfo.pNext = nullptr;
     imageCreateInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
     imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
     imageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-    imageCreateInfo.extent = VkExtent3D{1080,1080,1}; // must be square for
+    imageCreateInfo.extent = VkExtent3D{ 1080, 1080, 1 }; // must be square for
     imageCreateInfo.mipLevels = 1;
-    imageCreateInfo.arrayLayers = 6; //cube faces
+    imageCreateInfo.arrayLayers = 6; // cube faces
     imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
     imageCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -459,14 +494,14 @@ VkResult createCubemap(VkPhysicalDevice& physicalDevice,VkDevice& device,VkImage
     imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
     VkResult result = vkCreateImage(device, &imageCreateInfo, nullptr, &cubemap);
-    if(result != VK_SUCCESS){
+    if (result != VK_SUCCESS) {
         return result;
     }
 
     VkMemoryRequirements memoryRequirements;
     vkGetImageMemoryRequirements(device, cubemap, &memoryRequirements);
 
-    uint32_t memoryIndex = getMemoryIndex(physicalDevice , memoryRequirements, 0, 0);
+    uint32_t memoryIndex = getMemoryIndex(physicalDevice, memoryRequirements, 0, 0);
 
     VkMemoryAllocateInfo allocateInfo;
     allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -474,12 +509,12 @@ VkResult createCubemap(VkPhysicalDevice& physicalDevice,VkDevice& device,VkImage
     allocateInfo.allocationSize = memoryRequirements.size;
     allocateInfo.memoryTypeIndex = memoryIndex;
 
-    vkAllocateMemory(device, &allocateInfo , nullptr, &memory);
-    vkBindImageMemory(device, cubemap, memory , 0);
+    vkAllocateMemory(device, &allocateInfo, nullptr, &memory);
+    vkBindImageMemory(device, cubemap, memory, 0);
     return result;
 }
 
-VkResult createCubemapView(VkDevice& device,VkImage& cubemap,VkImageView& cubemapView){
+VkResult createCubemapView(VkDevice &device, VkImage &cubemap, VkImageView &cubemapView) {
     VkImageSubresourceRange arraySubResRange;
     arraySubResRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     arraySubResRange.baseArrayLayer = 0;
@@ -487,7 +522,7 @@ VkResult createCubemapView(VkDevice& device,VkImage& cubemap,VkImageView& cubema
     arraySubResRange.baseMipLevel = 0;
     arraySubResRange.levelCount = 1;
 
-    //Create Image Array View
+    // Create Image Array View
     VkImageViewCreateInfo arrayImageViewCreateInfo = {};
     arrayImageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     arrayImageViewCreateInfo.pNext = nullptr;
@@ -501,36 +536,36 @@ VkResult createCubemapView(VkDevice& device,VkImage& cubemap,VkImageView& cubema
     return vkCreateImageView(device, &arrayImageViewCreateInfo, nullptr, &cubemapView);
 }
 
-VkResult createImage(VkPhysicalDevice& physicalDevice, VkDevice& device, VkImage& image,VkDeviceMemory& memory) {
+VkResult createImage(VkPhysicalDevice &physicalDevice, VkDevice &device, VkImage &image, VkDeviceMemory &memory) {
     VkFormat selectedFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
-    //Optimal Image
-    // static const VkImageCreateInfo imageCreateInfo = {
-    //     .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-    //     .pNext = nullptr,
-    //     .flags = 0,
-    //     .imageType = VK_IMAGE_TYPE_2D,
-    //     .format = selectedFormat,
-    //     .extent = VkExtent3D{1920,1080,1},
-    //     .mipLevels = 10,
-    //     .arrayLayers = 1,
-    //     .samples = VK_SAMPLE_COUNT_1_BIT,
-    //     .tiling = VK_IMAGE_TILING_OPTIMAL,
-    //     .usage = VK_IMAGE_USAGE_SAMPLED_BIT,
-    //     .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-    //     .queueFamilyIndexCount = 0,
-    //     .pQueueFamilyIndices = nullptr,
-    //     .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
-    // };
+    // Optimal Image
+    //  static const VkImageCreateInfo imageCreateInfo = {
+    //      .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+    //      .pNext = nullptr,
+    //      .flags = 0,
+    //      .imageType = VK_IMAGE_TYPE_2D,
+    //      .format = selectedFormat,
+    //      .extent = VkExtent3D{1920,1080,1},
+    //      .mipLevels = 10,
+    //      .arrayLayers = 1,
+    //      .samples = VK_SAMPLE_COUNT_1_BIT,
+    //      .tiling = VK_IMAGE_TILING_OPTIMAL,
+    //      .usage = VK_IMAGE_USAGE_SAMPLED_BIT,
+    //      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+    //      .queueFamilyIndexCount = 0,
+    //      .pQueueFamilyIndices = nullptr,
+    //      .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+    //  };
 
-    //Linear Image
+    // Linear Image
     static const VkImageCreateInfo imageCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
         .pNext = nullptr,
         .flags = 0,
         .imageType = VK_IMAGE_TYPE_2D,
         .format = selectedFormat,
-        .extent = VkExtent3D{1920,1080,1},
+        .extent = VkExtent3D{ 1920, 1080, 1 },
         .mipLevels = 1,
         .arrayLayers = 1,
         .samples = VK_SAMPLE_COUNT_1_BIT,
@@ -573,139 +608,131 @@ VkResult createImage(VkPhysicalDevice& physicalDevice, VkDevice& device, VkImage
 }
 
 int VulkanCore::init() {
-    //Create Instance
+    // Create Instance
     VkResult result = createInstance(m_instance, instanceLayers, instanceExtensions);
     if (result != VK_SUCCESS) {
         std::cerr << "Failed to create Instance:" << result << "\n";
         std::cerr << result;
         return 1;
-    }
-    else {
+    } else {
         std::cout << "Successfully created Instance\n";
     }
 
-    //Get Physical Device
+    // Get Physical Device
     if (getPhysicalDevice(m_instance, m_physicalDevice) != VK_SUCCESS) {
         std::cerr << "Failed to query Physical Device\n";
         return 1;
-    }
-    else {
+    } else {
         std::cout << "Successfully Received Physical Device\n";
     }
 
     getPhysicalDeviceProperties(m_physicalDevice);
 
-    //Create Device
+    // Create Device
     if ((result = createDevice(m_physicalDevice, m_device, deviceLayers, deviceExtensions)) != VK_SUCCESS) {
         std::cerr << "Failed to create Logical Device:" << result << "\n";
         return 1;
-    }
-    else {
+    } else {
         std::cout << "Successfully created Logical Device\n";
     }
 
+    // printInstanceLayersAndExt();
+    // printDeviceLayersAndExt(m_physicalDevice);
 
-    //printInstanceLayersAndExt();
-    //printDeviceLayersAndExt(m_physicalDevice);
-
-    //Create Buffer
+    // Create Buffer
     VkDeviceMemory bufferMemory;
-    if ((result = createBuffer(m_device, m_buffer,m_physicalDevice,bufferMemory)) != VK_SUCCESS) {
+    if ((result = createBuffer(m_device, m_buffer, m_physicalDevice, bufferMemory)) != VK_SUCCESS) {
         std::cerr << "Failed to create buffer:" << result << "\n";
         return 1;
-    }
-    else {
+    } else {
         std::cout << "Successfully created buffer\n";
     }
     m_memory.push_back(bufferMemory);
 
-    //Create Window
-    m_window = new FS::Window("Vulkan Window",720,720);
-    if(!m_window->isOpen()){
+    // Create Window
+    m_window = new FS::Window("Vulkan Window", 720, 720);
+    if (!m_window->isOpen()) {
         std::cerr << "Failed to create window\n";
-    }else{
+    } else {
         std::cout << "Successfully created window\n";
     }
 
-    //Create Window Surface
+    // Create Window Surface
     if ((result = createSurface(m_instance, *m_window, m_surface)) != VK_SUCCESS) {
         std::cerr << "Failed to create Surface:" << result << "\n";
         return 1;
-    }
-    else {
+    } else {
         std::cout << "Successfully created surface\n";
     }
 
-    //Create Swapchain
+    // Create Swapchain
     if ((result = createSwapchain(m_physicalDevice, m_device, m_surface, m_swapchain)) != VK_SUCCESS) {
         std::cerr << "Failed to create Swapchain:" << result << "\n";
         return 1;
-    }
-    else {
+    } else {
         std::cout << "Successfully created Swapchain\n";
     }
 
-    //Create Image
+    // Create Image
     VkImage image;
     VkDeviceMemory imageMemory;
-    result = createImage(m_physicalDevice, m_device, image,imageMemory);
+    result = createImage(m_physicalDevice, m_device, image, imageMemory);
     if (result != VK_SUCCESS) {
         std::cerr << "Failed to create Image:" << result << "\n";
         return 1;
-    }
-    else {
+    } else {
         std::cout << "Successfully created Image\n";
     }
     m_images.push_back(image);
     m_memory.push_back(imageMemory);
 
-    //Query Compressed formats support
+    // Query Compressed formats support
     VkPhysicalDeviceFeatures feat;
-    vkGetPhysicalDeviceFeatures(m_physicalDevice,&feat);
-    std::cout << ((feat.textureCompressionBC)? "BC texture compression supported\n" : "BC texture compression not supported\n");
-    std::cout << ((feat.textureCompressionETC2)? "ETC2 texture compression supported\n" : "ETC2 texture compression not supported\n");
-    std::cout << ((feat.textureCompressionASTC_LDR)? "ASTC texture compression supported\n" : "ASTC texture compression not supported\n");
+    vkGetPhysicalDeviceFeatures(m_physicalDevice, &feat);
+    std::cout << ((feat.textureCompressionBC) ? "BC texture compression supported\n" : "BC texture compression not supported\n");
+    std::cout << ((feat.textureCompressionETC2) ? "ETC2 texture compression supported\n" : "ETC2 texture compression not supported\n");
+    std::cout << ((feat.textureCompressionASTC_LDR) ? "ASTC texture compression supported\n" : "ASTC texture compression not supported\n");
 
-    //Create buffer view
+    // Create buffer view
     VkBufferView bufferView;
-    result = createBufferView(m_device,m_buffer,bufferView);
-    if(result != VK_SUCCESS){
+    result = createBufferView(m_device, m_buffer, bufferView);
+    if (result != VK_SUCCESS) {
         std::cerr << "Failed to create Buffer View\n";
-    }else{
+    } else {
         std::cout << "Successfully created buffer view\n";
     }
-    //Destroy buffer view
-    vkDestroyBufferView(m_device,bufferView,nullptr);
+    // Destroy buffer view
+    vkDestroyBufferView(m_device, bufferView, nullptr);
     std::cout << "Destoyed Buffer View\n";
 
-    //Create Image View
+    // Create Image View
     VkImageView imageView;
-    result = createImageView(m_device, m_images[0],imageView);
-    if(result != VK_SUCCESS){
+    result = createImageView(m_device, m_images[0], imageView);
+    if (result != VK_SUCCESS) {
         std::cerr << "Failed to create Image View\n";
-    }else{
+    } else {
         std::cout << "Successfully created Image View\n";
     }
     m_imageViews.push_back(imageView);
 
-
-    //Create Cubemap
+    // Create Cubemap
     VkImage cubemap;
     VkDeviceMemory cubemapMemory;
-    result = createCubemap(m_physicalDevice,m_device, cubemap,cubemapMemory);
+    result = createCubemap(m_physicalDevice, m_device, cubemap, cubemapMemory);
     if (result != VK_SUCCESS) {
         std::cerr << "Failed to create cubemap image object\n";
-    }else{
+    } else {
         std::cout << "Successfully created cubemap image object\n";
     }
     m_images.push_back(cubemap);
     m_memory.push_back(cubemapMemory);
-    //Create Cubemap view
+
+    // Create Cubemap view
     VkImageView cubemapView;
     result = createCubemapView(m_device, cubemap, cubemapView);
     if (result != VK_SUCCESS) {
         std::cerr << "Failed to create cubemap image view\n";
-    }else{
+    } else {
         std::cout << "Successfully created cubemap image view\n";
     }
     m_imageViews.push_back(cubemapView);
@@ -715,12 +742,12 @@ int VulkanCore::init() {
 
 void VulkanCore::cleanup() {
 
-    for(VkImageView& imageView : m_imageViews){
+    for (VkImageView &imageView : m_imageViews) {
         vkDestroyImageView(m_device, imageView, nullptr);
     }
     std::cout << "Destroyed Image Views\n";
 
-    for(VkImage& image : m_images){
+    for (VkImage &image : m_images) {
         vkDestroyImage(m_device, image, nullptr);
     }
     m_images.clear();
@@ -738,7 +765,7 @@ void VulkanCore::cleanup() {
     vkDestroyBuffer(m_device, m_buffer, nullptr);
     std::cout << "Destroyed Buffer\n";
 
-    for(VkDeviceMemory& memory : m_memory){
+    for (VkDeviceMemory &memory : m_memory) {
         vkFreeMemory(m_device, memory, nullptr);
     }
 

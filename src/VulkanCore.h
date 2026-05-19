@@ -8,43 +8,44 @@
 #endif
 
 #include <FSWindow.h>
-#include <vulkan/vulkan.h>
 #include <vector>
+#include <vulkan/vulkan.h>
 class VulkanCore {
-    VkInstance                      m_instance;
-    VkPhysicalDevice                m_physicalDevice;
-    VkDevice                        m_device;
-    VkSurfaceKHR                    m_surface;
-    VkSwapchainKHR                  m_swapchain;
-    VkBuffer                        m_buffer = VK_NULL_HANDLE;
-    VkBufferView                    m_bufferView;
-    std::vector<VkImage>            m_swapchainImages;
-    std::vector<VkImageView>        m_swapchainImageViews;
-    std::vector<VkImage>            m_images = {};
-    std::vector<VkImageView>        m_imageViews = {};
-    std::vector<VkDeviceMemory>     m_memory = {};
-    FS::Window* m_window;
+    VkInstance m_instance;
+    VkPhysicalDevice m_physicalDevice;
+    VkDevice m_device;
+    VkSurfaceKHR m_surface;
+    VkSwapchainKHR m_swapchain;
+    VkBuffer m_buffer = VK_NULL_HANDLE;
+    VkBufferView m_bufferView;
+    std::vector<VkImage> m_swapchainImages;
+    std::vector<VkImageView> m_swapchainImageViews;
+    std::vector<VkImage> m_images = {};
+    std::vector<VkImageView> m_imageViews = {};
+    std::vector<VkDeviceMemory> m_memory = {};
+    FS::Window *m_window;
 
-    const std::vector<const char*> instanceLayers = {
+    const std::vector<const char *> instanceLayers = {
         "VK_LAYER_KHRONOS_validation"
     };
-    const std::vector<const char*> instanceExtensions = {
+    const std::vector<const char *> instanceExtensions = {
         "VK_KHR_surface",
-        #ifdef _WIN32
+#ifdef _WIN32
         "VK_KHR_win32_surface"
-        #elif __linux__
+#elif __linux__
         "VK_KHR_xlib_surface"
-        #endif
+#endif
     };
 
-    const std::vector<const char*> deviceLayers = {
+    const std::vector<const char *> deviceLayers = {
         "VK_LAYER_KHRONOS_validation"
     };
 
-    const std::vector<const char*> deviceExtensions = {
+    const std::vector<const char *> deviceExtensions = {
         "VK_KHR_swapchain"
     };
-public:
+
+  public:
     VulkanCore() {
         init();
     }
@@ -52,7 +53,7 @@ public:
         cleanup();
     }
 
-private:
+  private:
     int init();
     void cleanup();
 };
