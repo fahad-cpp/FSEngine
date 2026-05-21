@@ -242,8 +242,8 @@ VkResult createDevice(VkPhysicalDevice &physicalDevice, VkDevice &device, const 
     // and multiDrawIndirect is supported if the device supports it
     VkPhysicalDeviceFeatures requiredFeatures = {};
     requiredFeatures.multiDrawIndirect = supportedFeatures.multiDrawIndirect;
-    requiredFeatures.sparseBinding = VK_TRUE;
-    requiredFeatures.sparseResidencyImage2D = VK_TRUE;
+    requiredFeatures.sparseBinding = supportedFeatures.sparseBinding;
+    requiredFeatures.sparseResidencyImage2D = supportedFeatures.sparseResidencyImage2D;
     requiredFeatures.tessellationShader = VK_TRUE;
     requiredFeatures.geometryShader = VK_TRUE;
 
