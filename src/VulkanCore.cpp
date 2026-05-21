@@ -53,10 +53,6 @@ static VkResult createInstance(VkInstance &instance, const std::vector<const cha
     for (const std::string &layer : finalLayers) {
         finalLayersstr.push_back(layer.c_str());
     }
-    std::cout << "Final Instance Layers:" << finalLayers.size() << "\n";
-    for (const char *str : instanceLayers) {
-        std::cout << "|" << str << "|\n";
-    }
 
     // Application Info
     VkApplicationInfo applicationInfo = {
@@ -246,6 +242,8 @@ VkResult createDevice(VkPhysicalDevice &physicalDevice, VkDevice &device, const 
     // and multiDrawIndirect is supported if the device supports it
     VkPhysicalDeviceFeatures requiredFeatures = {};
     requiredFeatures.multiDrawIndirect = supportedFeatures.multiDrawIndirect;
+    requiredFeatures.sparseBinding = VK_TRUE;
+    requiredFeatures.sparseResidencyImage2D = VK_TRUE;
     requiredFeatures.tessellationShader = VK_TRUE;
     requiredFeatures.geometryShader = VK_TRUE;
 
@@ -607,6 +605,53 @@ VkResult createImage(VkPhysicalDevice &physicalDevice, VkDevice &device, VkImage
     return res;
 }
 
+VkResult createSparseImage(VkPhysicalDevice& physicalDevice,VkDevice& device,VkImage& image,VkDeviceMemory& memory){
+    VkPhysicalDeviceFeatures features;
+    vkGetPhysicalDeviceFeatures(physicalDevice, &features);
+    if(features.sparseBinding == VK_FALSE){
+        std::cerr << "Sparse Images are not supported on your device\n";
+        return VK_ERROR_FEATURE_NOT_PRESENT;
+    }
+
+    VkImageCreateInfo imageCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = VK_IMAGE_CREATE_SPARSE_BINDING_BIT | VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT,
+        .imageType = VK_IMAGE_TYPE_2D,
+        .format = VK_FORMAT_R8G8B8A8_UNORM,
+        .extent = VkExtent3D{1024,1024,1},
+        .mipLevels = 1,
+        .arrayLayers = 1,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .tiling = VK_IMAGE_TILING_OPTIMAL,
+        .usage = VK_IMAGE_USAGE_SAMPLED_BIT,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .queueFamilyIndexCount = 0,
+        .pQueueFamilyIndices = nullptr,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+    };
+    VkResult result = vkCreateImage(device, &imageCreateInfo , nullptr, &image);
+    if(result != VK_SUCCESS){
+        return result;
+    }
+
+    uint32_t requirementCount = 0;
+    vkGetImageSparseMemoryRequirements(device, image, &requirementCount,nullptr);
+    std::vector<VkSparseImageMemoryRequirements> memoryRequirements(requirementCount);
+    vkGetImageSparseMemoryRequirements(device, image, &requirementCount,memoryRequirements.data());
+
+    for(const VkSparseImageMemoryRequirements& req : memoryRequirements){
+        const VkExtent3D& granularity = req.formatProperties.imageGranularity;
+        std::cout << "Image Granularity:" << granularity.width << " " << granularity.height << " " << granularity.depth << "\n";
+        std::cout << "Aspect Mask:" << req.formatProperties.aspectMask << "\n";
+        std::cout << "Flags:" << ((req.formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT)?"Single Miptail ":"")<<
+            ((req.formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_ALIGNED_MIP_SIZE_BIT)?"Aligned Mip Size ":"") <<
+            ((req.formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_NONSTANDARD_BLOCK_SIZE_BIT)?"Non Standard Block Size":"") << "\n";
+    }
+
+    return result;
+}
+
 int VulkanCore::init() {
     // Create Instance
     VkResult result = createInstance(m_instance, instanceLayers, instanceExtensions);
@@ -736,6 +781,18 @@ int VulkanCore::init() {
         std::cout << "Successfully created cubemap image view\n";
     }
     m_imageViews.push_back(cubemapView);
+
+    // Create sparse image
+    VkImage sparseImage;
+    VkDeviceMemory sparseImageMemory;
+    result = createSparseImage(m_physicalDevice,m_device,sparseImage,sparseImageMemory);
+    if(result != VK_SUCCESS){
+        std::cerr << "Failed to create sparse image\n";
+    }else{
+        std::cout << "Successfully created sparse image\n";
+    }
+    m_images.push_back(sparseImage);
+    //m_memory.push_back(sparseImageMemory);
 
     return VK_SUCCESS;
 }
