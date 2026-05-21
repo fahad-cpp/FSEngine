@@ -608,7 +608,7 @@ VkResult createImage(VkPhysicalDevice &physicalDevice, VkDevice &device, VkImage
 VkResult createSparseImage(VkPhysicalDevice &physicalDevice, VkDevice &device, VkImage &image, VkDeviceMemory &memory) {
     VkPhysicalDeviceFeatures features;
     vkGetPhysicalDeviceFeatures(physicalDevice, &features);
-    if (features.sparseBinding == VK_FALSE) {
+    if (features.sparseBinding == VK_FALSE || features.sparseResidencyImage2D == VK_FALSE) {
         std::cerr << "Sparse Images are not supported on your device\n";
         return VK_ERROR_FEATURE_NOT_PRESENT;
     }
