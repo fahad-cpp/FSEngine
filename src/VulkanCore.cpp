@@ -1,4 +1,5 @@
 #include "VulkanCore.h"
+#include <cmath>
 #include <cstdint>
 #include <iostream>
 #include <vector>
@@ -613,15 +614,32 @@ VkResult createSparseImage(VkPhysicalDevice &physicalDevice, VkDevice &device, V
         return VK_ERROR_FEATURE_NOT_PRESENT;
     }
 
+    VkPhysicalDeviceProperties prop;
+    vkGetPhysicalDeviceProperties(physicalDevice, &prop);
+    uint32_t arrayLayers = std::min(6u,prop.limits.maxImageArrayLayers);
+    VkExtent3D extent = VkExtent3D{ 1024, 1024, 1 };
+    uint32_t maxDimension = std::max(std::max(extent.width,extent.height),extent.depth);
+    uint32_t maxMipLevel = log2(maxDimension);
+    if(arrayLayers != 6u){
+        std::cout << "(WARN):arrayLayers reduced to " << arrayLayers << "\n";
+    }
+    uint32_t mipLevels = std::min(10u,maxMipLevel);
+    if(mipLevels != 10u){
+        std::cout << "(WARN):mipLevels reduced to " << mipLevels << "\n";
+    }
+
+    std::cout << "MipLevels:" << mipLevels << "\n";
+    std::cout << "MaxMipLevel:" << maxMipLevel << "\n";
+
     VkImageCreateInfo imageCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
         .pNext = nullptr,
         .flags = VK_IMAGE_CREATE_SPARSE_BINDING_BIT | VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT,
         .imageType = VK_IMAGE_TYPE_2D,
         .format = VK_FORMAT_R8G8B8A8_UNORM,
-        .extent = VkExtent3D{ 1024, 1024, 1 },
-        .mipLevels = 10,
-        .arrayLayers = 1,
+        .extent = extent,
+        .mipLevels = mipLevels,
+        .arrayLayers = arrayLayers,
         .samples = VK_SAMPLE_COUNT_1_BIT,
         .tiling = VK_IMAGE_TILING_OPTIMAL,
         .usage = VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -640,6 +658,8 @@ VkResult createSparseImage(VkPhysicalDevice &physicalDevice, VkDevice &device, V
     std::vector<VkSparseImageMemoryRequirements> memoryRequirements(requirementCount);
     vkGetImageSparseMemoryRequirements(device, image, &requirementCount, memoryRequirements.data());
 
+    std::cout << "Sparse Image Requirements:" << requirementCount << "\n";
+
     for (const VkSparseImageMemoryRequirements &req : memoryRequirements) {
         const VkExtent3D &granularity = req.formatProperties.imageGranularity;
         std::cout << "\tImage Granularity:" << granularity.width << "x" << granularity.height << "x" << granularity.depth << "\n";
@@ -649,6 +669,19 @@ VkResult createSparseImage(VkPhysicalDevice &physicalDevice, VkDevice &device, V
         std::cout << "\tMipTailFirstLOD:" << req.imageMipTailFirstLod << "\n";
         std::cout << "\tMipTailOffset:" << req.imageMipTailOffset << "\n";
         std::cout << "\tMipTailStride:" << req.imageMipTailStride << "\n";
+    }
+    uint32_t propertyCount=0;
+    vkGetPhysicalDeviceSparseImageFormatProperties(physicalDevice, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TYPE_2D, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_TILING_OPTIMAL, &propertyCount, nullptr);
+    std::vector<VkSparseImageFormatProperties> formatProperties(propertyCount);
+    vkGetPhysicalDeviceSparseImageFormatProperties(physicalDevice, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TYPE_2D, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_TILING_OPTIMAL, &propertyCount, formatProperties.data());
+
+    std::cout << "Format Properties:" << propertyCount << "\n";
+
+    for(const VkSparseImageFormatProperties& prop : formatProperties){
+        const VkExtent3D& imageGranularity = prop.imageGranularity;
+        std::cout << "\tGranularity:" << imageGranularity.width << "x" << imageGranularity.height << "x" << imageGranularity.depth << "\n";
+        std::cout << "\tAspectMask:" << prop.aspectMask << "\n";
+        std::cout << "\tFlags:" << prop.flags << "\n";
     }
     return result;
 }
