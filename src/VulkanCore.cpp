@@ -207,7 +207,7 @@ void getPhysicalDeviceProperties(VkPhysicalDevice &physicalDevice) {
     //     std::cout << "\t\tQueue Flags:" << getQueueFlagString(queueFamilyProperties[j].queueFlags) << "\n";
     // }
 }
-uint32_t getQueueFamilyIndex(const VkPhysicalDevice &physicalDevice) {
+uint32_t getQueueFamilyIndex(const VkPhysicalDevice &physicalDevice,const VkQueueFlags& flags) {
     uint32_t index = 0;
     uint32_t propertyCount = 0;
     std::vector<VkQueueFamilyProperties> properties;
@@ -216,7 +216,7 @@ uint32_t getQueueFamilyIndex(const VkPhysicalDevice &physicalDevice) {
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &propertyCount, properties.data());
 
     for (uint32_t i = 0; i < propertyCount; i++) {
-        if (properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+        if ((properties[i].queueFlags & flags) == flags) {
             index = i;
             break;
         }
@@ -233,7 +233,7 @@ VkResult createDevice(VkPhysicalDevice &physicalDevice, VkDevice &device, const 
         finalLayersstr.push_back(layer.c_str());
     }
 
-    uint32_t familyIndex = getQueueFamilyIndex(physicalDevice);
+    uint32_t familyIndex = getQueueFamilyIndex(physicalDevice,VK_QUEUE_GRAPHICS_BIT);
 
     VkPhysicalDeviceFeatures supportedFeatures;
     vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
@@ -683,6 +683,52 @@ VkResult createSparseImage(VkPhysicalDevice &physicalDevice, VkDevice &device, V
         std::cout << "\tAspectMask:" << prop.aspectMask << "\n";
         std::cout << "\tFlags:" << prop.flags << "\n";
     }
+
+    VkMemoryRequirements imageMemoryRequirements = {};
+    vkGetImageMemoryRequirements(device, image, &imageMemoryRequirements);
+
+    uint32_t memoryTypeIndex = getMemoryIndex(physicalDevice, imageMemoryRequirements, 0, 0);
+    VkMemoryAllocateInfo allocateInfo = {
+      .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+      .pNext = nullptr,
+      .allocationSize = imageMemoryRequirements.size,
+      .memoryTypeIndex = memoryTypeIndex
+    };
+    vkAllocateMemory(device, &allocateInfo,nullptr, &memory);
+
+    VkSparseMemoryBind sparseMemoryBind = {
+        .resourceOffset = 0,
+        .size = imageMemoryRequirements.size,
+        .memory = memory,
+        .memoryOffset = 0,
+        .flags = 0
+    };
+
+    VkSparseImageOpaqueMemoryBindInfo imageOpaqueBindInfo = {
+        .image = image,
+        .bindCount = 1,
+        .pBinds = &sparseMemoryBind
+    };
+
+    VkBindSparseInfo bindInfo = {
+        .sType = VK_STRUCTURE_TYPE_BIND_SPARSE_INFO,
+        .pNext = nullptr,
+        .waitSemaphoreCount = 0,
+        .pWaitSemaphores = nullptr,
+        .bufferBindCount = 0,
+        .pBufferBinds = nullptr,
+        .imageOpaqueBindCount = 1,
+        .pImageOpaqueBinds = &imageOpaqueBindInfo,
+        .imageBindCount = 0,
+        .pImageBinds = nullptr,
+        .signalSemaphoreCount = 0,
+        .pSignalSemaphores = nullptr
+    };
+
+    VkQueue queue;
+    uint32_t familyIndex = getQueueFamilyIndex(physicalDevice, VK_QUEUE_SPARSE_BINDING_BIT);
+    vkGetDeviceQueue(device, familyIndex, 0, &queue);
+    vkQueueBindSparse(queue , 1, &bindInfo , VK_NULL_HANDLE);
     return result;
 }
 
@@ -768,9 +814,9 @@ int VulkanCore::init() {
     // Query Compressed formats support
     VkPhysicalDeviceFeatures feat;
     vkGetPhysicalDeviceFeatures(m_physicalDevice, &feat);
-    std::cout << ((feat.textureCompressionBC) ? "BC texture compression supported\n" : "BC texture compression not supported\n");
-    std::cout << ((feat.textureCompressionETC2) ? "ETC2 texture compression supported\n" : "ETC2 texture compression not supported\n");
-    std::cout << ((feat.textureCompressionASTC_LDR) ? "ASTC texture compression supported\n" : "ASTC texture compression not supported\n");
+    // std::cout << ((feat.textureCompressionBC) ? "BC texture compression supported\n" : "BC texture compression not supported\n");
+    // std::cout << ((feat.textureCompressionETC2) ? "ETC2 texture compression supported\n" : "ETC2 texture compression not supported\n");
+    // std::cout << ((feat.textureCompressionASTC_LDR) ? "ASTC texture compression supported\n" : "ASTC texture compression not supported\n");
 
     // Create buffer view
     VkBufferView bufferView;
@@ -826,7 +872,7 @@ int VulkanCore::init() {
         std::cout << "Successfully created sparse image\n";
     }
     m_images.push_back(sparseImage);
-    // m_memory.push_back(sparseImageMemory);
+    m_memory.push_back(sparseImageMemory);
 
     return VK_SUCCESS;
 }

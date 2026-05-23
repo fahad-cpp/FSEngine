@@ -10,6 +10,7 @@ void Application::init() {
 
 void Application::run() {
     std::cout << "\nApplication::run()\n\n";
+    std::cin.get();
 }
 
 void Application::cleanup() {
