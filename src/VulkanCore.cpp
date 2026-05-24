@@ -707,9 +707,9 @@ VkResult createSparseImage(VkPhysicalDevice &physicalDevice, VkDevice &device, V
     vkQueueBindSparse(queue, 1, &bindInfo, VK_NULL_HANDLE);
     return result;
 }
-VkResult createCommandPool(VkDevice& device,VkPhysicalDevice& physicalDevice,VkCommandPool &commandPool,VkCommandBuffer& commandBuffer){
+VkResult createCommandPool(VkDevice &device, VkPhysicalDevice &physicalDevice, VkCommandPool &commandPool, VkCommandBuffer &commandBuffer) {
 
-    uint32_t queueGraphicsFamilyIndex = getQueueFamilyIndex(physicalDevice , VK_QUEUE_GRAPHICS_BIT);
+    uint32_t queueGraphicsFamilyIndex = getQueueFamilyIndex(physicalDevice, VK_QUEUE_GRAPHICS_BIT);
 
     VkCommandPoolCreateInfo commandPoolCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -717,8 +717,8 @@ VkResult createCommandPool(VkDevice& device,VkPhysicalDevice& physicalDevice,VkC
         .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
         .queueFamilyIndex = queueGraphicsFamilyIndex
     };
-    VkResult result = vkCreateCommandPool(device, &commandPoolCreateInfo , nullptr , &commandPool);
-    if(result != VK_SUCCESS){
+    VkResult result = vkCreateCommandPool(device, &commandPoolCreateInfo, nullptr, &commandPool);
+    if (result != VK_SUCCESS) {
         return result;
     }
 
@@ -729,7 +729,12 @@ VkResult createCommandPool(VkDevice& device,VkPhysicalDevice& physicalDevice,VkC
         .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
         .commandBufferCount = 1
     };
-    result = vkAllocateCommandBuffers(device , &commandBufferAllocateInfo , &commandBuffer);
+    result = vkAllocateCommandBuffers(device, &commandBufferAllocateInfo, &commandBuffer);
+    if (result != VK_SUCCESS) {
+        std::cout << "Failed to create command buffer\n";
+    } else {
+        std::cout << "Successfully created command buffer\n";
+    }
 
     return result;
 }
@@ -875,8 +880,8 @@ int VulkanCore::init() {
     m_images.push_back(sparseImage);
     m_memory.push_back(sparseImageMemory);
 
-    //Create a command pool
-    result = createCommandPool(m_device,m_physicalDevice,m_commandPool,m_commandBuffer);
+    // Create a command pool
+    result = createCommandPool(m_device, m_physicalDevice, m_commandPool, m_commandBuffer);
     if (result != VK_SUCCESS) {
         std::cerr << "Failed to create command pool\n";
     } else {
