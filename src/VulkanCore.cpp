@@ -207,7 +207,7 @@ void getPhysicalDeviceProperties(VkPhysicalDevice &physicalDevice) {
     //     std::cout << "\t\tQueue Flags:" << getQueueFlagString(queueFamilyProperties[j].queueFlags) << "\n";
     // }
 }
-uint32_t getQueueFamilyIndex(const VkPhysicalDevice &physicalDevice,const VkQueueFlags& flags) {
+uint32_t getQueueFamilyIndex(const VkPhysicalDevice &physicalDevice, const VkQueueFlags &flags) {
     uint32_t index = 0;
     uint32_t propertyCount = 0;
     std::vector<VkQueueFamilyProperties> properties;
@@ -233,7 +233,7 @@ VkResult createDevice(VkPhysicalDevice &physicalDevice, VkDevice &device, const 
         finalLayersstr.push_back(layer.c_str());
     }
 
-    uint32_t familyIndex = getQueueFamilyIndex(physicalDevice,VK_QUEUE_GRAPHICS_BIT);
+    uint32_t familyIndex = getQueueFamilyIndex(physicalDevice, VK_QUEUE_GRAPHICS_BIT);
 
     VkPhysicalDeviceFeatures supportedFeatures;
     vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
@@ -616,20 +616,17 @@ VkResult createSparseImage(VkPhysicalDevice &physicalDevice, VkDevice &device, V
 
     VkPhysicalDeviceProperties prop;
     vkGetPhysicalDeviceProperties(physicalDevice, &prop);
-    uint32_t arrayLayers = std::min(6u,prop.limits.maxImageArrayLayers);
+    uint32_t arrayLayers = std::min(6u, prop.limits.maxImageArrayLayers);
     VkExtent3D extent = VkExtent3D{ 1024, 1024, 1 };
-    uint32_t maxDimension = std::max(std::max(extent.width,extent.height),extent.depth);
+    uint32_t maxDimension = std::max(std::max(extent.width, extent.height), extent.depth);
     uint32_t maxMipLevel = log2(maxDimension);
-    if(arrayLayers != 6u){
+    if (arrayLayers != 6u) {
         std::cout << "(WARN):arrayLayers reduced to " << arrayLayers << "\n";
     }
-    uint32_t mipLevels = std::min(10u,maxMipLevel);
-    if(mipLevels != 10u){
+    uint32_t mipLevels = std::min(10u, maxMipLevel);
+    if (mipLevels != 10u) {
         std::cout << "(WARN):mipLevels reduced to " << mipLevels << "\n";
     }
-
-    std::cout << "MipLevels:" << mipLevels << "\n";
-    std::cout << "MaxMipLevel:" << maxMipLevel << "\n";
 
     VkImageCreateInfo imageCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -658,43 +655,22 @@ VkResult createSparseImage(VkPhysicalDevice &physicalDevice, VkDevice &device, V
     std::vector<VkSparseImageMemoryRequirements> memoryRequirements(requirementCount);
     vkGetImageSparseMemoryRequirements(device, image, &requirementCount, memoryRequirements.data());
 
-    std::cout << "Sparse Image Requirements:" << requirementCount << "\n";
-
-    for (const VkSparseImageMemoryRequirements &req : memoryRequirements) {
-        const VkExtent3D &granularity = req.formatProperties.imageGranularity;
-        std::cout << "\tImage Granularity:" << granularity.width << "x" << granularity.height << "x" << granularity.depth << "\n";
-        std::cout << "\tAspect Mask:" << ((req.formatProperties.aspectMask & VK_IMAGE_ASPECT_COLOR_BIT)?"Color ":"") << ((req.formatProperties.aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT)?"Depth ":"") << ((req.formatProperties.aspectMask & VK_IMAGE_ASPECT_STENCIL_BIT)?"Stencil ":"") << "\n";
-        std::cout << "\tFlags:" << ((req.formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT) ? "Single Miptail " : "") << ((req.formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_ALIGNED_MIP_SIZE_BIT) ? "Aligned Mip Size " : "") << ((req.formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_NONSTANDARD_BLOCK_SIZE_BIT) ? "Non Standard Block Size" : "") << "\n";
-        std::cout << "\tMipTailSize:" << req.imageMipTailSize << "\n";
-        std::cout << "\tMipTailFirstLOD:" << req.imageMipTailFirstLod << "\n";
-        std::cout << "\tMipTailOffset:" << req.imageMipTailOffset << "\n";
-        std::cout << "\tMipTailStride:" << req.imageMipTailStride << "\n";
-    }
-    uint32_t propertyCount=0;
+    uint32_t propertyCount = 0;
     vkGetPhysicalDeviceSparseImageFormatProperties(physicalDevice, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TYPE_2D, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_TILING_OPTIMAL, &propertyCount, nullptr);
     std::vector<VkSparseImageFormatProperties> formatProperties(propertyCount);
     vkGetPhysicalDeviceSparseImageFormatProperties(physicalDevice, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TYPE_2D, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_TILING_OPTIMAL, &propertyCount, formatProperties.data());
-
-    std::cout << "Format Properties:" << propertyCount << "\n";
-
-    for(const VkSparseImageFormatProperties& prop : formatProperties){
-        const VkExtent3D& imageGranularity = prop.imageGranularity;
-        std::cout << "\tGranularity:" << imageGranularity.width << "x" << imageGranularity.height << "x" << imageGranularity.depth << "\n";
-        std::cout << "\tAspectMask:" << prop.aspectMask << "\n";
-        std::cout << "\tFlags:" << prop.flags << "\n";
-    }
 
     VkMemoryRequirements imageMemoryRequirements = {};
     vkGetImageMemoryRequirements(device, image, &imageMemoryRequirements);
 
     uint32_t memoryTypeIndex = getMemoryIndex(physicalDevice, imageMemoryRequirements, 0, 0);
     VkMemoryAllocateInfo allocateInfo = {
-      .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-      .pNext = nullptr,
-      .allocationSize = imageMemoryRequirements.size,
-      .memoryTypeIndex = memoryTypeIndex
+        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .pNext = nullptr,
+        .allocationSize = imageMemoryRequirements.size,
+        .memoryTypeIndex = memoryTypeIndex
     };
-    vkAllocateMemory(device, &allocateInfo,nullptr, &memory);
+    vkAllocateMemory(device, &allocateInfo, nullptr, &memory);
 
     VkSparseMemoryBind sparseMemoryBind = {
         .resourceOffset = 0,
@@ -728,10 +704,35 @@ VkResult createSparseImage(VkPhysicalDevice &physicalDevice, VkDevice &device, V
     VkQueue queue;
     uint32_t familyIndex = getQueueFamilyIndex(physicalDevice, VK_QUEUE_SPARSE_BINDING_BIT);
     vkGetDeviceQueue(device, familyIndex, 0, &queue);
-    vkQueueBindSparse(queue , 1, &bindInfo , VK_NULL_HANDLE);
+    vkQueueBindSparse(queue, 1, &bindInfo, VK_NULL_HANDLE);
     return result;
 }
+VkResult createCommandPool(VkDevice& device,VkPhysicalDevice& physicalDevice,VkCommandPool &commandPool,VkCommandBuffer& commandBuffer){
 
+    uint32_t queueGraphicsFamilyIndex = getQueueFamilyIndex(physicalDevice , VK_QUEUE_GRAPHICS_BIT);
+
+    VkCommandPoolCreateInfo commandPoolCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+        .queueFamilyIndex = queueGraphicsFamilyIndex
+    };
+    VkResult result = vkCreateCommandPool(device, &commandPoolCreateInfo , nullptr , &commandPool);
+    if(result != VK_SUCCESS){
+        return result;
+    }
+
+    VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .pNext = nullptr,
+        .commandPool = commandPool,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .commandBufferCount = 1
+    };
+    result = vkAllocateCommandBuffers(device , &commandBufferAllocateInfo , &commandBuffer);
+
+    return result;
+}
 int VulkanCore::init() {
     // Create Instance
     VkResult result = createInstance(m_instance, instanceLayers, instanceExtensions);
@@ -874,10 +875,25 @@ int VulkanCore::init() {
     m_images.push_back(sparseImage);
     m_memory.push_back(sparseImageMemory);
 
+    //Create a command pool
+    result = createCommandPool(m_device,m_physicalDevice,m_commandPool,m_commandBuffer);
+    if (result != VK_SUCCESS) {
+        std::cerr << "Failed to create command pool\n";
+    } else {
+        std::cout << "Successfully created command pool\n";
+    }
+
     return VK_SUCCESS;
 }
 
 void VulkanCore::cleanup() {
+
+    vkFreeCommandBuffers(m_device, m_commandPool, 1, &m_commandBuffer);
+    std::cout << "Destroyed Command Buffer\n";
+
+    vkDestroyCommandPool(m_device, m_commandPool, nullptr);
+    std::cout << "Destroyed Command Pool\n";
+
     for (VkImageView &imageView : m_imageViews) {
         vkDestroyImageView(m_device, imageView, nullptr);
     }
@@ -904,6 +920,7 @@ void VulkanCore::cleanup() {
     for (VkDeviceMemory &memory : m_memory) {
         vkFreeMemory(m_device, memory, nullptr);
     }
+    std::cout << "Freed Allocated memory\n";
 
     vkDeviceWaitIdle(m_device);
     vkDestroyDevice(m_device, nullptr);

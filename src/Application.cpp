@@ -2,7 +2,7 @@
 #include <iostream>
 /*
     Last learned:
-    -Image Arrays
+    -Command Buffers & Command Pools
 */
 void Application::init() {
     std::cout << "\nApplication::init()\n\n";

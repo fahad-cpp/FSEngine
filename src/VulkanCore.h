@@ -18,6 +18,8 @@ class VulkanCore {
     VkSwapchainKHR m_swapchain;
     VkBuffer m_buffer = VK_NULL_HANDLE;
     VkBufferView m_bufferView;
+    VkCommandPool m_commandPool;
+    VkCommandBuffer m_commandBuffer;
     std::vector<VkImage> m_swapchainImages;
     std::vector<VkImageView> m_swapchainImageViews;
     std::vector<VkImage> m_images = {};
