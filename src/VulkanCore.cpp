@@ -216,7 +216,6 @@ uint32_t getQueueFamilyIndex(const VkPhysicalDevice &physicalDevice, const VkQue
 
     for (uint32_t i = 0; i < propertyCount; i++) {
         if ((properties[i].queueFlags & flags) == flags) {
-            std::cout << "Queue Flags:" << getQueueFlagString(properties[i].queueFlags) << "\n";
             index = i;
             break;
         }
@@ -263,7 +262,7 @@ VkResult createDevice(VkPhysicalDevice &physicalDevice, VkDevice &device, const 
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         .pNext = nullptr,
         .flags = 0,
-        .queueCreateInfoCount = 2,
+        .queueCreateInfoCount = 1,
         .pQueueCreateInfos = queueCreateInfo,
         .enabledLayerCount = (uint32_t)finalLayers.size(),
         .ppEnabledLayerNames = finalLayersstr.data(),
@@ -406,13 +405,13 @@ uint32_t getMemoryIndex(VkPhysicalDevice &physicalDevice, VkMemoryRequirements r
 }
 
 // Resources creation
-VkResult createBuffer(VkDevice &device, VkBuffer &buffer, VkPhysicalDevice &physicalDevice, VkDeviceMemory &memory) {
-    static const VkBufferCreateInfo bufferCreateInfo = {
+VkResult createBuffer(VkDevice &device, VkBuffer &buffer, VkPhysicalDevice &physicalDevice, VkDeviceMemory &memory, const VkBufferUsageFlags &usage, const VkDeviceSize size) {
+    const VkBufferCreateInfo bufferCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
         .pNext = nullptr,
         .flags = 0,
-        .size = 1024 * 1024,
-        .usage = VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT,
+        .size = size,
+        .usage = usage,
         .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
         .queueFamilyIndexCount = 0,
         .pQueueFamilyIndices = nullptr
@@ -775,7 +774,7 @@ int VulkanCore::init() {
 
     // Create Buffer
     VkDeviceMemory bufferMemory;
-    if ((result = createBuffer(m_device, m_buffer, m_physicalDevice, bufferMemory)) != VK_SUCCESS) {
+    if ((result = createBuffer(m_device, m_buffer, m_physicalDevice, bufferMemory, VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 1024 * 1024)) != VK_SUCCESS) {
         std::cerr << "Failed to create buffer:" << result << "\n";
         return 1;
     } else {
@@ -897,7 +896,7 @@ int VulkanCore::init() {
 
     VkBuffer dstBuffer;
     VkDeviceMemory dstBufferMemory;
-    createBuffer(m_device, dstBuffer, m_physicalDevice, dstBufferMemory);
+    createBuffer(m_device, dstBuffer, m_physicalDevice, dstBufferMemory, VK_BUFFER_USAGE_TRANSFER_DST_BIT, 1024 * 1024);
     m_memory.push_back(dstBufferMemory);
 
     // Begin Recording Commands
@@ -908,12 +907,15 @@ int VulkanCore::init() {
         .pInheritanceInfo = nullptr
     };
     vkBeginCommandBuffer(m_commandBuffer, &beginInfo);
-    return VK_SUCCESS;
 
-    copyBuffers(m_commandBuffer, m_buffer, m_buffer, 0, 0, 1024 * 1024);
+    copyBuffers(m_commandBuffer, m_buffer, dstBuffer, 0, 0, 1024 * 1024);
 
     // End Recording Commands
     vkEndCommandBuffer(m_commandBuffer);
+
+    vkDestroyBuffer(m_device, dstBuffer, nullptr);
+
+    return 0;
 }
 
 void VulkanCore::cleanup() {
