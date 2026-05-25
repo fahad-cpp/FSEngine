@@ -2,7 +2,7 @@
 #include <iostream>
 /*
     Last learned:
-    -Command Buffers & Command Pools
+    -Copy Buffer Commands
 */
 void Application::init() {
     std::cout << "\nApplication::init()\n\n";

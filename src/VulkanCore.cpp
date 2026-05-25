@@ -210,13 +210,13 @@ void getPhysicalDeviceProperties(VkPhysicalDevice &physicalDevice) {
 uint32_t getQueueFamilyIndex(const VkPhysicalDevice &physicalDevice, const VkQueueFlags &flags) {
     uint32_t index = 0;
     uint32_t propertyCount = 0;
-    std::vector<VkQueueFamilyProperties> properties;
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &propertyCount, nullptr);
-    properties.resize(propertyCount);
+    std::vector<VkQueueFamilyProperties> properties(propertyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &propertyCount, properties.data());
 
     for (uint32_t i = 0; i < propertyCount; i++) {
         if ((properties[i].queueFlags & flags) == flags) {
+            std::cout << "Queue Flags:" << getQueueFlagString(properties[i].queueFlags) << "\n";
             index = i;
             break;
         }
@@ -233,8 +233,6 @@ VkResult createDevice(VkPhysicalDevice &physicalDevice, VkDevice &device, const 
         finalLayersstr.push_back(layer.c_str());
     }
 
-    uint32_t familyIndex = getQueueFamilyIndex(physicalDevice, VK_QUEUE_GRAPHICS_BIT);
-
     VkPhysicalDeviceFeatures supportedFeatures;
     vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
 
@@ -248,24 +246,25 @@ VkResult createDevice(VkPhysicalDevice &physicalDevice, VkDevice &device, const 
     requiredFeatures.tessellationShader = VK_TRUE;
     requiredFeatures.geometryShader = VK_TRUE;
 
+    uint32_t familyIndex = getQueueFamilyIndex(physicalDevice, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_SPARSE_BINDING_BIT);
     // Queue Create Info
     float priority = 1.f;
-    VkDeviceQueueCreateInfo queueCreateInfo = {
-        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .queueFamilyIndex = familyIndex,
-        .queueCount = 1,
-        .pQueuePriorities = &priority
+    const VkDeviceQueueCreateInfo queueCreateInfo[] = {
+        { .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+          .pNext = nullptr,
+          .flags = 0,
+          .queueFamilyIndex = familyIndex,
+          .queueCount = 1,
+          .pQueuePriorities = &priority },
     };
 
     // Device Create Info
-    VkDeviceCreateInfo deviceCreateInfo = {
+    const VkDeviceCreateInfo deviceCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         .pNext = nullptr,
         .flags = 0,
-        .queueCreateInfoCount = 1,
-        .pQueueCreateInfos = &queueCreateInfo,
+        .queueCreateInfoCount = 2,
+        .pQueueCreateInfos = queueCreateInfo,
         .enabledLayerCount = (uint32_t)finalLayers.size(),
         .ppEnabledLayerNames = finalLayersstr.data(),
         .enabledExtensionCount = (uint32_t)deviceExtensions.size(),
@@ -708,7 +707,6 @@ VkResult createSparseImage(VkPhysicalDevice &physicalDevice, VkDevice &device, V
     return result;
 }
 VkResult createCommandPool(VkDevice &device, VkPhysicalDevice &physicalDevice, VkCommandPool &commandPool, VkCommandBuffer &commandBuffer) {
-
     uint32_t queueGraphicsFamilyIndex = getQueueFamilyIndex(physicalDevice, VK_QUEUE_GRAPHICS_BIT);
 
     VkCommandPoolCreateInfo commandPoolCreateInfo = {
@@ -717,11 +715,11 @@ VkResult createCommandPool(VkDevice &device, VkPhysicalDevice &physicalDevice, V
         .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
         .queueFamilyIndex = queueGraphicsFamilyIndex
     };
-    VkResult result = vkCreateCommandPool(device, &commandPoolCreateInfo, nullptr, &commandPool);
-    if (result != VK_SUCCESS) {
-        return result;
-    }
 
+    return vkCreateCommandPool(device, &commandPoolCreateInfo, nullptr, &commandPool);
+}
+
+VkResult createCommandBuffer(VkDevice &device, VkCommandPool &commandPool, VkCommandBuffer &cmdBuffer) {
     VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
         .pNext = nullptr,
@@ -729,15 +727,20 @@ VkResult createCommandPool(VkDevice &device, VkPhysicalDevice &physicalDevice, V
         .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
         .commandBufferCount = 1
     };
-    result = vkAllocateCommandBuffers(device, &commandBufferAllocateInfo, &commandBuffer);
-    if (result != VK_SUCCESS) {
-        std::cout << "Failed to create command buffer\n";
-    } else {
-        std::cout << "Successfully created command buffer\n";
-    }
 
-    return result;
+    return vkAllocateCommandBuffers(device, &commandBufferAllocateInfo, &cmdBuffer);
 }
+
+// Listing 3.1
+void copyBuffers(VkCommandBuffer &cmdBuffer, VkBuffer &srcBuffer, VkBuffer &dstBuffer, VkDeviceSize srcOffset, VkDeviceSize dstOffset, VkDeviceSize size) {
+    const VkBufferCopy copyRegion = {
+        .srcOffset = srcOffset,
+        .dstOffset = dstOffset,
+        .size = size
+    };
+    vkCmdCopyBuffer(cmdBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+}
+
 int VulkanCore::init() {
     // Create Instance
     VkResult result = createInstance(m_instance, instanceLayers, instanceExtensions);
@@ -825,16 +828,12 @@ int VulkanCore::init() {
     // std::cout << ((feat.textureCompressionASTC_LDR) ? "ASTC texture compression supported\n" : "ASTC texture compression not supported\n");
 
     // Create buffer view
-    VkBufferView bufferView;
-    result = createBufferView(m_device, m_buffer, bufferView);
+    result = createBufferView(m_device, m_buffer, m_bufferView);
     if (result != VK_SUCCESS) {
         std::cerr << "Failed to create Buffer View\n";
     } else {
         std::cout << "Successfully created buffer view\n";
     }
-    // Destroy buffer view
-    vkDestroyBufferView(m_device, bufferView, nullptr);
-    std::cout << "Destoyed Buffer View\n";
 
     // Create Image View
     VkImageView imageView;
@@ -888,7 +887,33 @@ int VulkanCore::init() {
         std::cout << "Successfully created command pool\n";
     }
 
+    // Create a command buffer
+    result = createCommandBuffer(m_device, m_commandPool, m_commandBuffer);
+    if (result != VK_SUCCESS) {
+        std::cerr << "Failed to create command buffer\n";
+    } else {
+        std::cout << "Successfully created command buffer\n";
+    }
+
+    VkBuffer dstBuffer;
+    VkDeviceMemory dstBufferMemory;
+    createBuffer(m_device, dstBuffer, m_physicalDevice, dstBufferMemory);
+    m_memory.push_back(dstBufferMemory);
+
+    // Begin Recording Commands
+    VkCommandBufferBeginInfo beginInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .pInheritanceInfo = nullptr
+    };
+    vkBeginCommandBuffer(m_commandBuffer, &beginInfo);
     return VK_SUCCESS;
+
+    copyBuffers(m_commandBuffer, m_buffer, m_buffer, 0, 0, 1024 * 1024);
+
+    // End Recording Commands
+    vkEndCommandBuffer(m_commandBuffer);
 }
 
 void VulkanCore::cleanup() {
@@ -918,6 +943,10 @@ void VulkanCore::cleanup() {
 
     delete m_window;
     std::cout << "Destroyed Window\n";
+
+    // Destroy buffer view
+    vkDestroyBufferView(m_device, m_bufferView, nullptr);
+    std::cout << "Destoyed Buffer View\n";
 
     vkDestroyBuffer(m_device, m_buffer, nullptr);
     std::cout << "Destroyed Buffer\n";

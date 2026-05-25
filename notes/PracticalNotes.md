@@ -1,7 +1,7 @@
-# Chapter 1  : Overview of vulkan
-
+# Chapter 1 : Overview of vulkan
 
 ## Listing 1.1: Creating a Vulkan Instance
+
 ```C++
 VkResult createInstance(VkInstance& instance){
     //Application Info
@@ -71,7 +71,6 @@ VkResult Application::init(){
 ```
 
 ## Listing 1.2 Querying Physical Device Properties
-
 
 ```C++
 void getPhysicalDeviceProperties(std::vector<VkPhysicalDevice>& physicalDevices){
@@ -145,8 +144,8 @@ VkResult createLogicalDevice(VkPhysicalDevice& physicalDevice,VkDevice& device){
 
     VkPhysicalDeviceFeatures supportedFeatures;
     vkGetPhysicalDeviceFeatures(physicalDevice,&supportedFeatures);
-    
-    //Specify required Features 
+
+    //Specify required Features
     //An Example where tesselation shader and geometry shaders are must have
     //and multiDrawIndirect is supported if the device supports it
     VkPhysicalDeviceFeatures requiredFeatures = {};
@@ -284,6 +283,7 @@ void Allocator::free(void* pUserData, void* pMemory){
 ```
 
 ## Listing 2.3 Creating a Buffer Object
+
 ```cpp
 VkBuffer createBuffer(VkDevice& device, VkBuffer& buffer) {
     static const VkBufferCreateInfo bufferCreateInfo = {
@@ -301,7 +301,7 @@ VkBuffer createBuffer(VkDevice& device, VkBuffer& buffer) {
 VkResult Application::init(){
     ...
     ...
-    
+
     VkBuffer buffer = VK_NULL_HANDLE;
     createBuffer(m_device, buffer);
 
@@ -333,5 +333,18 @@ VkResult createImage(VkDevice& device, VkImage& image) {
     };
 
     return vkCreateImage(device, &imageCreateInfo, nullptr, &image);
+}
+```
+
+# Listing 3.1 Example of using vkCmdCopyBuffer()
+
+```cpp
+void copyBuffers(VkCommandBuffer &cmdBuffer, VkBuffer &srcBuffer, VkBuffer &dstBuffer, VkDeviceSize srcOffset, VkDeviceSize dstOffset, VkDeviceSize size) {
+    const VkBufferCopy copyRegion = {
+        .srcOffset = srcOffset,
+        .dstOffset = dstOffset,
+        .size = size
+    };
+    vkCmdCopyBuffer(cmdBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 }
 ```
