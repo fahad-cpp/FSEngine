@@ -786,6 +786,7 @@ int VulkanCore::init() {
     m_window = new FS::Window("Vulkan Window", 720, 720);
     if (!m_window->isOpen()) {
         std::cerr << "Failed to create window\n";
+        return 1;
     } else {
         std::cout << "Successfully created window\n";
     }
@@ -829,9 +830,10 @@ int VulkanCore::init() {
     // Create buffer view
     result = createBufferView(m_device, m_buffer, m_bufferView);
     if (result != VK_SUCCESS) {
-        std::cerr << "Failed to create Buffer View\n";
+        std::cerr << "Failed to create Buffer View:" << result << "\n";
+        return 1;
     } else {
-        std::cout << "Successfully created buffer view\n";
+        std::cout << "Successfully created Buffer View\n";
     }
 
     // Create Image View
@@ -841,30 +843,30 @@ int VulkanCore::init() {
         std::cerr << "Failed to create Image View\n";
     } else {
         std::cout << "Successfully created Image View\n";
+        m_imageViews.push_back(imageView);
     }
-    m_imageViews.push_back(imageView);
 
     // Create Cubemap
     VkImage cubemap;
     VkDeviceMemory cubemapMemory;
     result = createCubemap(m_physicalDevice, m_device, cubemap, cubemapMemory);
     if (result != VK_SUCCESS) {
-        std::cerr << "Failed to create cubemap image object\n";
+        std::cerr << "Failed to create cubemap image object:" << result << "\n";
     } else {
         std::cout << "Successfully created cubemap image object\n";
+        m_images.push_back(cubemap);
+        m_memory.push_back(cubemapMemory);
     }
-    m_images.push_back(cubemap);
-    m_memory.push_back(cubemapMemory);
 
     // Create Cubemap view
     VkImageView cubemapView;
     result = createCubemapView(m_device, cubemap, cubemapView);
     if (result != VK_SUCCESS) {
-        std::cerr << "Failed to create cubemap image view\n";
+        std::cerr << "Failed to create cubemap image view:" << result << "\n";
     } else {
         std::cout << "Successfully created cubemap image view\n";
+        m_imageViews.push_back(cubemapView);
     }
-    m_imageViews.push_back(cubemapView);
 
     // Create sparse image
     VkImage sparseImage;
@@ -874,14 +876,14 @@ int VulkanCore::init() {
         std::cerr << "Failed to create sparse image\n";
     } else {
         std::cout << "Successfully created sparse image\n";
+        m_images.push_back(sparseImage);
+        m_memory.push_back(sparseImageMemory);
     }
-    m_images.push_back(sparseImage);
-    m_memory.push_back(sparseImageMemory);
 
     // Create a command pool
     result = createCommandPool(m_device, m_physicalDevice, m_commandPool, m_commandBuffer);
     if (result != VK_SUCCESS) {
-        std::cerr << "Failed to create command pool\n";
+        std::cerr << "Failed to create command pool:" << result << "\n";
     } else {
         std::cout << "Successfully created command pool\n";
     }
@@ -889,7 +891,7 @@ int VulkanCore::init() {
     // Create a command buffer
     result = createCommandBuffer(m_device, m_commandPool, m_commandBuffer);
     if (result != VK_SUCCESS) {
-        std::cerr << "Failed to create command buffer\n";
+        std::cerr << "Failed to create command buffer:" << result << "\n";
     } else {
         std::cout << "Successfully created command buffer\n";
     }
@@ -956,7 +958,7 @@ void VulkanCore::cleanup() {
     for (VkDeviceMemory &memory : m_memory) {
         vkFreeMemory(m_device, memory, nullptr);
     }
-    std::cout << "Freed Allocated memory\n";
+    std::cout << "Deallocated memory\n";
 
     vkDeviceWaitIdle(m_device);
     vkDestroyDevice(m_device, nullptr);
