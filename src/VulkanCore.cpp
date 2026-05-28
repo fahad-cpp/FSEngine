@@ -216,11 +216,11 @@ uint32_t getQueueFamilyIndex(const VkPhysicalDevice &physicalDevice, const VkQue
 
     for (uint32_t i = 0; i < propertyCount; i++) {
         if ((properties[i].queueFlags & flags) == flags) {
-            index = i;
-            break;
+            return i;
         }
     }
 
+    std::cerr << "(WARN!):No Queue Family Found for specified flags\n";
     return index;
 }
 VkResult createDevice(VkPhysicalDevice &physicalDevice, VkDevice &device, const std::vector<const char *> &deviceLayers, const std::vector<const char *> &deviceExtensions) {
@@ -245,7 +245,7 @@ VkResult createDevice(VkPhysicalDevice &physicalDevice, VkDevice &device, const 
     requiredFeatures.tessellationShader = VK_TRUE;
     requiredFeatures.geometryShader = VK_TRUE;
 
-    uint32_t familyIndex = getQueueFamilyIndex(physicalDevice, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_SPARSE_BINDING_BIT);
+    uint32_t familyIndex = getQueueFamilyIndex(physicalDevice, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_SPARSE_BINDING_BIT | VK_QUEUE_TRANSFER_BIT);
     // Queue Create Info
     float priority = 1.f;
     const VkDeviceQueueCreateInfo queueCreateInfo[] = {
@@ -706,7 +706,7 @@ VkResult createSparseImage(VkPhysicalDevice &physicalDevice, VkDevice &device, V
     return result;
 }
 VkResult createCommandPool(VkDevice &device, VkPhysicalDevice &physicalDevice, VkCommandPool &commandPool, VkCommandBuffer &commandBuffer) {
-    uint32_t queueGraphicsFamilyIndex = getQueueFamilyIndex(physicalDevice, VK_QUEUE_GRAPHICS_BIT);
+    uint32_t queueGraphicsFamilyIndex = getQueueFamilyIndex(physicalDevice, VK_QUEUE_TRANSFER_BIT);
 
     VkCommandPoolCreateInfo commandPoolCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -915,6 +915,25 @@ int VulkanCore::init() {
     // End Recording Commands
     vkEndCommandBuffer(m_commandBuffer);
 
+    VkQueue queue;
+    uint32_t familyIndex = getQueueFamilyIndex(m_physicalDevice, VK_QUEUE_TRANSFER_BIT);
+    vkGetDeviceQueue(m_device, familyIndex, 0, &queue);
+    VkSubmitInfo submitInfo = {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .pNext = nullptr,
+        .waitSemaphoreCount = 0,
+        .pWaitSemaphores = nullptr,
+        .pWaitDstStageMask = nullptr,
+        .commandBufferCount = 1,
+        .pCommandBuffers = &m_commandBuffer,
+        .signalSemaphoreCount = 0,
+        .pSignalSemaphores = nullptr
+    };
+    vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+
+
+
+    vkQueueWaitIdle(queue);
     vkDestroyBuffer(m_device, dstBuffer, nullptr);
 
     return 0;
