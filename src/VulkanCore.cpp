@@ -930,9 +930,6 @@ int VulkanCore::init() {
         .pSignalSemaphores = nullptr
     };
     vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-
-
-
     vkQueueWaitIdle(queue);
     vkDestroyBuffer(m_device, dstBuffer, nullptr);
 
