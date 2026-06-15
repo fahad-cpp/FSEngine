@@ -25,29 +25,29 @@ class VulkanCore {
     std::vector<VkImage> m_images = {};
     std::vector<VkImageView> m_imageViews = {};
     std::vector<VkDeviceMemory> m_memory = {};
-    FS::Window *m_window;
-
+    
     const std::vector<const char *> instanceLayers = {
         "VK_LAYER_KHRONOS_validation"
     };
     const std::vector<const char *> instanceExtensions = {
         "VK_KHR_surface",
-#ifdef _WIN32
+        #ifdef _WIN32
         "VK_KHR_win32_surface"
-#elif __linux__
+        #elif __linux__
         "VK_KHR_xlib_surface"
-#endif
+        #endif
     };
-
+    
     const std::vector<const char *> deviceLayers = {
         "VK_LAYER_KHRONOS_validation"
     };
-
+    
     const std::vector<const char *> deviceExtensions = {
         "VK_KHR_swapchain"
     };
-
-  public:
+    
+    public:
+    FS::Window *window;
     VulkanCore() {
         init();
     }

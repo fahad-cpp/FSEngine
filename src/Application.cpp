@@ -10,7 +10,9 @@ void Application::init() {
 
 void Application::run() {
     std::cout << "\nApplication::run()\n\n";
-    std::cin.get();
+    while(vkCore.window->isOpen()){
+        vkCore.window->processMessages();
+    }
 }
 
 void Application::cleanup() {

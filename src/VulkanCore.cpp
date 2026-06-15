@@ -783,8 +783,8 @@ int VulkanCore::init() {
     m_memory.push_back(bufferMemory);
 
     // Create Window
-    m_window = new FS::Window("Vulkan Window", 720, 720);
-    if (!m_window->isOpen()) {
+    window = new FS::Window("Vulkan Window", 720, 720);
+    if (!window->isOpen()) {
         std::cerr << "Failed to create window\n";
         return 1;
     } else {
@@ -792,7 +792,7 @@ int VulkanCore::init() {
     }
 
     // Create Window Surface
-    if ((result = createSurface(m_instance, *m_window, m_surface)) != VK_SUCCESS) {
+    if ((result = createSurface(m_instance, *window, m_surface)) != VK_SUCCESS) {
         std::cerr << "Failed to create Surface:" << result << "\n";
         return 1;
     } else {
@@ -961,7 +961,7 @@ void VulkanCore::cleanup() {
     vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
     std::cout << "Destroyed Surface\n";
 
-    delete m_window;
+    delete window;
     std::cout << "Destroyed Window\n";
 
     // Destroy buffer view
