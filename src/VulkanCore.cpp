@@ -26,31 +26,10 @@ void checkSupportedInstanceLayers(const std::vector<const char *> &instanceLayer
     }
 }
 
-void checkSupportedDeviceLayers(VkPhysicalDevice &physicalDevice, const std::vector<const char *> &deviceLayers, std::vector<std::string> &finalLayers) {
-    uint32_t layerCount = 0;
-    vkEnumerateDeviceLayerProperties(physicalDevice, &layerCount, nullptr);
-    std::vector<VkLayerProperties> layerProperties(layerCount);
-    vkEnumerateDeviceLayerProperties(physicalDevice, &layerCount, layerProperties.data());
-    for (const std::string &layerName : deviceLayers) {
-        bool supported = false;
-
-        for (const VkLayerProperties &layerProperty : layerProperties) {
-            if (layerProperty.layerName == layerName) {
-                supported = true;
-            }
-        }
-        if (supported) {
-            finalLayers.push_back(layerName);
-        } else {
-            std::cout << "(WARN) Layer " << layerName << " is not supported , omitting it.\n";
-        }
-    }
-}
-
-static VkResult createInstance(VkInstance &instance, const std::vector<const char *> &instanceLayers, const std::vector<const char *> &instanceExtensions) {
+static VkResult createInstance(VkInstance &instance, const std::vector<const char *> &layers, const std::vector<const char *> &instanceExtensions) {
     // check for layers support
     std::vector<std::string> finalLayers = {};
-    checkSupportedInstanceLayers(instanceLayers, finalLayers);
+    checkSupportedInstanceLayers(layers, finalLayers);
     std::vector<const char *> finalLayersstr = {};
     for (const std::string &layer : finalLayers) {
         finalLayersstr.push_back(layer.c_str());
@@ -64,7 +43,7 @@ static VkResult createInstance(VkInstance &instance, const std::vector<const cha
         .applicationVersion = 1,
         .pEngineName = "FSEngine",
         .engineVersion = 1,
-        .apiVersion = VK_MAKE_VERSION(1, 0, 0)
+        .apiVersion = VK_MAKE_VERSION(1, 3, 0)
     };
 
     // Instance Create Info
@@ -223,14 +202,7 @@ uint32_t getQueueFamilyIndex(const VkPhysicalDevice &physicalDevice, const VkQue
     std::cerr << "(WARN!):No Queue Family Found for specified flags\n";
     return index;
 }
-VkResult createDevice(VkPhysicalDevice &physicalDevice, VkDevice &device, const std::vector<const char *> &deviceLayers, const std::vector<const char *> &deviceExtensions) {
-
-    std::vector<std::string> finalLayers = {};
-    checkSupportedDeviceLayers(physicalDevice, deviceLayers, finalLayers);
-    std::vector<const char *> finalLayersstr = {};
-    for (const std::string &layer : finalLayers) {
-        finalLayersstr.push_back(layer.c_str());
-    }
+VkResult createDevice(VkPhysicalDevice &physicalDevice, VkDevice &device, const std::vector<const char *> &deviceExtensions) {
 
     VkPhysicalDeviceFeatures supportedFeatures;
     vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
@@ -264,8 +236,8 @@ VkResult createDevice(VkPhysicalDevice &physicalDevice, VkDevice &device, const 
         .flags = 0,
         .queueCreateInfoCount = 1,
         .pQueueCreateInfos = queueCreateInfo,
-        .enabledLayerCount = (uint32_t)finalLayers.size(),
-        .ppEnabledLayerNames = finalLayersstr.data(),
+        .enabledLayerCount = 0,
+        .ppEnabledLayerNames = nullptr,
         .enabledExtensionCount = (uint32_t)deviceExtensions.size(),
         .ppEnabledExtensionNames = deviceExtensions.data(),
         .pEnabledFeatures = &requiredFeatures
@@ -297,19 +269,8 @@ void printInstanceLayersAndExt() {
         std::cout << extensionProperties[i].extensionName << "\n";
     }
 }
-void printDeviceLayersAndExt(VkPhysicalDevice &physicalDevice) {
+void printDeviceExt(VkPhysicalDevice &physicalDevice) {
     uint32_t propertyCount = 0;
-    std::vector<VkLayerProperties> layerProperties = {};
-    vkEnumerateDeviceLayerProperties(physicalDevice, &propertyCount, nullptr);
-
-    layerProperties.resize(propertyCount);
-    vkEnumerateDeviceLayerProperties(physicalDevice, &propertyCount, layerProperties.data());
-    std::cout << "Device Layers:" << propertyCount << "\n";
-    for (int i = 0; i < propertyCount; i++) {
-        std::cout << layerProperties[i].layerName << "\n";
-    }
-
-    propertyCount = 0;
     std::vector<VkExtensionProperties> extensionProperties = {};
     vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &propertyCount, nullptr);
 
@@ -742,7 +703,7 @@ void copyBuffers(VkCommandBuffer &cmdBuffer, VkBuffer &srcBuffer, VkBuffer &dstB
 
 int VulkanCore::init() {
     // Create Instance
-    VkResult result = createInstance(m_instance, instanceLayers, instanceExtensions);
+    VkResult result = createInstance(m_instance, layers, instanceExtensions);
     if (result != VK_SUCCESS) {
         std::cerr << "Failed to create Instance:" << result << "\n";
         std::cerr << result;
@@ -762,7 +723,7 @@ int VulkanCore::init() {
     getPhysicalDeviceProperties(m_physicalDevice);
 
     // Create Device
-    if ((result = createDevice(m_physicalDevice, m_device, deviceLayers, deviceExtensions)) != VK_SUCCESS) {
+    if ((result = createDevice(m_physicalDevice, m_device, deviceExtensions)) != VK_SUCCESS) {
         std::cerr << "Failed to create Logical Device:" << result << "\n";
         return 1;
     } else {
@@ -770,7 +731,7 @@ int VulkanCore::init() {
     }
 
     // printInstanceLayersAndExt();
-    // printDeviceLayersAndExt(m_physicalDevice);
+    // printDeviceExt(m_physicalDevice);
 
     // Create Buffer
     VkDeviceMemory bufferMemory;

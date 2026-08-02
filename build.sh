@@ -1,4 +1,4 @@
-CONFIG=Release
+CONFIG=Debug
 EXENAME=VulkanApp
 
 mkdir -p build
@@ -9,13 +9,13 @@ if ! command -v cmake >/dev/null 2>/dev/null ; then
     exit 1
 fi
 
-if ! cmake .. -DCMAKE_BUILD_TYPE=$CONFIG -DCMAKE_EXPORT_COMPILE_COMMANDS=ON >/dev/null 2>error.txt; then
+if ! cmake .. -DCMAKE_BUILD_TYPE=$CONFIG -DCMAKE_EXPORT_COMPILE_COMMANDS=ON 2>error.txt; then
     echo Failed to generate build files.
     cat error.txt
     exit 1
 fi
 
-if ! cmake --build . --config $CONFIG --parallel >/dev/null 2>error.txt ; then
+if ! cmake --build . --config $CONFIG --parallel 2>error.txt ; then
     echo Failed to build program.
     cat error.txt
     exit 1

@@ -15,6 +15,8 @@ add_subdirectory(vendor/FSWindow)
 
 target_include_directories(VulkanApp PUBLIC ${VULKAN_INCLUDE})
 
+target_compile_options(VulkanApp PRIVATE -g)
+
 if(UNIX AND NOT APPLE)
   target_link_libraries(VulkanApp Vulkan::Vulkan X11 FSWindow)
 else()

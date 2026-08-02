@@ -14,5 +14,6 @@ class Application {
     void init();
     void run();
     void cleanup();
+    void handleInput();
 };
 #endif
