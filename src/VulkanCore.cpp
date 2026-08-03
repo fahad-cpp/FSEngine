@@ -1,4 +1,5 @@
 #include "VulkanCore.h"
+#include <climits>
 #include <cmath>
 #include <cstdint>
 #include <iostream>
@@ -155,17 +156,17 @@ void getPhysicalDeviceProperties(VkPhysicalDevice &physicalDevice) {
     // PhysicalDeviceMemoryProperties
     VkPhysicalDeviceMemoryProperties memoryProperties;
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
-    // std::cout << "\tMemory Types:\n";
-    // for(int j=0;j<memoryProperties.memoryTypeCount;j++){
-    //     std::cout <<"\t\t" << "Memory Type "<<j << ":" << getMemoryPropertyFlagString(memoryProperties.memoryTypes[j].propertyFlags) << "\n";
-    // }
+    std::cout << "\tMemory Types:\n";
+    for (int j = 0; j < memoryProperties.memoryTypeCount; j++) {
+        std::cout << "\t\t" << "Memory Type " << j << ":" << getMemoryPropertyFlagString(memoryProperties.memoryTypes[j].propertyFlags) << "\n";
+    }
 
-    // std::cout << "\tHeaps:\n";
-    // for(int j=0;j<memoryProperties.memoryHeapCount;j++){
-    //     std::cout <<"\t\t" << "Heap "<<j<<"\n";
-    //     std::cout <<"\t\t Heap Size:" << memoryProperties.memoryHeaps[j].size << " Bytes\n";
-    //     std::cout <<"\t\t Heap Flags:" << getMemoryHeapFlagString(memoryProperties.memoryHeaps[j].flags) << "\n";
-    // }
+    std::cout << "\tHeaps:\n";
+    for (int j = 0; j < memoryProperties.memoryHeapCount; j++) {
+        std::cout << "\t\t" << "Heap " << j << "\n";
+        std::cout << "\t\t Heap Size:" << memoryProperties.memoryHeaps[j].size << " Bytes\n";
+        std::cout << "\t\t Heap Flags:" << getMemoryHeapFlagString(memoryProperties.memoryHeaps[j].flags) << "\n";
+    }
 
     // PhysicalDeviceQueueFamilyProperties
     std::vector<VkQueueFamilyProperties> queueFamilyProperties;
@@ -174,17 +175,17 @@ void getPhysicalDeviceProperties(VkPhysicalDevice &physicalDevice) {
     queueFamilyProperties.resize(qfpropertyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &qfpropertyCount, queueFamilyProperties.data());
 
-    // std::cout << "\tQueue Family Properties:\n";
+    std::cout << "\tQueue Family Properties:\n";
 
-    // for(int j=0;j<qfpropertyCount;j++){
-    //     std::cout << "\t\tQueue Count:" << queueFamilyProperties[j].queueCount << "\n";
-    //     std::cout << "\t\tTimeStamp Valid Bits:" << queueFamilyProperties[j].timestampValidBits << "\n";
-    //     std::cout << "\t\tMin Image Transfer Granularity:\n"
-    //     << "\t\t\tDepth:" << queueFamilyProperties[j].minImageTransferGranularity.depth << "\n"
-    //     << "\t\t\tWidth:" << queueFamilyProperties[j].minImageTransferGranularity.width << "\n"
-    //     << "\t\t\tHeight:" << queueFamilyProperties[j].minImageTransferGranularity.height << "\n";
-    //     std::cout << "\t\tQueue Flags:" << getQueueFlagString(queueFamilyProperties[j].queueFlags) << "\n";
-    // }
+    for (int j = 0; j < qfpropertyCount; j++) {
+        std::cout << "\t\tQueue Count:" << queueFamilyProperties[j].queueCount << "\n";
+        std::cout << "\t\tTimeStamp Valid Bits:" << queueFamilyProperties[j].timestampValidBits << "\n";
+        std::cout << "\t\tMin Image Transfer Granularity:\n"
+                  << "\t\t\tDepth:" << queueFamilyProperties[j].minImageTransferGranularity.depth << "\n"
+                  << "\t\t\tWidth:" << queueFamilyProperties[j].minImageTransferGranularity.width << "\n"
+                  << "\t\t\tHeight:" << queueFamilyProperties[j].minImageTransferGranularity.height << "\n";
+        std::cout << "\t\tQueue Flags:" << getQueueFlagString(queueFamilyProperties[j].queueFlags) << "\n";
+    }
 }
 uint32_t getQueueFamilyIndex(const VkPhysicalDevice &physicalDevice, const VkQueueFlags &flags) {
     uint32_t index = 0;
@@ -305,35 +306,61 @@ VkResult createSurface(const VkInstance &instance, FS::Window &windowHandle, VkS
     return vkCreateXlibSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
 }
 #endif
-VkResult createSwapchain(const VkPhysicalDevice &physicalDevice, const VkDevice &device, const VkSurfaceKHR &surface, VkSwapchainKHR &swapchain) {
-    uint32_t formatCount;
-    std::vector<VkSurfaceFormatKHR> formats;
+VkResult createSwapchain(VkPhysicalDevice &physicalDevice, VkDevice &device, VkSurfaceKHR &surface, VkSwapchainKHR &swapchain, FS::Window &window) {
+    VkSurfaceCapabilitiesKHR surfaceCaps;
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCaps);
+
+    // Find correct format
+    uint32_t formatCount = 0;
     vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr);
-    formats.resize(formatCount);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, formats.data());
+    std::vector<VkSurfaceFormatKHR> availableFormats(formatCount);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, availableFormats.data());
+    VkSurfaceFormatKHR selectedFormat;
+    for (uint32_t i = 0; i < availableFormats.size(); ++i) {
+        if (availableFormats[i].format == VK_FORMAT_R8G8B8A8_SRGB) {
+            break;
+        } else if (i == (availableFormats.size() - 1)) {
+            selectedFormat = availableFormats[0];
+        }
+    }
 
-    VkSurfaceCapabilitiesKHR caps;
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &caps);
-    VkSurfaceFormatKHR chosenFormat = formats[0];
+    // Find correct present mode
+    uint32_t presentModeCount = 0;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr);
+    std::vector<VkPresentModeKHR> presentModes(presentModeCount);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, presentModes.data());
+    VkPresentModeKHR selectedMode = VK_PRESENT_MODE_FIFO_KHR;
+    for (uint32_t i = 0; i < presentModes.size(); ++i) {
+        if (presentModes[i] == selectedMode) {
+            break;
+        } else if (i == (presentModes.size() - 1)) {
+            selectedMode = presentModes[0];
+        }
+    }
 
+    FS::RenderState &renderState = window.getRenderState();
+    uint32_t windowWidth = std::clamp<uint32_t>(renderState.width, surfaceCaps.minImageExtent.width, surfaceCaps.maxImageExtent.width);
+    uint32_t windowHeight = std::clamp<uint32_t>(renderState.height, surfaceCaps.minImageExtent.height, surfaceCaps.maxImageExtent.height);
+    VkExtent2D extent = (surfaceCaps.currentExtent.width != UINT_MAX) ? surfaceCaps.currentExtent : VkExtent2D{ windowWidth, windowHeight };
     VkSwapchainCreateInfoKHR swapchainCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
         .pNext = nullptr,
+        .flags = 0,
         .surface = surface,
-        .minImageCount = (caps.minImageCount + 1),
-        .imageFormat = chosenFormat.format,
-        .imageColorSpace = chosenFormat.colorSpace,
-        .imageExtent = caps.currentExtent,
+        .minImageCount = surfaceCaps.minImageCount + 1,
+        .imageFormat = selectedFormat.format,
+        .imageColorSpace = selectedFormat.colorSpace,
+        .imageExtent = extent,
         .imageArrayLayers = 1,
         .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
         .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
         .queueFamilyIndexCount = 0,
         .pQueueFamilyIndices = nullptr,
-        .preTransform = caps.currentTransform,
+        .preTransform = surfaceCaps.currentTransform,
         .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-        .presentMode = VK_PRESENT_MODE_FIFO_KHR,
+        .presentMode = selectedMode,
         .clipped = VK_TRUE,
-        .oldSwapchain = VK_NULL_HANDLE
+        .oldSwapchain = VK_NULL_HANDLE,
     };
     return vkCreateSwapchainKHR(device, &swapchainCreateInfo, nullptr, &swapchain);
 }
@@ -343,6 +370,7 @@ uint32_t getMemoryIndex(VkPhysicalDevice &physicalDevice, VkMemoryRequirements r
     VkPhysicalDeviceMemoryProperties memoryProperties;
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
 
+    // Check for preferred flags first
     for (uint32_t memoryType = 0; memoryType < VK_MAX_MEMORY_TYPES; ++memoryType) {
         if (requirements.memoryTypeBits & (1 << memoryType)) {
             const VkMemoryType &type = memoryProperties.memoryTypes[memoryType];
@@ -352,11 +380,13 @@ uint32_t getMemoryIndex(VkPhysicalDevice &physicalDevice, VkMemoryRequirements r
             }
         }
     }
+    // check for required flags if preferred flags do not match
     if (selectedType == ~0u) {
         for (uint32_t memoryType = 0; memoryType < VK_MAX_MEMORY_TYPES; ++memoryType) {
             if (requirements.memoryTypeBits & (1 << memoryType)) {
                 const VkMemoryType &type = memoryProperties.memoryTypes[memoryType];
                 if ((type.propertyFlags & requiredFlags) == requiredFlags) {
+                    selectedType = memoryType;
                 }
             }
         }
@@ -761,7 +791,7 @@ int VulkanCore::init() {
     }
 
     // Create Swapchain
-    if ((result = createSwapchain(m_physicalDevice, m_device, m_surface, m_swapchain)) != VK_SUCCESS) {
+    if ((result = createSwapchain(m_physicalDevice, m_device, m_surface, m_swapchain,*window)) != VK_SUCCESS) {
         std::cerr << "Failed to create Swapchain:" << result << "\n";
         return 1;
     } else {
