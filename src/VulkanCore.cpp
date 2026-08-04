@@ -924,6 +924,16 @@ int VulkanCore::init() {
     vkQueueWaitIdle(queue);
     vkDestroyBuffer(m_device, dstBuffer, nullptr);
 
+    uint32_t swapchainImageCount = 0;
+    vkGetSwapchainImagesKHR(m_device, m_swapchain, &swapchainImageCount, nullptr);
+    m_swapchainImages.resize(swapchainImageCount);
+    VkResult res = vkGetSwapchainImagesKHR(m_device,m_swapchain,&swapchainImageCount,m_swapchainImages.data());
+    if(res != VK_SUCCESS){
+        std::cerr << "Failed to get swapchain images\n";
+    }else{
+        std::cout << "Successfully got swapchain images\n";
+    }
+
     return 0;
 }
 
