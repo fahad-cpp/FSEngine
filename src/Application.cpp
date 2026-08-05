@@ -8,15 +8,15 @@
 void Application::init() {
     std::cout << "\nApplication::init()\n\n";
 }
-void Application::handleInput(){
-    FS::Input& input = vkCore.window->getInput();
-    if(isDown(FS::Buttons::BUTTON_ESC)){
+void Application::handleInput() {
+    FS::Input &input = vkCore.window->getInput();
+    if (isDown(FS::Buttons::BUTTON_ESC)) {
         vkCore.window->close();
     }
 }
 void Application::run() {
     std::cout << "\nApplication::run()\n\n";
-    while(vkCore.window->isOpen()){
+    while (vkCore.window->isOpen()) {
         handleInput();
         vkCore.window->processMessages();
     }

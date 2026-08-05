@@ -792,7 +792,7 @@ int VulkanCore::init() {
     }
 
     // Create Swapchain
-    if ((result = createSwapchain(m_physicalDevice, m_device, m_surface, m_swapchain,*window)) != VK_SUCCESS) {
+    if ((result = createSwapchain(m_physicalDevice, m_device, m_surface, m_swapchain, *window)) != VK_SUCCESS) {
         std::cerr << "Failed to create Swapchain:" << result << "\n";
         return 1;
     } else {
@@ -928,10 +928,10 @@ int VulkanCore::init() {
     uint32_t swapchainImageCount = 0;
     vkGetSwapchainImagesKHR(m_device, m_swapchain, &swapchainImageCount, nullptr);
     m_swapchainImages.resize(swapchainImageCount);
-    VkResult res = vkGetSwapchainImagesKHR(m_device,m_swapchain,&swapchainImageCount,m_swapchainImages.data());
-    if(res != VK_SUCCESS){
+    VkResult res = vkGetSwapchainImagesKHR(m_device, m_swapchain, &swapchainImageCount, m_swapchainImages.data());
+    if (res != VK_SUCCESS) {
         std::cerr << "Failed to get swapchain images\n";
-    }else{
+    } else {
         std::cout << "Successfully got swapchain images\n";
     }
 
