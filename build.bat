@@ -12,7 +12,8 @@ if not exist CMakeCache.txt set "CLEANBUILD=YES"
 if "%1" == "clean" set "CLEANBUILD=YES"
 
 if "%CLEANBUILD%" == "YES" (
-    cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE="%CONFIG%" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON >nul 2>error.txt
+    del CMakeCache.txt
+    cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE="%CONFIG%" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON 
     if errorlevel 1 (
         echo Cmake Configuration Failed.
         type error.txt
@@ -21,7 +22,7 @@ if "%CLEANBUILD%" == "YES" (
     )
 )
 
-cmake --build . --config "%CONFIG%" --parallel >error.txt 2>nul
+cmake --build . --config "%CONFIG%" --parallel 
 if errorlevel 1 (
     echo CMake Build Failed.
     type error.txt

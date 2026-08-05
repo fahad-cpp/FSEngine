@@ -11,7 +11,7 @@ void checkSupportedInstanceLayers(const std::vector<const char *> &instanceLayer
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
     std::vector<VkLayerProperties> layerProperties(layerCount);
     vkEnumerateInstanceLayerProperties(&layerCount, layerProperties.data());
-    for (const std::string &layerName : instanceLayers) {
+    for (const std::string layerName : instanceLayers) {
         bool supported = false;
 
         for (const VkLayerProperties &layerProperty : layerProperties) {
@@ -157,12 +157,12 @@ void getPhysicalDeviceProperties(VkPhysicalDevice &physicalDevice) {
     VkPhysicalDeviceMemoryProperties memoryProperties;
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
     std::cout << "\tMemory Types:\n";
-    for (int j = 0; j < memoryProperties.memoryTypeCount; j++) {
+    for (uint32_t j = 0; j < memoryProperties.memoryTypeCount; ++j) {
         std::cout << "\t\t" << "Memory Type " << j << ":" << getMemoryPropertyFlagString(memoryProperties.memoryTypes[j].propertyFlags) << "\n";
     }
 
     std::cout << "\tHeaps:\n";
-    for (int j = 0; j < memoryProperties.memoryHeapCount; j++) {
+    for (uint32_t j = 0; j < memoryProperties.memoryHeapCount; ++j) {
         std::cout << "\t\t" << "Heap " << j << "\n";
         std::cout << "\t\t Heap Size:" << memoryProperties.memoryHeaps[j].size << " Bytes\n";
         std::cout << "\t\t Heap Flags:" << getMemoryHeapFlagString(memoryProperties.memoryHeaps[j].flags) << "\n";
@@ -177,7 +177,7 @@ void getPhysicalDeviceProperties(VkPhysicalDevice &physicalDevice) {
 
     std::cout << "\tQueue Family Properties:\n";
 
-    for (int j = 0; j < qfpropertyCount; j++) {
+    for (uint32_t j = 0; j < qfpropertyCount; ++j) {
         std::cout << "\t\tQueue Count:" << queueFamilyProperties[j].queueCount << "\n";
         std::cout << "\t\tTimeStamp Valid Bits:" << queueFamilyProperties[j].timestampValidBits << "\n";
         std::cout << "\t\tMin Image Transfer Granularity:\n"
@@ -255,7 +255,7 @@ void printInstanceLayersAndExt() {
     layerProperties.resize(propertyCount);
     vkEnumerateInstanceLayerProperties(&propertyCount, layerProperties.data());
     std::cout << "Instance Layers:" << propertyCount << "\n";
-    for (int i = 0; i < propertyCount; i++) {
+    for (uint32_t i = 0; i < propertyCount; ++i) {
         std::cout << layerProperties[i].layerName << "\n";
     }
 
@@ -266,7 +266,7 @@ void printInstanceLayersAndExt() {
     extensionProperties.resize(propertyCount);
     vkEnumerateInstanceExtensionProperties(nullptr, &propertyCount, extensionProperties.data());
     std::cout << "Instance Extensions:" << propertyCount << "\n";
-    for (int i = 0; i < propertyCount; i++) {
+    for (uint32_t i = 0; i < propertyCount; ++i) {
         std::cout << extensionProperties[i].extensionName << "\n";
     }
 }
@@ -279,7 +279,7 @@ void printDeviceExt(VkPhysicalDevice &physicalDevice) {
     vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &propertyCount, extensionProperties.data());
 
     std::cout << "Device Extensions:" << propertyCount << "\n";
-    for (int i = 0; i < propertyCount; i++) {
+    for (uint32_t i = 0; i < propertyCount; ++i) {
         std::cout << extensionProperties[i].extensionName << "\n";
     }
 }
