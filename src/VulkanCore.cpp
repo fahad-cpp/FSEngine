@@ -318,6 +318,7 @@ VkResult createSwapchain(VkPhysicalDevice &physicalDevice, VkDevice &device, VkS
     VkSurfaceFormatKHR selectedFormat;
     for (uint32_t i = 0; i < availableFormats.size(); ++i) {
         if (availableFormats[i].format == VK_FORMAT_R8G8B8A8_SRGB) {
+            selectedFormat = availableFormats[i];
             break;
         } else if (i == (availableFormats.size() - 1)) {
             selectedFormat = availableFormats[0];
