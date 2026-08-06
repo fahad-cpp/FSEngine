@@ -51,6 +51,7 @@ static VkResult createInstance(VkInstance &instance, const std::vector<const cha
     VkInstanceCreateInfo instanceCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
         .pNext = nullptr,
+        .flags = 0,
         .pApplicationInfo = &applicationInfo,
         .enabledLayerCount = (uint32_t)finalLayers.size(),
         .ppEnabledLayerNames = finalLayersstr.data(),
@@ -289,6 +290,7 @@ VkResult createSurface(const VkInstance &instance, FS::Window &windowHandle, VkS
     VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
         .pNext = nullptr,
+        .flags = 0,
         .hinstance = GetModuleHandleA(nullptr),
         .hwnd = windowHandle.getNative()
     };
@@ -609,7 +611,7 @@ VkResult createSparseImage(VkPhysicalDevice &physicalDevice, VkDevice &device, V
     uint32_t arrayLayers = std::min(6u, prop.limits.maxImageArrayLayers);
     VkExtent3D extent = VkExtent3D{ 1024, 1024, 1 };
     uint32_t maxDimension = std::max(std::max(extent.width, extent.height), extent.depth);
-    uint32_t maxMipLevel = log2(maxDimension);
+    uint32_t maxMipLevel = static_cast<uint32_t>(std::bit_width(maxDimension));
     if (arrayLayers != 6u) {
         std::cout << "(WARN):arrayLayers reduced to " << arrayLayers << "\n";
     }
@@ -697,7 +699,7 @@ VkResult createSparseImage(VkPhysicalDevice &physicalDevice, VkDevice &device, V
     vkQueueBindSparse(queue, 1, &bindInfo, VK_NULL_HANDLE);
     return result;
 }
-VkResult createCommandPool(VkDevice &device, VkPhysicalDevice &physicalDevice, VkCommandPool &commandPool, VkCommandBuffer &commandBuffer) {
+VkResult createCommandPool(VkDevice &device, VkPhysicalDevice &physicalDevice, VkCommandPool &commandPool) {
     uint32_t queueGraphicsFamilyIndex = getQueueFamilyIndex(physicalDevice, VK_QUEUE_TRANSFER_BIT);
 
     VkCommandPoolCreateInfo commandPoolCreateInfo = {
@@ -873,7 +875,7 @@ int VulkanCore::init() {
     }
 
     // Create a command pool
-    result = createCommandPool(m_device, m_physicalDevice, m_commandPool, m_commandBuffer);
+    result = createCommandPool(m_device, m_physicalDevice, m_commandPool);
     if (result != VK_SUCCESS) {
         std::cerr << "Failed to create command pool:" << result << "\n";
     } else {

@@ -15,6 +15,6 @@ add_subdirectory(vendor/FSWindow)
 
 target_include_directories(VulkanApp PUBLIC ${VULKAN_INCLUDE})
 
-target_compile_options(VulkanApp PRIVATE -ggdb -Wall -pedantic-errors)
+target_compile_options(VulkanApp PRIVATE -ggdb -Wall -Wextra -Weffc++ -Wconversion -Wsign-conversion -Werror -pedantic-errors)
 
 target_link_libraries(VulkanApp Vulkan::Vulkan FSWindow)

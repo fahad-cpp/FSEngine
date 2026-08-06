@@ -2,7 +2,7 @@
 #define APPLICATION
 #include "VulkanCore.h"
 class Application {
-    VulkanCore vkCore;
+    VulkanCore vkCore = {};
 
   public:
     Application() {

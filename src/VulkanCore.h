@@ -11,17 +11,17 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 class VulkanCore {
-    VkInstance m_instance;
-    VkPhysicalDevice m_physicalDevice;
-    VkDevice m_device;
-    VkSurfaceKHR m_surface;
-    VkSwapchainKHR m_swapchain;
+    VkInstance m_instance = VK_NULL_HANDLE;
+    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
+    VkDevice m_device = VK_NULL_HANDLE;
+    VkSurfaceKHR m_surface = VK_NULL_HANDLE;
+    VkSwapchainKHR m_swapchain = VK_NULL_HANDLE;
     VkBuffer m_buffer = VK_NULL_HANDLE;
-    VkBufferView m_bufferView;
-    VkCommandPool m_commandPool;
-    VkCommandBuffer m_commandBuffer;
-    std::vector<VkImage> m_swapchainImages;
-    std::vector<VkImageView> m_swapchainImageViews;
+    VkBufferView m_bufferView = VK_NULL_HANDLE;
+    VkCommandPool m_commandPool = VK_NULL_HANDLE;
+    VkCommandBuffer m_commandBuffer = VK_NULL_HANDLE;
+    std::vector<VkImage> m_swapchainImages = {};
+    std::vector<VkImageView> m_swapchainImageViews = {};
     std::vector<VkImage> m_images = {};
     std::vector<VkImageView> m_imageViews = {};
     std::vector<VkDeviceMemory> m_memory = {};
@@ -50,6 +50,11 @@ class VulkanCore {
     ~VulkanCore() {
         cleanup();
     }
+
+    VulkanCore(const VulkanCore &) = delete;
+    VulkanCore &operator=(const VulkanCore &) = delete;
+    VulkanCore(const VulkanCore &&) = delete;
+    VulkanCore &operator=(const VulkanCore &&) = delete;
 
   private:
     int init();

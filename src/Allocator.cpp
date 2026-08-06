@@ -2,11 +2,11 @@
 #include "Allocator.h"
 #include <cstdlib>
 
-void *Allocator::allocation(size_t size, size_t alignment, VkSystemAllocationScope allocationScope) {
+void *Allocator::allocation(size_t size, size_t alignment, [[maybe_unused]] VkSystemAllocationScope allocationScope) {
     return _aligned_malloc(size, alignment);
 }
 
-void *Allocator::reAllocation(void *pOriginal, size_t size, size_t alignment, VkSystemAllocationScope allocationScope) {
+void *Allocator::reAllocation(void *pOriginal, size_t size, size_t alignment, [[maybe_unused]] VkSystemAllocationScope allocationScope) {
     return _aligned_realloc(pOriginal, size, alignment);
 }
 
