@@ -937,6 +937,34 @@ int VulkanCore::init() {
         std::cout << "Successfully got swapchain images\n";
     }
 
+    uint32_t surfaceFormatCount = 0;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, m_surface, &surfaceFormatCount,nullptr);
+    std::vector<VkSurfaceFormatKHR> surfaceFormats(surfaceFormatCount);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, m_surface, &surfaceFormatCount,surfaceFormats.data());
+
+    VkImageSubresourceRange subresourceRange = {
+        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .baseMipLevel = 0,
+        .levelCount = 1,
+        .baseArrayLayer = 0,
+        .layerCount = 1
+    };
+    for(auto& swapchainImage : m_swapchainImages){
+        VkImageViewCreateInfo imageViewCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .image = swapchainImage,
+            .viewType = VK_IMAGE_VIEW_TYPE_2D,
+            .format = VK_FORMAT_R8G8B8A8_SRGB,
+            .components = {},
+            .subresourceRange = subresourceRange
+        };
+        VkImageView imageView;
+        vkCreateImageView(m_device, &imageViewCreateInfo, nullptr, &imageView);
+        m_swapchainImageViews.emplace_back(imageView);
+    }
+
     return 0;
 }
 
@@ -952,6 +980,10 @@ void VulkanCore::cleanup() {
         vkDestroyImageView(m_device, imageView, nullptr);
     }
     std::cout << "Destroyed Image Views\n";
+    for (VkImageView &imageView : m_swapchainImageViews) {
+        vkDestroyImageView(m_device, imageView, nullptr);
+    }
+    std::cout << "Destroyed Swapchain Image Views\n";
 
     for (VkImage &image : m_images) {
         vkDestroyImage(m_device, image, nullptr);
