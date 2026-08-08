@@ -1,7 +1,10 @@
 #include "VulkanCore.h"
 #include <climits>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
+#include <fstream>
+#include <ios>
 #include <iostream>
 #include <vector>
 #include <vulkan/vulkan_core.h>
@@ -44,7 +47,7 @@ static VkResult createInstance(VkInstance &instance, const std::vector<const cha
         .applicationVersion = 1,
         .pEngineName = "FSEngine",
         .engineVersion = 1,
-        .apiVersion = VK_MAKE_VERSION(1, 3, 0)
+        .apiVersion = VK_MAKE_API_VERSION(0, 1, 4, 0)
     };
 
     // Instance Create Info
@@ -733,7 +736,37 @@ void copyBuffers(VkCommandBuffer &cmdBuffer, VkBuffer &srcBuffer, VkBuffer &dstB
     };
     vkCmdCopyBuffer(cmdBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 }
-
+const std::vector<char> readFile(const std::string &path) {
+    std::ifstream ifs(path, std::ios::ate | std::ios::binary);
+    if (!ifs.is_open()) {
+        std::cerr << "Failed to open file:" << path << "\n";
+        return {};
+    }
+    std::size_t fileSize = static_cast<std::size_t>(ifs.tellg());
+    ifs.seekg(0);
+    std::vector<char> fileContent(fileSize);
+    ifs.read(fileContent.data(), static_cast<std::streamsize>(fileSize));
+    ifs.close();
+    return fileContent;
+}
+VkShaderModule createShaderModule(VkDevice &device, const std::vector<char> &code) {
+    VkShaderModuleCreateInfo shaderModuleCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .codeSize = (code.size() * sizeof(char)),
+        .pCode = reinterpret_cast<const uint32_t *>(code.data())
+    };
+    VkShaderModule shaderModule = VK_NULL_HANDLE;
+    VkResult res = vkCreateShaderModule(device, &shaderModuleCreateInfo, nullptr, &shaderModule);
+    if (res != VK_SUCCESS) {
+        std::cerr << "Failed to create Shader Module\n";
+        return VK_NULL_HANDLE;
+    } else {
+        std::cout << "Successfully created Shader Module\n";
+    }
+    return shaderModule;
+}
 int VulkanCore::init() {
     // Create Instance
     VkResult result = createInstance(m_instance, layers, instanceExtensions);
@@ -937,11 +970,6 @@ int VulkanCore::init() {
         std::cout << "Successfully got swapchain images\n";
     }
 
-    uint32_t surfaceFormatCount = 0;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, m_surface, &surfaceFormatCount,nullptr);
-    std::vector<VkSurfaceFormatKHR> surfaceFormats(surfaceFormatCount);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, m_surface, &surfaceFormatCount,surfaceFormats.data());
-
     VkImageSubresourceRange subresourceRange = {
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
         .baseMipLevel = 0,
@@ -949,7 +977,7 @@ int VulkanCore::init() {
         .baseArrayLayer = 0,
         .layerCount = 1
     };
-    for(auto& swapchainImage : m_swapchainImages){
+    for (VkImage &swapchainImage : m_swapchainImages) {
         VkImageViewCreateInfo imageViewCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
             .pNext = nullptr,
@@ -965,6 +993,30 @@ int VulkanCore::init() {
         m_swapchainImageViews.emplace_back(imageView);
     }
 
+    const std::vector<char> code = readFile("shaders/slang.spv");
+    VkShaderModule module = createShaderModule(m_device, code);
+    VkPipelineShaderStageCreateInfo vertShaderStageInfo = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .stage = VK_SHADER_STAGE_VERTEX_BIT,
+        .module = module,
+        .pName = "vertMain",
+        .pSpecializationInfo = nullptr
+    };
+    VkPipelineShaderStageCreateInfo fragShaderStageInfo = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+        .module = module,
+        .pName = "fragMain",
+        .pSpecializationInfo = nullptr
+    };
+
+    [[maybe_unused]] VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo,fragShaderStageInfo};
+
+    vkDestroyShaderModule(m_device, module , nullptr);
     return 0;
 }
 
