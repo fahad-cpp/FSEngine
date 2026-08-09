@@ -158,38 +158,38 @@ void getPhysicalDeviceProperties(VkPhysicalDevice &physicalDevice) {
     std::cout << properties.deviceName << "\n";
 
     // PhysicalDeviceMemoryProperties
-    VkPhysicalDeviceMemoryProperties memoryProperties;
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
-    std::cout << "\tMemory Types:\n";
-    for (uint32_t j = 0; j < memoryProperties.memoryTypeCount; ++j) {
-        std::cout << "\t\t" << "Memory Type " << j << ":" << getMemoryPropertyFlagString(memoryProperties.memoryTypes[j].propertyFlags) << "\n";
-    }
+    // VkPhysicalDeviceMemoryProperties memoryProperties;
+    // vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
+    // std::cout << "\tMemory Types:\n";
+    // for (uint32_t j = 0; j < memoryProperties.memoryTypeCount; ++j) {
+    //     std::cout << "\t\t" << "Memory Type " << j << ":" << getMemoryPropertyFlagString(memoryProperties.memoryTypes[j].propertyFlags) << "\n";
+    // }
 
-    std::cout << "\tHeaps:\n";
-    for (uint32_t j = 0; j < memoryProperties.memoryHeapCount; ++j) {
-        std::cout << "\t\t" << "Heap " << j << "\n";
-        std::cout << "\t\t Heap Size:" << memoryProperties.memoryHeaps[j].size << " Bytes\n";
-        std::cout << "\t\t Heap Flags:" << getMemoryHeapFlagString(memoryProperties.memoryHeaps[j].flags) << "\n";
-    }
+    // std::cout << "\tHeaps:\n";
+    // for (uint32_t j = 0; j < memoryProperties.memoryHeapCount; ++j) {
+    //     std::cout << "\t\t" << "Heap " << j << "\n";
+    //     std::cout << "\t\t Heap Size:" << memoryProperties.memoryHeaps[j].size << " Bytes\n";
+    //     std::cout << "\t\t Heap Flags:" << getMemoryHeapFlagString(memoryProperties.memoryHeaps[j].flags) << "\n";
+    // }
 
     // PhysicalDeviceQueueFamilyProperties
-    std::vector<VkQueueFamilyProperties> queueFamilyProperties;
-    uint32_t qfpropertyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &qfpropertyCount, nullptr);
-    queueFamilyProperties.resize(qfpropertyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &qfpropertyCount, queueFamilyProperties.data());
+    // std::vector<VkQueueFamilyProperties> queueFamilyProperties;
+    // uint32_t qfpropertyCount = 0;
+    // vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &qfpropertyCount, nullptr);
+    // queueFamilyProperties.resize(qfpropertyCount);
+    // vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &qfpropertyCount, queueFamilyProperties.data());
 
-    std::cout << "\tQueue Family Properties:\n";
+    // std::cout << "\tQueue Family Properties:\n";
 
-    for (uint32_t j = 0; j < qfpropertyCount; ++j) {
-        std::cout << "\t\tQueue Count:" << queueFamilyProperties[j].queueCount << "\n";
-        std::cout << "\t\tTimeStamp Valid Bits:" << queueFamilyProperties[j].timestampValidBits << "\n";
-        std::cout << "\t\tMin Image Transfer Granularity:\n"
-                  << "\t\t\tDepth:" << queueFamilyProperties[j].minImageTransferGranularity.depth << "\n"
-                  << "\t\t\tWidth:" << queueFamilyProperties[j].minImageTransferGranularity.width << "\n"
-                  << "\t\t\tHeight:" << queueFamilyProperties[j].minImageTransferGranularity.height << "\n";
-        std::cout << "\t\tQueue Flags:" << getQueueFlagString(queueFamilyProperties[j].queueFlags) << "\n";
-    }
+    // for (uint32_t j = 0; j < qfpropertyCount; ++j) {
+    //     std::cout << "\t\tQueue Count:" << queueFamilyProperties[j].queueCount << "\n";
+    //     std::cout << "\t\tTimeStamp Valid Bits:" << queueFamilyProperties[j].timestampValidBits << "\n";
+    //     std::cout << "\t\tMin Image Transfer Granularity:\n"
+    //               << "\t\t\tDepth:" << queueFamilyProperties[j].minImageTransferGranularity.depth << "\n"
+    //               << "\t\t\tWidth:" << queueFamilyProperties[j].minImageTransferGranularity.width << "\n"
+    //               << "\t\t\tHeight:" << queueFamilyProperties[j].minImageTransferGranularity.height << "\n";
+    //     std::cout << "\t\tQueue Flags:" << getQueueFlagString(queueFamilyProperties[j].queueFlags) << "\n";
+    // }
 }
 uint32_t getQueueFamilyIndex(const VkPhysicalDevice &physicalDevice, const VkQueueFlags &flags) {
     uint32_t index = 0;
@@ -212,15 +212,28 @@ VkResult createDevice(VkPhysicalDevice &physicalDevice, VkDevice &device, const 
     VkPhysicalDeviceFeatures supportedFeatures;
     vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
 
+    // Get supported Modern vulkan features
+    VkPhysicalDeviceVulkan13Features v13features{};
+    v13features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    VkPhysicalDeviceFeatures2 supportedFeatures2{};
+    supportedFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    supportedFeatures2.pNext = &v13features;
+    vkGetPhysicalDeviceFeatures2(physicalDevice, &supportedFeatures2);
+
     // Specify required Features
     // An Example where tesselation shader and geometry shaders are must have
     // and multiDrawIndirect is supported if the device supports it
-    VkPhysicalDeviceFeatures requiredFeatures = {};
+    VkPhysicalDeviceFeatures requiredFeatures{};
     requiredFeatures.multiDrawIndirect = supportedFeatures.multiDrawIndirect;
     requiredFeatures.sparseBinding = supportedFeatures.sparseBinding;
     requiredFeatures.sparseResidencyImage2D = supportedFeatures.sparseResidencyImage2D;
     requiredFeatures.tessellationShader = VK_TRUE;
     requiredFeatures.geometryShader = VK_TRUE;
+
+    // Dynamic Rendering required
+    VkPhysicalDeviceVulkan13Features requiredFeaturesvk13{};
+    requiredFeaturesvk13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    requiredFeaturesvk13.dynamicRendering = VK_TRUE;
 
     uint32_t familyIndex = getQueueFamilyIndex(physicalDevice, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_SPARSE_BINDING_BIT | VK_QUEUE_TRANSFER_BIT);
     // Queue Create Info
@@ -237,7 +250,7 @@ VkResult createDevice(VkPhysicalDevice &physicalDevice, VkDevice &device, const 
     // Device Create Info
     const VkDeviceCreateInfo deviceCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-        .pNext = nullptr,
+        .pNext = &requiredFeaturesvk13,
         .flags = 0,
         .queueCreateInfoCount = 1,
         .pQueueCreateInfos = queueCreateInfo,
@@ -767,6 +780,201 @@ VkShaderModule createShaderModule(VkDevice &device, const std::vector<char> &cod
     }
     return shaderModule;
 }
+VkResult createPipelineLayout(VkDevice& device,VkPipelineLayout& pipelineLayout){
+    VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .setLayoutCount = 0,
+        .pSetLayouts = nullptr,
+        .pushConstantRangeCount = 0,
+        .pPushConstantRanges = nullptr
+    };
+
+    return vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout);
+}
+
+VkResult createGraphicsPipeline(VkPhysicalDevice &physicalDevice, VkDevice &device, VkSurfaceKHR &surface, VkPipelineLayout &pipelineLayout, VkPipeline &graphicsPipeline, const std::string &shaderPath) {
+    VkSurfaceCapabilitiesKHR surfaceCaps;
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCaps);
+    const std::vector<char> code = readFile(shaderPath);
+    VkShaderModule module = createShaderModule(device, code);
+    VkPipelineShaderStageCreateInfo vertShaderStageInfo = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .stage = VK_SHADER_STAGE_VERTEX_BIT,
+        .module = module,
+        .pName = "vertMain",
+        .pSpecializationInfo = nullptr
+    };
+    VkPipelineShaderStageCreateInfo fragShaderStageInfo = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+        .module = module,
+        .pName = "fragMain",
+        .pSpecializationInfo = nullptr
+    };
+
+    VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
+
+    VkPipelineVertexInputStateCreateInfo vertexInputState = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .vertexBindingDescriptionCount = 0,
+        .pVertexBindingDescriptions = nullptr,
+        .vertexAttributeDescriptionCount = 0,
+        .pVertexAttributeDescriptions = nullptr
+    };
+
+    VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+        .primitiveRestartEnable = VK_FALSE,
+    };
+
+    VkViewport viewport{
+        .x = 0.f,
+        .y = 0.f,
+        .width = static_cast<float>(surfaceCaps.currentExtent.width),
+        .height = static_cast<float>(surfaceCaps.currentExtent.height),
+        .minDepth = 0.f,
+        .maxDepth = 0.f
+    };
+
+    VkRect2D scissor{
+        .offset = VkOffset2D{ 0, 0 },
+        .extent = surfaceCaps.currentExtent
+    };
+    VkPipelineViewportStateCreateInfo viewportState = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .viewportCount = 1,
+        .pViewports = &viewport,
+        .scissorCount = 1,
+        .pScissors = &scissor
+    };
+
+    VkPipelineRasterizationStateCreateInfo rasterizerState = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .depthClampEnable = VK_FALSE,
+        .rasterizerDiscardEnable = VK_FALSE,
+        .polygonMode = VK_POLYGON_MODE_FILL,
+        .cullMode = VK_CULL_MODE_BACK_BIT,
+        .frontFace = VK_FRONT_FACE_CLOCKWISE,
+        .depthBiasEnable = VK_FALSE,
+        .depthBiasConstantFactor = 0.f,
+        .depthBiasClamp = 0.f,
+        .depthBiasSlopeFactor = 0.f,
+        .lineWidth = 1.f
+    };
+
+    VkPipelineMultisampleStateCreateInfo multisampleState = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+        .sampleShadingEnable = VK_FALSE,
+        .minSampleShading = 0.f,
+        .pSampleMask = nullptr,
+        .alphaToCoverageEnable = VK_FALSE,
+        .alphaToOneEnable = VK_FALSE
+    };
+
+    VkPipelineColorBlendAttachmentState colorBlendAttachment = {
+        .blendEnable = VK_TRUE,
+        .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+        .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        .colorBlendOp = VK_BLEND_OP_ADD,
+        .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+        .alphaBlendOp = VK_BLEND_OP_ADD,
+        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+    };
+
+    VkPipelineColorBlendStateCreateInfo colorBlendState = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .logicOpEnable = VK_FALSE,
+        .logicOp = VK_LOGIC_OP_COPY,
+        .attachmentCount = 1,
+        .pAttachments = &colorBlendAttachment,
+        .blendConstants = {}
+    };
+
+    VkDynamicState dynamicStates[] = {
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_SCISSOR
+    };
+
+    VkPipelineDynamicStateCreateInfo dynamicState = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .dynamicStateCount = 2,
+        .pDynamicStates = dynamicStates
+    };
+
+    uint32_t formatCount;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr);
+    std::vector<VkSurfaceFormatKHR> surfaceFormats(formatCount);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, surfaceFormats.data());
+
+    VkSurfaceFormatKHR surfaceFormat = surfaceFormats[0];
+    for (VkSurfaceFormatKHR &format : surfaceFormats) {
+        if (format.format == VK_FORMAT_R8G8B8A8_SRGB) {
+            surfaceFormat = format;
+        }
+    }
+
+    VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+        .pNext = nullptr,
+        .viewMask = 0,
+        .colorAttachmentCount = 1,
+        .pColorAttachmentFormats = &surfaceFormat.format,
+        .depthAttachmentFormat = VK_FORMAT_UNDEFINED,
+        .stencilAttachmentFormat = VK_FORMAT_UNDEFINED
+    };
+
+    VkGraphicsPipelineCreateInfo graphicsPipelineInfo = {
+        .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+        .pNext = &pipelineRenderingCreateInfo,
+        .flags = 0,
+        .stageCount = 2,
+        .pStages = shaderStages,
+        .pVertexInputState = &vertexInputState,
+        .pInputAssemblyState = &inputAssemblyState,
+        .pTessellationState = nullptr,
+        .pViewportState = &viewportState,
+        .pRasterizationState = &rasterizerState,
+        .pMultisampleState = &multisampleState,
+        .pDepthStencilState = nullptr,
+        .pColorBlendState = &colorBlendState,
+        .pDynamicState = &dynamicState,
+        .layout = pipelineLayout,
+        .renderPass = nullptr,
+        .subpass = 0,
+        .basePipelineHandle = VK_NULL_HANDLE,
+        .basePipelineIndex = 0
+    };
+
+    graphicsPipeline = VK_NULL_HANDLE;
+    VkResult res = vkCreateGraphicsPipelines(device, nullptr, 1, &graphicsPipelineInfo, nullptr, &graphicsPipeline);
+
+    vkDestroyShaderModule(device, module, nullptr);
+
+    return res;
+}
 int VulkanCore::init() {
     // Create Instance
     VkResult result = createInstance(m_instance, layers, instanceExtensions);
@@ -923,42 +1131,42 @@ int VulkanCore::init() {
         std::cout << "Successfully created command buffer\n";
     }
 
-    VkBuffer dstBuffer;
-    VkDeviceMemory dstBufferMemory;
-    createBuffer(m_device, dstBuffer, m_physicalDevice, dstBufferMemory, VK_BUFFER_USAGE_TRANSFER_DST_BIT, 1024 * 1024);
-    m_memory.push_back(dstBufferMemory);
+    // VkBuffer dstBuffer = VK_NULL_HANDLE;
+    // VkDeviceMemory dstBufferMemory;
+    // createBuffer(m_device, dstBuffer, m_physicalDevice, dstBufferMemory, VK_BUFFER_USAGE_TRANSFER_DST_BIT, 1024 * 1024);
+    // m_memory.push_back(dstBufferMemory);
 
-    // Begin Recording Commands
-    VkCommandBufferBeginInfo beginInfo = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .pInheritanceInfo = nullptr
-    };
-    vkBeginCommandBuffer(m_commandBuffer, &beginInfo);
+    // // Begin Recording Commands
+    // VkCommandBufferBeginInfo beginInfo = {
+    //     .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+    //     .pNext = nullptr,
+    //     .flags = 0,
+    //     .pInheritanceInfo = nullptr
+    // };
+    // vkBeginCommandBuffer(m_commandBuffer, &beginInfo);
 
-    copyBuffers(m_commandBuffer, m_buffer, dstBuffer, 0, 0, 1024 * 1024);
+    // copyBuffers(m_commandBuffer, m_buffer, dstBuffer, 0, 0, 1024 * 1024);
 
-    // End Recording Commands
-    vkEndCommandBuffer(m_commandBuffer);
+    // // End Recording Commands
+    // vkEndCommandBuffer(m_commandBuffer);
 
-    VkQueue queue;
-    uint32_t familyIndex = getQueueFamilyIndex(m_physicalDevice, VK_QUEUE_TRANSFER_BIT);
-    vkGetDeviceQueue(m_device, familyIndex, 0, &queue);
-    VkSubmitInfo submitInfo = {
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .pNext = nullptr,
-        .waitSemaphoreCount = 0,
-        .pWaitSemaphores = nullptr,
-        .pWaitDstStageMask = nullptr,
-        .commandBufferCount = 1,
-        .pCommandBuffers = &m_commandBuffer,
-        .signalSemaphoreCount = 0,
-        .pSignalSemaphores = nullptr
-    };
-    vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(queue);
-    vkDestroyBuffer(m_device, dstBuffer, nullptr);
+    // VkQueue queue;
+    // uint32_t familyIndex = getQueueFamilyIndex(m_physicalDevice, VK_QUEUE_TRANSFER_BIT);
+    // vkGetDeviceQueue(m_device, familyIndex, 0, &queue);
+    // VkSubmitInfo submitInfo = {
+    //     .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+    //     .pNext = nullptr,
+    //     .waitSemaphoreCount = 0,
+    //     .pWaitSemaphores = nullptr,
+    //     .pWaitDstStageMask = nullptr,
+    //     .commandBufferCount = 1,
+    //     .pCommandBuffers = &m_commandBuffer,
+    //     .signalSemaphoreCount = 0,
+    //     .pSignalSemaphores = nullptr
+    // };
+    // vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+    // vkQueueWaitIdle(queue);
+    // vkDestroyBuffer(m_device, dstBuffer, nullptr);
 
     uint32_t swapchainImageCount = 0;
     vkGetSwapchainImagesKHR(m_device, m_swapchain, &swapchainImageCount, nullptr);
@@ -969,9 +1177,6 @@ int VulkanCore::init() {
     } else {
         std::cout << "Successfully got swapchain images\n";
     }
-
-    VkSurfaceCapabilitiesKHR surfaceCaps;
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physicalDevice, m_surface, &surfaceCaps);
 
     VkImageSubresourceRange subresourceRange = {
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -988,6 +1193,7 @@ int VulkanCore::init() {
             .image = swapchainImage,
             .viewType = VK_IMAGE_VIEW_TYPE_2D,
             .format = VK_FORMAT_R8G8B8A8_SRGB,
+            // VK_COMPONENT_SWIZZLE_IDENTITY for all components
             .components = {},
             .subresourceRange = subresourceRange
         };
@@ -996,175 +1202,32 @@ int VulkanCore::init() {
         m_swapchainImageViews.emplace_back(imageView);
     }
 
-    const std::vector<char> code = readFile("shaders/slang.spv");
-    VkShaderModule module = createShaderModule(m_device, code);
-    VkPipelineShaderStageCreateInfo vertShaderStageInfo = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .stage = VK_SHADER_STAGE_VERTEX_BIT,
-        .module = module,
-        .pName = "vertMain",
-        .pSpecializationInfo = nullptr
-    };
-    VkPipelineShaderStageCreateInfo fragShaderStageInfo = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-        .module = module,
-        .pName = "fragMain",
-        .pSpecializationInfo = nullptr
-    };
+    res = createPipelineLayout(m_device, m_pipelineLayout);
+    if(res != VK_SUCCESS){
+        std::cerr << "Failed to create pipeline layout\n";
+        return res;
+    }else{
+        std::cout << "Successfully created pipeline layout\n";
+    }
 
-    VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
+    res = createGraphicsPipeline(m_physicalDevice, m_device, m_surface, m_pipelineLayout, m_graphicsPipeline, "shaders/slang.spv");
+    if(res != VK_SUCCESS){
+        std::cerr << "Failed to create graphics pipeline\n";
+        return res;
+    }else{
+        std::cout << "Successfully created graphics pipeline\n";
+    }
 
-    VkPipelineVertexInputStateCreateInfo vertexInputState = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .vertexBindingDescriptionCount = 0,
-        .pVertexBindingDescriptions = nullptr,
-        .vertexAttributeDescriptionCount = 0,
-        .pVertexAttributeDescriptions = nullptr
-    };
-
-    VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-        .primitiveRestartEnable = VK_FALSE,
-    };
-
-    VkViewport viewport{
-        .x = 0.f,
-        .y = 0.f,
-        .width = static_cast<float>(surfaceCaps.currentExtent.width),
-        .height = static_cast<float>(surfaceCaps.currentExtent.height),
-        .minDepth = 0.f,
-        .maxDepth = 0.f
-    };
-
-    VkRect2D scissor{
-        .offset = VkOffset2D{ 0, 0 },
-        .extent = surfaceCaps.currentExtent
-    };
-    VkPipelineViewportStateCreateInfo viewportState = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .viewportCount = 1,
-        .pViewports = &viewport,
-        .scissorCount = 1,
-        .pScissors = &scissor
-    };
-
-    VkPipelineRasterizationStateCreateInfo rasterizerState = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .depthClampEnable = VK_FALSE,
-        .rasterizerDiscardEnable = VK_FALSE,
-        .polygonMode = VK_POLYGON_MODE_FILL,
-        .cullMode = VK_CULL_MODE_BACK_BIT,
-        .frontFace = VK_FRONT_FACE_CLOCKWISE,
-        .depthBiasEnable = VK_FALSE,
-        .depthBiasConstantFactor = 0.f,
-        .depthBiasClamp = 0.f,
-        .depthBiasSlopeFactor = 0.f,
-        .lineWidth = 1.f
-    };
-
-    VkPipelineMultisampleStateCreateInfo multisampleState = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
-        .sampleShadingEnable = VK_FALSE,
-        .minSampleShading = 0.f,
-        .pSampleMask = nullptr,
-        .alphaToCoverageEnable = VK_FALSE,
-        .alphaToOneEnable = VK_FALSE
-    };
-
-    VkPipelineColorBlendAttachmentState colorBlendAttachment = {
-        .blendEnable = VK_TRUE,
-        .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
-        .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-        .colorBlendOp = VK_BLEND_OP_ADD,
-        .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
-        .alphaBlendOp = VK_BLEND_OP_ADD,
-        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
-    };
-
-    VkPipelineColorBlendStateCreateInfo colorBlendState = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .logicOpEnable = VK_FALSE,
-        .logicOp = VK_LOGIC_OP_COPY,
-        .attachmentCount = 1,
-        .pAttachments = &colorBlendAttachment,
-        .blendConstants = {}
-    };
-
-    VkDynamicState dynamicStates[] = {
-        VK_DYNAMIC_STATE_VIEWPORT,
-        VK_DYNAMIC_STATE_SCISSOR
-    };
-
-    VkPipelineDynamicStateCreateInfo dynamicState = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .dynamicStateCount = 2,
-        .pDynamicStates = dynamicStates
-    };
-
-    VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .setLayoutCount = 0,
-        .pSetLayouts = nullptr,
-        .pushConstantRangeCount = 0,
-        .pPushConstantRanges = nullptr
-    };
-
-    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-    vkCreatePipelineLayout(m_device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout);
-
-    [[maybe_unused]] VkGraphicsPipelineCreateInfo graphicsPipelineInfo = {
-        .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .stageCount = 2,
-        .pStages = shaderStages,
-        .pVertexInputState = &vertexInputState,
-        .pInputAssemblyState = &inputAssemblyState,
-        .pTessellationState = nullptr,
-        .pViewportState = &viewportState,
-        .pRasterizationState = &rasterizerState,
-        .pMultisampleState = &multisampleState,
-        .pDepthStencilState = nullptr,
-        .pColorBlendState = &colorBlendState,
-        .pDynamicState = &dynamicState,
-        .layout = pipelineLayout,
-        .renderPass = nullptr,
-        .subpass = 0,
-        .basePipelineHandle = VK_NULL_HANDLE,
-        .basePipelineIndex = 0
-    };
-
-
-    vkDestroyPipelineLayout(m_device, pipelineLayout, nullptr);
-    vkDestroyShaderModule(m_device, module, nullptr);
     return 0;
 }
 
 void VulkanCore::cleanup() {
+
+    vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
+    std::cout << "Destroyed graphics pipeline\n";
+
+    vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
+    std::cout << "Destroyed pipeline layout\n";
 
     vkFreeCommandBuffers(m_device, m_commandPool, 1, &m_commandBuffer);
     std::cout << "Destroyed Command Buffer\n";

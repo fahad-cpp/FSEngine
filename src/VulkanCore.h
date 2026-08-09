@@ -20,6 +20,8 @@ class VulkanCore {
     VkBufferView m_bufferView = VK_NULL_HANDLE;
     VkCommandPool m_commandPool = VK_NULL_HANDLE;
     VkCommandBuffer m_commandBuffer = VK_NULL_HANDLE;
+    VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
+    VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
     std::vector<VkImage> m_swapchainImages = {};
     std::vector<VkImageView> m_swapchainImageViews = {};
     std::vector<VkImage> m_images = {};
@@ -30,16 +32,16 @@ class VulkanCore {
         "VK_LAYER_KHRONOS_validation"
     };
     const std::vector<const char *> instanceExtensions = {
-        "VK_KHR_surface",
+        VK_KHR_SURFACE_EXTENSION_NAME,
 #ifdef _WIN32
-        "VK_KHR_win32_surface"
+        VK_KHR_WIN32_SURFACE_EXTENSION_NAME
 #elif __linux__
-        "VK_KHR_xlib_surface"
+        VK_KHR_XLIB_SURFACE_EXTENSION_NAME
 #endif
     };
 
     const std::vector<const char *> deviceExtensions = {
-        "VK_KHR_swapchain"
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
 
   public:
