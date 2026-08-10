@@ -1,13 +1,9 @@
+#define NOMINMAX
 #include "VulkanCore.h"
-#include <climits>
-#include <cmath>
-#include <cstddef>
-#include <cstdint>
-#include <fstream>
-#include <ios>
+#include <string>
 #include <iostream>
-#include <vector>
-#include <vulkan/vulkan_core.h>
+#include <fstream>
+#include <algorithm>
 #define SELECTED_DEVICE 0
 void checkSupportedInstanceLayers(const std::vector<const char *> &instanceLayers, std::vector<std::string> &finalLayers) {
     uint32_t layerCount = 0;
