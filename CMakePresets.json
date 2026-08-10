@@ -48,7 +48,7 @@
         {
             "name": "gcc-release",
             "displayName": "GCCNinjaRelease",
-            "description": "clang++ with Ninja (Release)",
+            "description": "g++ with Ninja (Release)",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
