@@ -85,6 +85,26 @@
         {
             "name": "default",
             "configurePreset": "default"
+        },
+        {
+            "name": "release",
+            "configurePreset": "release"
+        },
+        {
+            "name": "gcc-debug",
+            "configurePreset": "gcc-debug"
+        },
+        {
+            "name": "gcc-release",
+            "configurePreset": "gcc-release"
+        },
+        {
+            "name": "vs-debug",
+            "configurePreset": "vs-debug"
+        },
+        {
+            "name": "vs-release",
+            "configurePreset": "vs-release"
         }
     ]
 }
