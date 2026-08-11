@@ -1,17 +1,17 @@
 {
     "version": 10 ,
     "cmakeMinimumRequired" : {
-        "major": 3,
-        "minor": 10,
+        "major": 4,
+        "minor": 0,
         "patch": 0
     },
     "configurePresets": [
         {
-            "name": "default",
+            "name": "clang-debug",
             "displayName": "ClangNinjaDebug",
             "description": "clang++ with Ninja (Debug)",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build",
+            "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
                 "CMAKE_C_COMPILER":"clang",
                 "CMAKE_CXX_COMPILER":"clang++",
@@ -20,11 +20,11 @@
             }
         },
         {
-            "name": "release",
+            "name": "clang-release",
             "displayName": "ClangNinjaRelease",
             "description": "clang++ with Ninja (Release)",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build",
+            "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
                 "CMAKE_C_COMPILER":"clang",
                 "CMAKE_CXX_COMPILER":"clang++",
@@ -37,7 +37,7 @@
             "displayName": "GCCNinjaDebug",
             "description": "g++ with Ninja (Debug)",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build",
+            "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
                 "CMAKE_C_COMPILER":"gcc",
                 "CMAKE_CXX_COMPILER":"g++",
@@ -50,7 +50,7 @@
             "displayName": "GCCNinjaRelease",
             "description": "g++ with Ninja (Release)",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build",
+            "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
                 "CMAKE_C_COMPILER":"gcc",
                 "CMAKE_CXX_COMPILER":"g++",
@@ -63,9 +63,8 @@
             "displayName": "VSDebug",
             "description": "Visual Studio (Debug)",
             "generator": "Visual Studio 18 2026",
-            "binaryDir": "${sourceDir}/build",
+            "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE":"Debug",
                 "CMAKE_EXPORT_COMPILE_COMMANDS":true
             }
         },
@@ -74,21 +73,20 @@
             "displayName": "VSRelease",
             "description": "Visual Studio (Release)",
             "generator": "Visual Studio 18 2026",
-            "binaryDir": "${sourceDir}/build",
+            "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE":"Release",
                 "CMAKE_EXPORT_COMPILE_COMMANDS":true
             }
         }
     ],
     "buildPresets": [
         {
-            "name": "default",
-            "configurePreset": "default"
+            "name": "clang-debug",
+            "configurePreset": "clang-debug"
         },
         {
-            "name": "release",
-            "configurePreset": "release"
+            "name": "clang-release",
+            "configurePreset": "clang-release"
         },
         {
             "name": "gcc-debug",
@@ -100,11 +98,13 @@
         },
         {
             "name": "vs-debug",
-            "configurePreset": "vs-debug"
+            "configurePreset": "vs-debug",
+            "configuration": "Debug"
         },
         {
             "name": "vs-release",
-            "configurePreset": "vs-release"
+            "configurePreset": "vs-release",
+            "configuration": "Release"
         }
     ]
 }
