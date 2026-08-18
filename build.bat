@@ -25,5 +25,7 @@ if errorlevel 1 (
     popd
     exit /b 1
 )
+
+copy build\%PRESET%\compile_commands.json build\
 "bin\%EXENAME%"
 endlocal
