@@ -18,8 +18,8 @@ class VulkanCore {
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;
     VkSwapchainKHR m_swapchain = VK_NULL_HANDLE;
     VkExtent2D m_swapchainExtent = {};
-    VkBuffer m_buffer = VK_NULL_HANDLE;
-    VkBufferView m_bufferView = VK_NULL_HANDLE;
+    // VkBuffer m_buffer = VK_NULL_HANDLE;
+    // VkBufferView m_bufferView = VK_NULL_HANDLE;
     VkCommandPool m_commandPool = VK_NULL_HANDLE;
     VkCommandBuffer m_commandBuffer = VK_NULL_HANDLE;
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
@@ -29,8 +29,8 @@ class VulkanCore {
     VkFence m_drawFence = VK_NULL_HANDLE;
     std::vector<VkImage> m_swapchainImages = {};
     std::vector<VkImageView> m_swapchainImageViews = {};
-    std::vector<VkImage> m_images = {};
-    std::vector<VkImageView> m_imageViews = {};
+    //std::vector<VkImage> m_images = {};
+    //std::vector<VkImageView> m_imageViews = {};
     std::vector<VkDeviceMemory> m_memory = {};
 
     const std::vector<const char *> layers = {

@@ -26,6 +26,6 @@ if errorlevel 1 (
     exit /b 1
 )
 
-copy build\%PRESET%\compile_commands.json build\
+copy build\%PRESET%\compile_commands.json build\ >nul
 "bin\%EXENAME%"
 endlocal

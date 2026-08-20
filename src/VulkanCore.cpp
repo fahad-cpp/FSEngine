@@ -336,7 +336,7 @@ VkResult VulkanCore::createSwapchain(VkSwapchainKHR &swapchain, FS::Window &wind
     vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, m_surface, &formatCount, availableFormats.data());
     VkSurfaceFormatKHR selectedFormat;
     for (uint32_t i = 0; i < availableFormats.size(); ++i) {
-        if (availableFormats[i].format == VK_FORMAT_R8G8B8A8_SRGB) {
+        if (availableFormats[i].format == VK_FORMAT_R8G8B8A8_UNORM) {
             selectedFormat = availableFormats[i];
             break;
         } else if (i == (availableFormats.size() - 1)) {
@@ -399,7 +399,7 @@ void getSwapchainImageViews(VkDevice& device,const std::vector<VkImage>& swapcha
             .flags = 0,
             .image = swapchainImage,
             .viewType = VK_IMAGE_VIEW_TYPE_2D,
-            .format = VK_FORMAT_R8G8B8A8_SRGB,
+            .format = VK_FORMAT_R8G8B8A8_UNORM,
             // VK_COMPONENT_SWIZZLE_IDENTITY for all components
             .components = {},
             .subresourceRange = subresourceRange
@@ -956,7 +956,7 @@ VkResult createGraphicsPipeline(VkPhysicalDevice &physicalDevice, VkDevice &devi
 
     VkSurfaceFormatKHR surfaceFormat = surfaceFormats[0];
     for (VkSurfaceFormatKHR &format : surfaceFormats) {
-        if (format.format == VK_FORMAT_R8G8B8A8_SRGB) {
+        if (format.format == VK_FORMAT_R8G8B8A8_UNORM) {
             surfaceFormat = format;
         }
     }
@@ -1061,14 +1061,14 @@ int VulkanCore::init() {
     // printDeviceExt(m_physicalDevice);
 
     // Create Buffer
-    VkDeviceMemory bufferMemory;
-    if ((result = createBuffer(m_device, m_buffer, m_physicalDevice, bufferMemory, VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 1024 * 1024)) != VK_SUCCESS) {
-        std::cerr << "Failed to create buffer:" << result << "\n";
-        return 1;
-    } else {
-        std::cout << "Successfully created buffer\n";
-    }
-    m_memory.push_back(bufferMemory);
+    // VkDeviceMemory bufferMemory;
+    // if ((result = createBuffer(m_device, m_buffer, m_physicalDevice, bufferMemory, VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 1024 * 1024)) != VK_SUCCESS) {
+    //     std::cerr << "Failed to create buffer:" << result << "\n";
+    //     return 1;
+    // } else {
+    //     std::cout << "Successfully created buffer\n";
+    // }
+    // m_memory.push_back(bufferMemory);
 
     // Create Window
     window = new FS::Window("Vulkan Window", 720, 720);
@@ -1095,78 +1095,78 @@ int VulkanCore::init() {
         std::cout << "Successfully created Swapchain\n";
     }
 
-    // Create Image
-    VkImage image;
-    VkDeviceMemory imageMemory;
-    result = createImage(m_physicalDevice, m_device, image, imageMemory);
-    if (result != VK_SUCCESS) {
-        std::cerr << "Failed to create Image:" << result << "\n";
-        return 1;
-    } else {
-        std::cout << "Successfully created Image\n";
-    }
-    m_images.push_back(image);
-    m_memory.push_back(imageMemory);
+    // // Create Image
+    // VkImage image;
+    // VkDeviceMemory imageMemory;
+    // result = createImage(m_physicalDevice, m_device, image, imageMemory);
+    // if (result != VK_SUCCESS) {
+    //     std::cerr << "Failed to create Image:" << result << "\n";
+    //     return 1;
+    // } else {
+    //     std::cout << "Successfully created Image\n";
+    // }
+    // m_images.push_back(image);
+    // m_memory.push_back(imageMemory);
 
-    // Query Compressed formats support
-    VkPhysicalDeviceFeatures feat;
-    vkGetPhysicalDeviceFeatures(m_physicalDevice, &feat);
-    // std::cout << ((feat.textureCompressionBC) ? "BC texture compression supported\n" : "BC texture compression not supported\n");
-    // std::cout << ((feat.textureCompressionETC2) ? "ETC2 texture compression supported\n" : "ETC2 texture compression not supported\n");
-    // std::cout << ((feat.textureCompressionASTC_LDR) ? "ASTC texture compression supported\n" : "ASTC texture compression not supported\n");
+    // // Query Compressed formats support
+    // VkPhysicalDeviceFeatures feat;
+    // vkGetPhysicalDeviceFeatures(m_physicalDevice, &feat);
+    // // std::cout << ((feat.textureCompressionBC) ? "BC texture compression supported\n" : "BC texture compression not supported\n");
+    // // std::cout << ((feat.textureCompressionETC2) ? "ETC2 texture compression supported\n" : "ETC2 texture compression not supported\n");
+    // // std::cout << ((feat.textureCompressionASTC_LDR) ? "ASTC texture compression supported\n" : "ASTC texture compression not supported\n");
 
-    // Create buffer view
-    result = createBufferView(m_device, m_buffer, m_bufferView);
-    if (result != VK_SUCCESS) {
-        std::cerr << "Failed to create Buffer View:" << result << "\n";
-        return 1;
-    } else {
-        std::cout << "Successfully created Buffer View\n";
-    }
+    // // Create buffer view
+    // result = createBufferView(m_device, m_buffer, m_bufferView);
+    // if (result != VK_SUCCESS) {
+    //     std::cerr << "Failed to create Buffer View:" << result << "\n";
+    //     return 1;
+    // } else {
+    //     std::cout << "Successfully created Buffer View\n";
+    // }
 
-    // Create Image View
-    VkImageView imageView;
-    result = createImageView(m_device, m_images[0], imageView);
-    if (result != VK_SUCCESS) {
-        std::cerr << "Failed to create Image View\n";
-    } else {
-        std::cout << "Successfully created Image View\n";
-        m_imageViews.push_back(imageView);
-    }
+    // // Create Image View
+    // VkImageView imageView;
+    // result = createImageView(m_device, m_images[0], imageView);
+    // if (result != VK_SUCCESS) {
+    //     std::cerr << "Failed to create Image View\n";
+    // } else {
+    //     std::cout << "Successfully created Image View\n";
+    //     m_imageViews.push_back(imageView);
+    // }
 
-    // Create Cubemap
-    VkImage cubemap;
-    VkDeviceMemory cubemapMemory;
-    result = createCubemap(m_physicalDevice, m_device, cubemap, cubemapMemory);
-    if (result != VK_SUCCESS) {
-        std::cerr << "Failed to create cubemap image object:" << result << "\n";
-    } else {
-        std::cout << "Successfully created cubemap image object\n";
-        m_images.push_back(cubemap);
-        m_memory.push_back(cubemapMemory);
-    }
+    // // Create Cubemap
+    // VkImage cubemap;
+    // VkDeviceMemory cubemapMemory;
+    // result = createCubemap(m_physicalDevice, m_device, cubemap, cubemapMemory);
+    // if (result != VK_SUCCESS) {
+    //     std::cerr << "Failed to create cubemap image object:" << result << "\n";
+    // } else {
+    //     std::cout << "Successfully created cubemap image object\n";
+    //     m_images.push_back(cubemap);
+    //     m_memory.push_back(cubemapMemory);
+    // }
 
-    // Create Cubemap view
-    VkImageView cubemapView;
-    result = createCubemapView(m_device, cubemap, cubemapView);
-    if (result != VK_SUCCESS) {
-        std::cerr << "Failed to create cubemap image view:" << result << "\n";
-    } else {
-        std::cout << "Successfully created cubemap image view\n";
-        m_imageViews.push_back(cubemapView);
-    }
+    // // Create Cubemap view
+    // VkImageView cubemapView;
+    // result = createCubemapView(m_device, cubemap, cubemapView);
+    // if (result != VK_SUCCESS) {
+    //     std::cerr << "Failed to create cubemap image view:" << result << "\n";
+    // } else {
+    //     std::cout << "Successfully created cubemap image view\n";
+    //     m_imageViews.push_back(cubemapView);
+    // }
 
-    // Create sparse image
-    VkImage sparseImage;
-    VkDeviceMemory sparseImageMemory;
-    result = createSparseImage(m_physicalDevice, m_device, sparseImage, sparseImageMemory);
-    if (result != VK_SUCCESS) {
-        std::cerr << "Failed to create sparse image\n";
-    } else {
-        std::cout << "Successfully created sparse image\n";
-        m_images.push_back(sparseImage);
-        m_memory.push_back(sparseImageMemory);
-    }
+    // // Create sparse image
+    // VkImage sparseImage;
+    // VkDeviceMemory sparseImageMemory;
+    // result = createSparseImage(m_physicalDevice, m_device, sparseImage, sparseImageMemory);
+    // if (result != VK_SUCCESS) {
+    //     std::cerr << "Failed to create sparse image\n";
+    // } else {
+    //     std::cout << "Successfully created sparse image\n";
+    //     m_images.push_back(sparseImage);
+    //     m_memory.push_back(sparseImageMemory);
+    // }
 
     getQueue(m_device, m_physicalDevice, VK_QUEUE_GRAPHICS_BIT);
     // Create a command pool
@@ -1411,7 +1411,7 @@ void VulkanCore::cleanup() {
     vkDestroyFence(m_device, m_drawFence, nullptr);
     vkDestroySemaphore(m_device, m_renderFinishedSemaphore, nullptr);
     vkDestroySemaphore(m_device, m_imageAcquireSemaphore, nullptr);
-    std::cout << "Synchronization objects destroyed\n";
+    std::cout << "Destroyed synchronization objects\n";
 
     vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
     std::cout << "Destroyed graphics pipeline\n";
@@ -1425,20 +1425,20 @@ void VulkanCore::cleanup() {
     vkDestroyCommandPool(m_device, m_commandPool, nullptr);
     std::cout << "Destroyed Command Pool\n";
 
-    for (VkImageView &imageView : m_imageViews) {
-        vkDestroyImageView(m_device, imageView, nullptr);
-    }
-    std::cout << "Destroyed Image Views\n";
+    // for (VkImageView &imageView : m_imageViews) {
+    //     vkDestroyImageView(m_device, imageView, nullptr);
+    // }
+    // std::cout << "Destroyed Image Views\n";
     for (VkImageView &imageView : m_swapchainImageViews) {
         vkDestroyImageView(m_device, imageView, nullptr);
     }
     std::cout << "Destroyed Swapchain Image Views\n";
 
-    for (VkImage &image : m_images) {
-        vkDestroyImage(m_device, image, nullptr);
-    }
-    m_images.clear();
-    std::cout << "Destroyed Images\n";
+    // for (VkImage &image : m_images) {
+    //     vkDestroyImage(m_device, image, nullptr);
+    // }
+    // m_images.clear();
+    // std::cout << "Destroyed Images\n";
 
     vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
     std::cout << "Destroyed Swapchain\n";
@@ -1449,12 +1449,12 @@ void VulkanCore::cleanup() {
     delete window;
     std::cout << "Destroyed Window\n";
 
-    // Destroy buffer view
-    vkDestroyBufferView(m_device, m_bufferView, nullptr);
-    std::cout << "Destoyed Buffer View\n";
+    // // Destroy buffer view
+    // vkDestroyBufferView(m_device, m_bufferView, nullptr);
+    // std::cout << "Destoyed Buffer View\n";
 
-    vkDestroyBuffer(m_device, m_buffer, nullptr);
-    std::cout << "Destroyed Buffer\n";
+    // vkDestroyBuffer(m_device, m_buffer, nullptr);
+    // std::cout << "Destroyed Buffer\n";
 
     for (VkDeviceMemory &memory : m_memory) {
         vkFreeMemory(m_device, memory, nullptr);
