@@ -19,6 +19,7 @@ void Application::run() {
     while (vkCore.window->isOpen()) {
         handleInput();
         vkCore.window->processMessages();
+        vkCore.drawFrame();
     }
 }
 
