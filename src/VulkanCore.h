@@ -10,7 +10,9 @@
 #include <FSWindow.h>
 #include <vector>
 #include <vulkan/vulkan.h>
+#define MAX_FRAMES_IN_FLIGHT 2
 class VulkanCore {
+  public:
     VkInstance m_instance = VK_NULL_HANDLE;
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
     VkDevice m_device = VK_NULL_HANDLE;
@@ -21,17 +23,18 @@ class VulkanCore {
     // VkBuffer m_buffer = VK_NULL_HANDLE;
     // VkBufferView m_bufferView = VK_NULL_HANDLE;
     VkCommandPool m_commandPool = VK_NULL_HANDLE;
-    VkCommandBuffer m_commandBuffer = VK_NULL_HANDLE;
+    std::vector<VkCommandBuffer> m_commandBuffers = {};
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
-    VkSemaphore m_imageAcquireSemaphore = VK_NULL_HANDLE;
-    VkSemaphore m_renderFinishedSemaphore = VK_NULL_HANDLE;
-    VkFence m_drawFence = VK_NULL_HANDLE;
     std::vector<VkImage> m_swapchainImages = {};
     std::vector<VkImageView> m_swapchainImageViews = {};
-    //std::vector<VkImage> m_images = {};
-    //std::vector<VkImageView> m_imageViews = {};
+    // std::vector<VkImage> m_images = {};
+    // std::vector<VkImageView> m_imageViews = {};
     std::vector<VkDeviceMemory> m_memory = {};
+    // Synchronization
+    std::vector<VkSemaphore> m_imageAcquireSemaphores = {};
+    std::vector<VkSemaphore> m_renderFinishedSemaphores = {};
+    std::vector<VkFence> m_inFlightFences = {};
 
     const std::vector<const char *> layers = {
         "VK_LAYER_KHRONOS_validation"
@@ -49,6 +52,9 @@ class VulkanCore {
     const std::vector<const char *> deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
+
+  private:
+    uint32_t frameIndex = 0;
 
   public:
     FS::Window *window = nullptr;
