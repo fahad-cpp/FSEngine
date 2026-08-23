@@ -1,6 +1,7 @@
 #ifndef VULKANCORE_H
 #define VULKANCORE_H
 
+#include <vulkan/vulkan_core.h>
 #ifdef _WIN32
 #define VK_USE_PLATFORM_WIN32_KHR
 #elif __linux__
@@ -19,6 +20,7 @@ class VulkanCore {
     VkQueue m_queue = VK_NULL_HANDLE;
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;
     VkSwapchainKHR m_swapchain = VK_NULL_HANDLE;
+    VkSurfaceFormatKHR m_surfaceFormat = {};
     VkExtent2D m_swapchainExtent = {};
     VkCommandPool m_commandPool = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> m_commandBuffers = {};
@@ -73,6 +75,7 @@ class VulkanCore {
     void createSwapchainImageViews();
     void cleanupSwapchain();
     void recreateSwapchain();
+    void createGraphicsPipeline(const std::string &shaderPath);
     void recordCommandBuffer(uint32_t imageIndex);
     int init();
     void cleanup();

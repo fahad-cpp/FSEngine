@@ -1,6 +1,8 @@
+#include <vulkan/vulkan_core.h>
 #define NOMINMAX
 #include "VulkanCore.h"
 #include <algorithm>
+#include <climits>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -195,7 +197,7 @@ uint32_t getQueueFamilyIndex(const VkPhysicalDevice &physicalDevice, const VkQue
     std::vector<VkQueueFamilyProperties> properties(propertyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &propertyCount, properties.data());
 
-    for (uint32_t i = 0; i < propertyCount; i++) {
+    for (uint32_t i = 0; i < propertyCount; ++i) {
         if ((properties[i].queueFlags & flags) == flags) {
             return i;
         }
@@ -331,13 +333,12 @@ void VulkanCore::createSwapchain() {
     vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, m_surface, &formatCount, nullptr);
     std::vector<VkSurfaceFormatKHR> availableFormats(formatCount);
     vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, m_surface, &formatCount, availableFormats.data());
-    VkSurfaceFormatKHR selectedFormat;
     for (uint32_t i = 0; i < availableFormats.size(); ++i) {
-        if (availableFormats[i].format == VK_FORMAT_R8G8B8A8_SRGB) {
-            selectedFormat = availableFormats[i];
+        if (availableFormats[i].format == VK_FORMAT_R8G8B8A8_SRGB || availableFormats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+            m_surfaceFormat = availableFormats[i];
             break;
         } else if (i == (availableFormats.size() - 1)) {
-            selectedFormat = availableFormats[0];
+            m_surfaceFormat = availableFormats[0];
         }
     }
 
@@ -365,8 +366,8 @@ void VulkanCore::createSwapchain() {
         .flags = 0,
         .surface = m_surface,
         .minImageCount = surfaceCaps.minImageCount + 1,
-        .imageFormat = selectedFormat.format,
-        .imageColorSpace = selectedFormat.colorSpace,
+        .imageFormat = m_surfaceFormat.format,
+        .imageColorSpace = m_surfaceFormat.colorSpace,
         .imageExtent = m_swapchainExtent,
         .imageArrayLayers = 1,
         .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
@@ -415,7 +416,7 @@ void VulkanCore::createSwapchainImageViews() {
             .flags = 0,
             .image = swapchainImage,
             .viewType = VK_IMAGE_VIEW_TYPE_2D,
-            .format = VK_FORMAT_R8G8B8A8_SRGB,
+            .format = m_surfaceFormat.format,
             // VK_COMPONENT_SWIZZLE_IDENTITY for all components
             .components = {},
             .subresourceRange = subresourceRange
@@ -835,11 +836,11 @@ VkResult createPipelineLayout(VkDevice &device, VkPipelineLayout &pipelineLayout
     return vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout);
 }
 
-VkResult createGraphicsPipeline(VkPhysicalDevice &physicalDevice, VkDevice &device, VkSurfaceKHR &surface, VkPipelineLayout &pipelineLayout, VkPipeline &graphicsPipeline, const std::string &shaderPath) {
+void VulkanCore::createGraphicsPipeline(const std::string &shaderPath) {
     VkSurfaceCapabilitiesKHR surfaceCaps;
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCaps);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physicalDevice, m_surface, &surfaceCaps);
     const std::vector<char> code = readFile(shaderPath);
-    VkShaderModule module = createShaderModule(device, code);
+    VkShaderModule module = createShaderModule(m_device, code);
     VkPipelineShaderStageCreateInfo vertShaderStageInfo = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
         .pNext = nullptr,
@@ -966,23 +967,16 @@ VkResult createGraphicsPipeline(VkPhysicalDevice &physicalDevice, VkDevice &devi
     };
 
     uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, m_surface, &formatCount, nullptr);
     std::vector<VkSurfaceFormatKHR> surfaceFormats(formatCount);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, surfaceFormats.data());
-
-    VkSurfaceFormatKHR surfaceFormat = surfaceFormats[0];
-    for (VkSurfaceFormatKHR &format : surfaceFormats) {
-        if (format.format == VK_FORMAT_R8G8B8A8_SRGB) {
-            surfaceFormat = format;
-        }
-    }
+    vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, m_surface, &formatCount, surfaceFormats.data());
 
     VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
         .pNext = nullptr,
         .viewMask = 0,
         .colorAttachmentCount = 1,
-        .pColorAttachmentFormats = &surfaceFormat.format,
+        .pColorAttachmentFormats = &m_surfaceFormat.format,
         .depthAttachmentFormat = VK_FORMAT_UNDEFINED,
         .stencilAttachmentFormat = VK_FORMAT_UNDEFINED
     };
@@ -1002,19 +996,22 @@ VkResult createGraphicsPipeline(VkPhysicalDevice &physicalDevice, VkDevice &devi
         .pDepthStencilState = nullptr,
         .pColorBlendState = &colorBlendState,
         .pDynamicState = &dynamicState,
-        .layout = pipelineLayout,
+        .layout = m_pipelineLayout,
         .renderPass = nullptr,
         .subpass = 0,
         .basePipelineHandle = VK_NULL_HANDLE,
         .basePipelineIndex = 0
     };
 
-    graphicsPipeline = VK_NULL_HANDLE;
-    VkResult res = vkCreateGraphicsPipelines(device, nullptr, 1, &graphicsPipelineInfo, nullptr, &graphicsPipeline);
+    m_graphicsPipeline = VK_NULL_HANDLE;
+    VkResult result = vkCreateGraphicsPipelines(m_device, nullptr, 1, &graphicsPipelineInfo, nullptr, &m_graphicsPipeline);
+    if (result != VK_SUCCESS) {
+        std::cerr << "Failed to create graphics pipeline\n";
+    } else {
+        std::cout << "Successfully created graphics pipeline\n";
+    }
 
-    vkDestroyShaderModule(device, module, nullptr);
-
-    return res;
+    vkDestroyShaderModule(m_device, module, nullptr);
 }
 VkQueue getQueue(VkDevice &device, VkPhysicalDevice &physicalDevice, const VkQueueFlags &queueFlags) {
     uint32_t familyIndex = getQueueFamilyIndex(physicalDevice, queueFlags);
@@ -1126,8 +1123,8 @@ int VulkanCore::init() {
     // Create Synchronization objects
     m_imageAcquireSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     createSemaphores(m_device, MAX_FRAMES_IN_FLIGHT, m_imageAcquireSemaphores.data());
-    m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-    createSemaphores(m_device, MAX_FRAMES_IN_FLIGHT, m_renderFinishedSemaphores.data());
+    m_renderFinishedSemaphores.resize(m_swapchainImages.size());
+    createSemaphores(m_device, static_cast<uint32_t>(m_swapchainImages.size()), m_renderFinishedSemaphores.data());
     m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
     createFences(m_device, MAX_FRAMES_IN_FLIGHT, m_inFlightFences.data(), VK_FENCE_CREATE_SIGNALED_BIT);
 
@@ -1143,13 +1140,7 @@ int VulkanCore::init() {
     }
 
     // Graphics Pipeline
-    result = createGraphicsPipeline(m_physicalDevice, m_device, m_surface, m_pipelineLayout, m_graphicsPipeline, "shaders/slang.spv");
-    if (result != VK_SUCCESS) {
-        std::cerr << "Failed to create graphics pipeline\n";
-        return result;
-    } else {
-        std::cout << "Successfully created graphics pipeline\n";
-    }
+    createGraphicsPipeline("shaders/slang.spv");
 
     return 0;
 }
@@ -1207,7 +1198,7 @@ void VulkanCore::recordCommandBuffer(uint32_t imageIndex) {
         VK_ACCESS_2_NONE,
         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
 
-    VkClearValue clearColor = { VkClearColorValue{ { 0.f, 0.f, 0.f, 1.f } } };
+    VkClearValue clearColor = { VkClearColorValue{ { 0.01f, 0.02f, 0.05f, 1.f } } };
     VkRenderingAttachmentInfo attachmentInfo = {
         .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
         .pNext = nullptr,
@@ -1269,14 +1260,14 @@ void VulkanCore::recordCommandBuffer(uint32_t imageIndex) {
 void VulkanCore::drawFrame() {
 
     vkWaitForFences(m_device, 1, &m_inFlightFences[frameIndex], VK_TRUE, UINT64_MAX);
-    
+
     uint32_t imageIndex = 0;
     VkResult acquireResult = vkAcquireNextImageKHR(m_device, m_swapchain, UINT64_MAX, m_imageAcquireSemaphores[frameIndex], VK_NULL_HANDLE, &imageIndex);
-    if(acquireResult == VK_ERROR_OUT_OF_DATE_KHR){
+    if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR) {
         recreateSwapchain();
         return;
     }
-    
+
     vkResetFences(m_device, 1, &m_inFlightFences[frameIndex]);
     recordCommandBuffer(imageIndex);
 
@@ -1290,7 +1281,7 @@ void VulkanCore::drawFrame() {
         .commandBufferCount = 1,
         .pCommandBuffers = &m_commandBuffers[frameIndex],
         .signalSemaphoreCount = 1,
-        .pSignalSemaphores = &m_renderFinishedSemaphores[frameIndex]
+        .pSignalSemaphores = &m_renderFinishedSemaphores[imageIndex]
     };
 
     vkQueueSubmit(m_queue, 1, &submitInfo, m_inFlightFences[frameIndex]);
@@ -1299,28 +1290,27 @@ void VulkanCore::drawFrame() {
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .pNext = nullptr,
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &m_renderFinishedSemaphores[frameIndex],
+        .pWaitSemaphores = &m_renderFinishedSemaphores[imageIndex],
         .swapchainCount = 1,
         .pSwapchains = &m_swapchain,
         .pImageIndices = &imageIndex,
         .pResults = nullptr
     };
     VkResult presentResult = vkQueuePresentKHR(m_queue, &presentInfo);
-    if(presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR){
+    if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
         recreateSwapchain();
     }
     frameIndex = (frameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
 }
-void VulkanCore::cleanupSwapchain(){
-    for(VkImageView& imageView : m_swapchainImageViews){
+void VulkanCore::cleanupSwapchain() {
+    for (VkImageView &imageView : m_swapchainImageViews) {
         vkDestroyImageView(m_device, imageView, nullptr);
     }
     m_swapchainImageViews.clear();
     vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
     m_swapchain = nullptr;
-
 }
-void VulkanCore::recreateSwapchain(){
+void VulkanCore::recreateSwapchain() {
     vkDeviceWaitIdle(m_device);
     cleanupSwapchain();
     createSwapchain();
@@ -1329,10 +1319,12 @@ void VulkanCore::recreateSwapchain(){
 void VulkanCore::cleanup() {
 
     vkDeviceWaitIdle(m_device);
-    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         vkDestroyFence(m_device, m_inFlightFences[i], nullptr);
-        vkDestroySemaphore(m_device, m_renderFinishedSemaphores[i], nullptr);
         vkDestroySemaphore(m_device, m_imageAcquireSemaphores[i], nullptr);
+    }
+    for (uint32_t i = 0; i < m_swapchainImages.size(); ++i) {
+        vkDestroySemaphore(m_device, m_renderFinishedSemaphores[i], nullptr);
     }
     std::cout << "Destroyed synchronization objects\n";
 
@@ -1342,7 +1334,7 @@ void VulkanCore::cleanup() {
     vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
     std::cout << "Destroyed pipeline layout\n";
 
-    for (uint32_t i = 0; i < m_commandBuffers.size(); i++) {
+    for (uint32_t i = 0; i < m_commandBuffers.size(); ++i) {
         vkFreeCommandBuffers(m_device, m_commandPool, 1, &m_commandBuffers[i]);
     }
     std::cout << "Destroyed Command Buffers\n";
