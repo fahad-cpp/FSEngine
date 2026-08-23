@@ -1,6 +1,3 @@
-#include <cstddef>
-#include <cstdint>
-#include <vector>
 #define NOMINMAX
 #include "VulkanCore.h"
 #include <algorithm>
@@ -30,7 +27,7 @@ void checkSupportedInstanceLayers(const std::vector<const char *> &instanceLayer
     }
 }
 
-static VkResult createInstance(VkInstance &instance, const std::vector<const char *> &layers, const std::vector<const char *> &instanceExtensions) {
+VkResult createInstance(VkInstance &instance, const std::vector<const char *> &layers, const std::vector<const char *> &instanceExtensions) {
     // check for layers support
     std::vector<std::string> finalLayers = {};
     checkSupportedInstanceLayers(layers, finalLayers);
@@ -325,7 +322,7 @@ VkResult createSurface(const VkInstance &instance, FS::Window &windowHandle, VkS
     return vkCreateXlibSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
 }
 #endif
-VkResult VulkanCore::createSwapchain(VkSwapchainKHR &swapchain, FS::Window &window) {
+void VulkanCore::createSwapchain() {
     VkSurfaceCapabilitiesKHR surfaceCaps;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physicalDevice, m_surface, &surfaceCaps);
 
@@ -336,7 +333,7 @@ VkResult VulkanCore::createSwapchain(VkSwapchainKHR &swapchain, FS::Window &wind
     vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, m_surface, &formatCount, availableFormats.data());
     VkSurfaceFormatKHR selectedFormat;
     for (uint32_t i = 0; i < availableFormats.size(); ++i) {
-        if (availableFormats[i].format == VK_FORMAT_R8G8B8A8_UNORM) {
+        if (availableFormats[i].format == VK_FORMAT_R8G8B8A8_SRGB) {
             selectedFormat = availableFormats[i];
             break;
         } else if (i == (availableFormats.size() - 1)) {
@@ -358,7 +355,7 @@ VkResult VulkanCore::createSwapchain(VkSwapchainKHR &swapchain, FS::Window &wind
         }
     }
 
-    FS::RenderState &renderState = window.getRenderState();
+    FS::RenderState &renderState = window->getRenderState();
     uint32_t windowWidth = std::clamp<uint32_t>(renderState.width, surfaceCaps.minImageExtent.width, surfaceCaps.maxImageExtent.width);
     uint32_t windowHeight = std::clamp<uint32_t>(renderState.height, surfaceCaps.minImageExtent.height, surfaceCaps.maxImageExtent.height);
     m_swapchainExtent = (surfaceCaps.currentExtent.width != UINT_MAX) ? surfaceCaps.currentExtent : VkExtent2D{ windowWidth, windowHeight };
@@ -382,9 +379,28 @@ VkResult VulkanCore::createSwapchain(VkSwapchainKHR &swapchain, FS::Window &wind
         .clipped = VK_TRUE,
         .oldSwapchain = VK_NULL_HANDLE,
     };
-    return vkCreateSwapchainKHR(m_device, &swapchainCreateInfo, nullptr, &swapchain);
+    VkResult res = vkCreateSwapchainKHR(m_device, &swapchainCreateInfo, nullptr, &m_swapchain);
+    if (res != VK_SUCCESS) {
+        std::cerr << "Failed to create swapchain\n";
+        return;
+    } else {
+        std::cout << "Successfully created swapchain\n";
+    }
+
+    // Swapchain Images
+    uint32_t swapchainImageCount = 0;
+    m_swapchainImages.clear();
+    vkGetSwapchainImagesKHR(m_device, m_swapchain, &swapchainImageCount, nullptr);
+    m_swapchainImages.resize(swapchainImageCount);
+    res = vkGetSwapchainImagesKHR(m_device, m_swapchain, &swapchainImageCount, m_swapchainImages.data());
+    if (res != VK_SUCCESS) {
+        std::cerr << "Failed to get swapchain images\n";
+        return;
+    } else {
+        std::cout << "Successfully got swapchain images\n";
+    }
 }
-void getSwapchainImageViews(VkDevice& device,const std::vector<VkImage>& swapchainImages,std::vector<VkImageView>& swapchainImageViews){
+void VulkanCore::createSwapchainImageViews() {
     VkImageSubresourceRange subresourceRange = {
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
         .baseMipLevel = 0,
@@ -392,21 +408,21 @@ void getSwapchainImageViews(VkDevice& device,const std::vector<VkImage>& swapcha
         .baseArrayLayer = 0,
         .layerCount = 1
     };
-    for (const VkImage &swapchainImage : swapchainImages) {
+    for (const VkImage &swapchainImage : m_swapchainImages) {
         VkImageViewCreateInfo imageViewCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
             .pNext = nullptr,
             .flags = 0,
             .image = swapchainImage,
             .viewType = VK_IMAGE_VIEW_TYPE_2D,
-            .format = VK_FORMAT_R8G8B8A8_UNORM,
+            .format = VK_FORMAT_R8G8B8A8_SRGB,
             // VK_COMPONENT_SWIZZLE_IDENTITY for all components
             .components = {},
             .subresourceRange = subresourceRange
         };
         VkImageView imageView;
-        vkCreateImageView(device, &imageViewCreateInfo, nullptr, &imageView);
-        swapchainImageViews.emplace_back(imageView);
+        vkCreateImageView(m_device, &imageViewCreateInfo, nullptr, &imageView);
+        m_swapchainImageViews.emplace_back(imageView);
     }
 }
 uint32_t getMemoryIndex(VkPhysicalDevice &physicalDevice, VkMemoryRequirements requirements, VkMemoryPropertyFlags requiredFlags, VkMemoryPropertyFlags preferredFlags) {
@@ -478,7 +494,7 @@ VkResult createBufferView(VkDevice &device, VkBuffer &buffer, VkBufferView &buff
         .pNext = nullptr,
         .flags = 0,
         .buffer = buffer,
-        .format = VK_FORMAT_R8G8B8A8_UNORM,
+        .format = VK_FORMAT_R8G8B8A8_SRGB,
         .offset = 0,
         .range = 1024 * 1024
     };
@@ -500,7 +516,7 @@ VkResult createImageView(VkDevice &device, VkImage &image, VkImageView &imageVie
     imageViewCreateInfo.flags = 0;
     imageViewCreateInfo.image = image;
     imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    imageViewCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    imageViewCreateInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
     imageViewCreateInfo.components = {};
     imageViewCreateInfo.subresourceRange = subresourceRange;
 
@@ -513,7 +529,7 @@ VkResult createCubemap(VkPhysicalDevice &physicalDevice, VkDevice &device, VkIma
     imageCreateInfo.pNext = nullptr;
     imageCreateInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
     imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    imageCreateInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
     imageCreateInfo.extent = VkExtent3D{ 1080, 1080, 1 }; // must be square for
     imageCreateInfo.mipLevels = 1;
     imageCreateInfo.arrayLayers = 6; // cube faces
@@ -561,7 +577,7 @@ VkResult createCubemapView(VkDevice &device, VkImage &cubemap, VkImageView &cube
     arrayImageViewCreateInfo.flags = 0;
     arrayImageViewCreateInfo.image = cubemap;
     arrayImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-    arrayImageViewCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    arrayImageViewCreateInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
     arrayImageViewCreateInfo.components = {};
     arrayImageViewCreateInfo.subresourceRange = arraySubResRange;
 
@@ -569,7 +585,7 @@ VkResult createCubemapView(VkDevice &device, VkImage &cubemap, VkImageView &cube
 }
 
 VkResult createImage(VkPhysicalDevice &physicalDevice, VkDevice &device, VkImage &image, VkDeviceMemory &memory) {
-    VkFormat selectedFormat = VK_FORMAT_R8G8B8A8_UNORM;
+    VkFormat selectedFormat = VK_FORMAT_R8G8B8A8_SRGB;
 
     // Optimal Image
     //  static const VkImageCreateInfo imageCreateInfo = {
@@ -666,7 +682,7 @@ VkResult createSparseImage(VkPhysicalDevice &physicalDevice, VkDevice &device, V
         .pNext = nullptr,
         .flags = VK_IMAGE_CREATE_SPARSE_BINDING_BIT | VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT,
         .imageType = VK_IMAGE_TYPE_2D,
-        .format = VK_FORMAT_R8G8B8A8_UNORM,
+        .format = VK_FORMAT_R8G8B8A8_SRGB,
         .extent = extent,
         .mipLevels = mipLevels,
         .arrayLayers = arrayLayers,
@@ -689,9 +705,9 @@ VkResult createSparseImage(VkPhysicalDevice &physicalDevice, VkDevice &device, V
     vkGetImageSparseMemoryRequirements(device, image, &requirementCount, memoryRequirements.data());
 
     uint32_t propertyCount = 0;
-    vkGetPhysicalDeviceSparseImageFormatProperties(physicalDevice, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TYPE_2D, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_TILING_OPTIMAL, &propertyCount, nullptr);
+    vkGetPhysicalDeviceSparseImageFormatProperties(physicalDevice, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TYPE_2D, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_TILING_OPTIMAL, &propertyCount, nullptr);
     std::vector<VkSparseImageFormatProperties> formatProperties(propertyCount);
-    vkGetPhysicalDeviceSparseImageFormatProperties(physicalDevice, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TYPE_2D, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_TILING_OPTIMAL, &propertyCount, formatProperties.data());
+    vkGetPhysicalDeviceSparseImageFormatProperties(physicalDevice, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TYPE_2D, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_TILING_OPTIMAL, &propertyCount, formatProperties.data());
 
     VkMemoryRequirements imageMemoryRequirements = {};
     vkGetImageMemoryRequirements(device, image, &imageMemoryRequirements);
@@ -753,7 +769,7 @@ VkResult createCommandPool(VkDevice &device, VkPhysicalDevice &physicalDevice, V
     return vkCreateCommandPool(device, &commandPoolCreateInfo, nullptr, &commandPool);
 }
 
-VkResult createCommandBuffers(VkDevice &device, VkCommandPool &commandPool,uint32_t count, VkCommandBuffer *cmdBuffers) {
+VkResult createCommandBuffers(VkDevice &device, VkCommandPool &commandPool, uint32_t count, VkCommandBuffer *cmdBuffers) {
     VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
         .pNext = nullptr,
@@ -956,7 +972,7 @@ VkResult createGraphicsPipeline(VkPhysicalDevice &physicalDevice, VkDevice &devi
 
     VkSurfaceFormatKHR surfaceFormat = surfaceFormats[0];
     for (VkSurfaceFormatKHR &format : surfaceFormats) {
-        if (format.format == VK_FORMAT_R8G8B8A8_UNORM) {
+        if (format.format == VK_FORMAT_R8G8B8A8_SRGB) {
             surfaceFormat = format;
         }
     }
@@ -1008,31 +1024,31 @@ VkQueue getQueue(VkDevice &device, VkPhysicalDevice &physicalDevice, const VkQue
 
     return localQueue;
 }
-VkResult createSemaphores(VkDevice& device,uint32_t count,VkSemaphore* semaphores){
+VkResult createSemaphores(VkDevice &device, uint32_t count, VkSemaphore *semaphores) {
     VkSemaphoreCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
         .pNext = nullptr,
         .flags = 0,
     };
     VkResult res;
-    for(uint32_t i = 0;i<count;++i){
-        res = vkCreateSemaphore(device,&createInfo,nullptr,&semaphores[i]);
-        if(res != VK_SUCCESS){
+    for (uint32_t i = 0; i < count; ++i) {
+        res = vkCreateSemaphore(device, &createInfo, nullptr, &semaphores[i]);
+        if (res != VK_SUCCESS) {
             return res;
         }
     }
     return res;
 }
-VkResult createFences(VkDevice& device,uint32_t count,VkFence* fences,VkFenceCreateFlags flags = 0){
+VkResult createFences(VkDevice &device, uint32_t count, VkFence *fences, VkFenceCreateFlags flags = 0) {
     VkFenceCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
         .pNext = nullptr,
         .flags = flags
     };
     VkResult res;
-    for(uint32_t i = 0;i<count;++i){
-        res = vkCreateFence(device , &createInfo , nullptr , &fences[i]);
-        if(res != VK_SUCCESS){
+    for (uint32_t i = 0; i < count; ++i) {
+        res = vkCreateFence(device, &createInfo, nullptr, &fences[i]);
+        if (res != VK_SUCCESS) {
             return res;
         }
     }
@@ -1067,19 +1083,6 @@ int VulkanCore::init() {
         std::cout << "Successfully created Logical Device\n";
     }
 
-    // printInstanceLayersAndExt();
-    // printDeviceExt(m_physicalDevice);
-
-    // Create Buffer
-    // VkDeviceMemory bufferMemory;
-    // if ((result = createBuffer(m_device, m_buffer, m_physicalDevice, bufferMemory, VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 1024 * 1024)) != VK_SUCCESS) {
-    //     std::cerr << "Failed to create buffer:" << result << "\n";
-    //     return 1;
-    // } else {
-    //     std::cout << "Successfully created buffer\n";
-    // }
-    // m_memory.push_back(bufferMemory);
-
     // Create Window
     window = new FS::Window("Vulkan Window", 720, 720);
     if (!window->isOpen()) {
@@ -1097,86 +1100,7 @@ int VulkanCore::init() {
         std::cout << "Successfully created surface\n";
     }
 
-    // Create Swapchain
-    if ((result = createSwapchain(m_swapchain, *window)) != VK_SUCCESS) {
-        std::cerr << "Failed to create Swapchain:" << result << "\n";
-        return 1;
-    } else {
-        std::cout << "Successfully created Swapchain\n";
-    }
-
-    // // Create Image
-    // VkImage image;
-    // VkDeviceMemory imageMemory;
-    // result = createImage(m_physicalDevice, m_device, image, imageMemory);
-    // if (result != VK_SUCCESS) {
-    //     std::cerr << "Failed to create Image:" << result << "\n";
-    //     return 1;
-    // } else {
-    //     std::cout << "Successfully created Image\n";
-    // }
-    // m_images.push_back(image);
-    // m_memory.push_back(imageMemory);
-
-    // // Query Compressed formats support
-    // VkPhysicalDeviceFeatures feat;
-    // vkGetPhysicalDeviceFeatures(m_physicalDevice, &feat);
-    // // std::cout << ((feat.textureCompressionBC) ? "BC texture compression supported\n" : "BC texture compression not supported\n");
-    // // std::cout << ((feat.textureCompressionETC2) ? "ETC2 texture compression supported\n" : "ETC2 texture compression not supported\n");
-    // // std::cout << ((feat.textureCompressionASTC_LDR) ? "ASTC texture compression supported\n" : "ASTC texture compression not supported\n");
-
-    // // Create buffer view
-    // result = createBufferView(m_device, m_buffer, m_bufferView);
-    // if (result != VK_SUCCESS) {
-    //     std::cerr << "Failed to create Buffer View:" << result << "\n";
-    //     return 1;
-    // } else {
-    //     std::cout << "Successfully created Buffer View\n";
-    // }
-
-    // // Create Image View
-    // VkImageView imageView;
-    // result = createImageView(m_device, m_images[0], imageView);
-    // if (result != VK_SUCCESS) {
-    //     std::cerr << "Failed to create Image View\n";
-    // } else {
-    //     std::cout << "Successfully created Image View\n";
-    //     m_imageViews.push_back(imageView);
-    // }
-
-    // // Create Cubemap
-    // VkImage cubemap;
-    // VkDeviceMemory cubemapMemory;
-    // result = createCubemap(m_physicalDevice, m_device, cubemap, cubemapMemory);
-    // if (result != VK_SUCCESS) {
-    //     std::cerr << "Failed to create cubemap image object:" << result << "\n";
-    // } else {
-    //     std::cout << "Successfully created cubemap image object\n";
-    //     m_images.push_back(cubemap);
-    //     m_memory.push_back(cubemapMemory);
-    // }
-
-    // // Create Cubemap view
-    // VkImageView cubemapView;
-    // result = createCubemapView(m_device, cubemap, cubemapView);
-    // if (result != VK_SUCCESS) {
-    //     std::cerr << "Failed to create cubemap image view:" << result << "\n";
-    // } else {
-    //     std::cout << "Successfully created cubemap image view\n";
-    //     m_imageViews.push_back(cubemapView);
-    // }
-
-    // // Create sparse image
-    // VkImage sparseImage;
-    // VkDeviceMemory sparseImageMemory;
-    // result = createSparseImage(m_physicalDevice, m_device, sparseImage, sparseImageMemory);
-    // if (result != VK_SUCCESS) {
-    //     std::cerr << "Failed to create sparse image\n";
-    // } else {
-    //     std::cout << "Successfully created sparse image\n";
-    //     m_images.push_back(sparseImage);
-    //     m_memory.push_back(sparseImageMemory);
-    // }
+    createSwapchain();
 
     getQueue(m_device, m_physicalDevice, VK_QUEUE_GRAPHICS_BIT);
     // Create a command pool
@@ -1189,82 +1113,40 @@ int VulkanCore::init() {
 
     // Create a command buffer
     m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-    result = createCommandBuffers(m_device, m_commandPool,MAX_FRAMES_IN_FLIGHT, m_commandBuffers.data());
+    result = createCommandBuffers(m_device, m_commandPool, MAX_FRAMES_IN_FLIGHT, m_commandBuffers.data());
     if (result != VK_SUCCESS) {
         std::cerr << "Failed to create command buffer:" << result << "\n";
     } else {
         std::cout << "Successfully created command buffer\n";
     }
 
+    // Get Queue
     m_queue = getQueue(m_device, m_physicalDevice, VK_QUEUE_GRAPHICS_BIT);
 
+    // Create Synchronization objects
     m_imageAcquireSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-    createSemaphores(m_device,MAX_FRAMES_IN_FLIGHT,m_imageAcquireSemaphores.data());
+    createSemaphores(m_device, MAX_FRAMES_IN_FLIGHT, m_imageAcquireSemaphores.data());
     m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-    createSemaphores(m_device,MAX_FRAMES_IN_FLIGHT,m_renderFinishedSemaphores.data());
+    createSemaphores(m_device, MAX_FRAMES_IN_FLIGHT, m_renderFinishedSemaphores.data());
     m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-    createFences(m_device,MAX_FRAMES_IN_FLIGHT,m_inFlightFences.data(),VK_FENCE_CREATE_SIGNALED_BIT);
-    // VkBuffer dstBuffer = VK_NULL_HANDLE;
-    // VkDeviceMemory dstBufferMemory;
-    // createBuffer(m_device, dstBuffer, m_physicalDevice, dstBufferMemory, VK_BUFFER_USAGE_TRANSFER_DST_BIT, 1024 * 1024);
-    // m_memory.push_back(dstBufferMemory);
+    createFences(m_device, MAX_FRAMES_IN_FLIGHT, m_inFlightFences.data(), VK_FENCE_CREATE_SIGNALED_BIT);
 
-    // // Begin Recording Commands
-    // VkCommandBufferBeginInfo beginInfo = {
-    //     .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-    //     .pNext = nullptr,
-    //     .flags = 0,
-    //     .pInheritanceInfo = nullptr
-    // };
-    // vkBeginCommandBuffer(m_commandBuffer, &beginInfo);
+    // Swapchain Image Views
+    createSwapchainImageViews();
 
-    // copyBuffers(m_commandBuffer, m_buffer, dstBuffer, 0, 0, 1024 * 1024);
-
-    // // End Recording Commands
-    // vkEndCommandBuffer(m_commandBuffer);
-
-    // VkQueue queue;
-    // uint32_t familyIndex = getQueueFamilyIndex(m_physicalDevice, VK_QUEUE_TRANSFER_BIT);
-    // vkGetDeviceQueue(m_device, familyIndex, 0, &queue);
-    // VkSubmitInfo submitInfo = {
-    //     .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-    //     .pNext = nullptr,
-    //     .waitSemaphoreCount = 0,
-    //     .pWaitSemaphores = nullptr,
-    //     .pWaitDstStageMask = nullptr,
-    //     .commandBufferCount = 1,
-    //     .pCommandBuffers = &m_commandBuffer,
-    //     .signalSemaphoreCount = 0,
-    //     .pSignalSemaphores = nullptr
-    // };
-    // vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-    // vkQueueWaitIdle(queue);
-    // vkDestroyBuffer(m_device, dstBuffer, nullptr);
-
-    uint32_t swapchainImageCount = 0;
-    vkGetSwapchainImagesKHR(m_device, m_swapchain, &swapchainImageCount, nullptr);
-    m_swapchainImages.resize(swapchainImageCount);
-    VkResult res = vkGetSwapchainImagesKHR(m_device, m_swapchain, &swapchainImageCount, m_swapchainImages.data());
-    if (res != VK_SUCCESS) {
-        std::cerr << "Failed to get swapchain images\n";
-    } else {
-        std::cout << "Successfully got swapchain images\n";
-    }
-
-    getSwapchainImageViews(m_device,m_swapchainImages,m_swapchainImageViews);
-
-    res = createPipelineLayout(m_device, m_pipelineLayout);
-    if (res != VK_SUCCESS) {
+    result = createPipelineLayout(m_device, m_pipelineLayout);
+    if (result != VK_SUCCESS) {
         std::cerr << "Failed to create pipeline layout\n";
-        return res;
+        return result;
     } else {
         std::cout << "Successfully created pipeline layout\n";
     }
 
-    res = createGraphicsPipeline(m_physicalDevice, m_device, m_surface, m_pipelineLayout, m_graphicsPipeline, "shaders/slang.spv");
-    if (res != VK_SUCCESS) {
+    // Graphics Pipeline
+    result = createGraphicsPipeline(m_physicalDevice, m_device, m_surface, m_pipelineLayout, m_graphicsPipeline, "shaders/slang.spv");
+    if (result != VK_SUCCESS) {
         std::cerr << "Failed to create graphics pipeline\n";
-        return res;
+        return result;
     } else {
         std::cout << "Successfully created graphics pipeline\n";
     }
@@ -1322,7 +1204,9 @@ void VulkanCore::recordCommandBuffer(uint32_t imageIndex) {
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
+        VK_ACCESS_2_NONE,
+        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
+
     VkClearValue clearColor = { VkClearColorValue{ { 0.f, 0.f, 0.f, 1.f } } };
     VkRenderingAttachmentInfo attachmentInfo = {
         .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -1361,7 +1245,7 @@ void VulkanCore::recordCommandBuffer(uint32_t imageIndex) {
         .maxDepth = 1.f
     };
     VkRect2D scissor{
-        .offset = {0,0},
+        .offset = { 0, 0 },
         .extent = m_swapchainExtent
     };
     vkCmdBindPipeline(m_commandBuffers[frameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
@@ -1383,13 +1267,17 @@ void VulkanCore::recordCommandBuffer(uint32_t imageIndex) {
     vkEndCommandBuffer(m_commandBuffers[frameIndex]);
 }
 void VulkanCore::drawFrame() {
-    
+
     vkWaitForFences(m_device, 1, &m_inFlightFences[frameIndex], VK_TRUE, UINT64_MAX);
-    vkResetFences(m_device, 1, &m_inFlightFences[frameIndex]);
-
+    
     uint32_t imageIndex = 0;
-    vkAcquireNextImageKHR(m_device, m_swapchain, UINT64_MAX, m_imageAcquireSemaphores[frameIndex], VK_NULL_HANDLE, &imageIndex);
-
+    VkResult acquireResult = vkAcquireNextImageKHR(m_device, m_swapchain, UINT64_MAX, m_imageAcquireSemaphores[frameIndex], VK_NULL_HANDLE, &imageIndex);
+    if(acquireResult == VK_ERROR_OUT_OF_DATE_KHR){
+        recreateSwapchain();
+        return;
+    }
+    
+    vkResetFences(m_device, 1, &m_inFlightFences[frameIndex]);
     recordCommandBuffer(imageIndex);
 
     VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -1417,17 +1305,34 @@ void VulkanCore::drawFrame() {
         .pImageIndices = &imageIndex,
         .pResults = nullptr
     };
-    vkQueuePresentKHR(m_queue, &presentInfo);
+    VkResult presentResult = vkQueuePresentKHR(m_queue, &presentInfo);
+    if(presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR){
+        recreateSwapchain();
+    }
     frameIndex = (frameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
-    
+}
+void VulkanCore::cleanupSwapchain(){
+    for(VkImageView& imageView : m_swapchainImageViews){
+        vkDestroyImageView(m_device, imageView, nullptr);
+    }
+    m_swapchainImageViews.clear();
+    vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
+    m_swapchain = nullptr;
+
+}
+void VulkanCore::recreateSwapchain(){
+    vkDeviceWaitIdle(m_device);
+    cleanupSwapchain();
+    createSwapchain();
+    createSwapchainImageViews();
 }
 void VulkanCore::cleanup() {
-    
+
     vkDeviceWaitIdle(m_device);
-    for(uint32_t i=0;i<MAX_FRAMES_IN_FLIGHT;i++){
-        vkDestroyFence(m_device, m_inFlightFences[frameIndex], nullptr);
-        vkDestroySemaphore(m_device, m_renderFinishedSemaphores[frameIndex], nullptr);
-        vkDestroySemaphore(m_device, m_imageAcquireSemaphores[frameIndex], nullptr);
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        vkDestroyFence(m_device, m_inFlightFences[i], nullptr);
+        vkDestroySemaphore(m_device, m_renderFinishedSemaphores[i], nullptr);
+        vkDestroySemaphore(m_device, m_imageAcquireSemaphores[i], nullptr);
     }
     std::cout << "Destroyed synchronization objects\n";
 
@@ -1437,28 +1342,18 @@ void VulkanCore::cleanup() {
     vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
     std::cout << "Destroyed pipeline layout\n";
 
-    for(uint32_t i=0;i<m_commandBuffers.size();i++){
-        vkFreeCommandBuffers(m_device, m_commandPool, 1, &m_commandBuffers[frameIndex]);
+    for (uint32_t i = 0; i < m_commandBuffers.size(); i++) {
+        vkFreeCommandBuffers(m_device, m_commandPool, 1, &m_commandBuffers[i]);
     }
     std::cout << "Destroyed Command Buffers\n";
 
     vkDestroyCommandPool(m_device, m_commandPool, nullptr);
     std::cout << "Destroyed Command Pool\n";
 
-    // for (VkImageView &imageView : m_imageViews) {
-    //     vkDestroyImageView(m_device, imageView, nullptr);
-    // }
-    // std::cout << "Destroyed Image Views\n";
     for (VkImageView &imageView : m_swapchainImageViews) {
         vkDestroyImageView(m_device, imageView, nullptr);
     }
     std::cout << "Destroyed Swapchain Image Views\n";
-
-    // for (VkImage &image : m_images) {
-    //     vkDestroyImage(m_device, image, nullptr);
-    // }
-    // m_images.clear();
-    // std::cout << "Destroyed Images\n";
 
     vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
     std::cout << "Destroyed Swapchain\n";
@@ -1468,13 +1363,6 @@ void VulkanCore::cleanup() {
 
     delete window;
     std::cout << "Destroyed Window\n";
-
-    // // Destroy buffer view
-    // vkDestroyBufferView(m_device, m_bufferView, nullptr);
-    // std::cout << "Destoyed Buffer View\n";
-
-    // vkDestroyBuffer(m_device, m_buffer, nullptr);
-    // std::cout << "Destroyed Buffer\n";
 
     for (VkDeviceMemory &memory : m_memory) {
         vkFreeMemory(m_device, memory, nullptr);

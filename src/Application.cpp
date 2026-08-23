@@ -17,9 +17,9 @@ void Application::handleInput() {
 void Application::run() {
     std::cout << "\nApplication::run()\n\n";
     while (vkCore.window->isOpen()) {
+        vkCore.drawFrame();
         handleInput();
         vkCore.window->processMessages();
-        vkCore.drawFrame();
     }
 }
 

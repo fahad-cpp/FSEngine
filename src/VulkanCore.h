@@ -20,16 +20,12 @@ class VulkanCore {
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;
     VkSwapchainKHR m_swapchain = VK_NULL_HANDLE;
     VkExtent2D m_swapchainExtent = {};
-    // VkBuffer m_buffer = VK_NULL_HANDLE;
-    // VkBufferView m_bufferView = VK_NULL_HANDLE;
     VkCommandPool m_commandPool = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> m_commandBuffers = {};
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
     std::vector<VkImage> m_swapchainImages = {};
     std::vector<VkImageView> m_swapchainImageViews = {};
-    // std::vector<VkImage> m_images = {};
-    // std::vector<VkImageView> m_imageViews = {};
     std::vector<VkDeviceMemory> m_memory = {};
     // Synchronization
     std::vector<VkSemaphore> m_imageAcquireSemaphores = {};
@@ -73,7 +69,10 @@ class VulkanCore {
     void drawFrame();
 
   private:
-    VkResult createSwapchain(VkSwapchainKHR &swapchain, FS::Window &window);
+    void createSwapchain();
+    void createSwapchainImageViews();
+    void cleanupSwapchain();
+    void recreateSwapchain();
     void recordCommandBuffer(uint32_t imageIndex);
     int init();
     void cleanup();
