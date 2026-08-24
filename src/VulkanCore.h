@@ -9,11 +9,27 @@
 #endif
 
 #include <FSWindow.h>
+#include <string>
 #include <vector>
 #include <vulkan/vulkan.h>
+
 #define MAX_FRAMES_IN_FLIGHT 2
+struct Vec2 {
+    float x;
+    float y;
+};
+struct Vec3 {
+    float x;
+    float y;
+    float z;
+};
+struct Vertex {
+    Vec2 pos;
+    Vec3 color;
+};
 class VulkanCore {
   public:
+    // Vulkan State
     VkInstance m_instance = VK_NULL_HANDLE;
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
     VkDevice m_device = VK_NULL_HANDLE;
@@ -29,10 +45,20 @@ class VulkanCore {
     std::vector<VkImage> m_swapchainImages = {};
     std::vector<VkImageView> m_swapchainImageViews = {};
     std::vector<VkDeviceMemory> m_memory = {};
+
     // Synchronization
     std::vector<VkSemaphore> m_imageAcquireSemaphores = {};
     std::vector<VkSemaphore> m_renderFinishedSemaphores = {};
     std::vector<VkFence> m_inFlightFences = {};
+
+    // Resources
+    VkBuffer vertexBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
+    const std::vector<Vertex> vertices = {
+        Vertex{ {  0.0f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
+        Vertex{ {  0.5f,  0.5f }, { 0.0f, 1.0f, 0.0f } },
+        Vertex{ { -0.5f,  0.5f }, { 0.0f, 0.0f, 1.0f } },
+    };
 
     const std::vector<const char *> layers = {
         "VK_LAYER_KHRONOS_validation"
@@ -75,6 +101,7 @@ class VulkanCore {
     void createSwapchainImageViews();
     void cleanupSwapchain();
     void recreateSwapchain();
+    void createVertexBuffer();
     void createGraphicsPipeline(const std::string &shaderPath);
     void recordCommandBuffer(uint32_t imageIndex);
     int init();

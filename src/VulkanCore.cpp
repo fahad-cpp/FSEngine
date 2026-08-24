@@ -1,3 +1,6 @@
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <vulkan/vulkan_core.h>
 #define NOMINMAX
 #include "VulkanCore.h"
@@ -334,7 +337,7 @@ void VulkanCore::createSwapchain() {
     std::vector<VkSurfaceFormatKHR> availableFormats(formatCount);
     vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, m_surface, &formatCount, availableFormats.data());
     for (uint32_t i = 0; i < availableFormats.size(); ++i) {
-        if (availableFormats[i].format == VK_FORMAT_R8G8B8A8_SRGB || availableFormats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+        if (availableFormats[i].format == VK_FORMAT_R8G8B8A8_SRGB || availableFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB) {
             m_surfaceFormat = availableFormats[i];
             break;
         } else if (i == (availableFormats.size() - 1)) {
@@ -835,7 +838,29 @@ VkResult createPipelineLayout(VkDevice &device, VkPipelineLayout &pipelineLayout
 
     return vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout);
 }
-
+VkVertexInputBindingDescription getBindingDescription(){
+    return {
+        .binding = 0,
+        .stride = sizeof(Vertex),
+        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+    };
+}
+std::array<VkVertexInputAttributeDescription,2> getAttributeDescription(){
+    return {
+        VkVertexInputAttributeDescription{
+            .location = 0,
+            .binding = 0,
+            .format = VK_FORMAT_R32G32_SFLOAT,
+            .offset = offsetof(Vertex, pos)
+        },
+        VkVertexInputAttributeDescription{
+            .location = 1,
+            .binding = 0,
+            .format = VK_FORMAT_R32G32B32_SFLOAT,
+            .offset = offsetof(Vertex, color)
+        }
+    };
+}
 void VulkanCore::createGraphicsPipeline(const std::string &shaderPath) {
     VkSurfaceCapabilitiesKHR surfaceCaps;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physicalDevice, m_surface, &surfaceCaps);
@@ -862,14 +887,16 @@ void VulkanCore::createGraphicsPipeline(const std::string &shaderPath) {
 
     VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
+    VkVertexInputBindingDescription bindingDescription = getBindingDescription();
+    std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = getAttributeDescription();
     VkPipelineVertexInputStateCreateInfo vertexInputState = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         .pNext = nullptr,
         .flags = 0,
-        .vertexBindingDescriptionCount = 0,
-        .pVertexBindingDescriptions = nullptr,
-        .vertexAttributeDescriptionCount = 0,
-        .pVertexAttributeDescriptions = nullptr
+        .vertexBindingDescriptionCount = 1,
+        .pVertexBindingDescriptions = &bindingDescription,
+        .vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
+        .pVertexAttributeDescriptions = attributeDescriptions.data()
     };
 
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = {
@@ -1051,6 +1078,44 @@ VkResult createFences(VkDevice &device, uint32_t count, VkFence *fences, VkFence
     }
     return res;
 }
+void VulkanCore::createVertexBuffer(){
+    std::size_t bufferSize = sizeof(vertices[0]) * vertices.size();
+    VkBufferCreateInfo createInfo = {
+        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .size = bufferSize,
+        .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .queueFamilyIndexCount = 0,
+        .pQueueFamilyIndices = nullptr
+    };
+    VkResult result = vkCreateBuffer(m_device, &createInfo, nullptr, &vertexBuffer);
+    if(result != VK_SUCCESS){
+        std::cerr << "Failed to create vertex buffer\n";
+        return;
+    }else{
+        std::cout << "Successfully created vertex buffer\n";
+    }
+
+    VkMemoryRequirements memRequirements;
+    vkGetBufferMemoryRequirements(m_device, vertexBuffer, &memRequirements);
+
+    uint32_t memoryIndex = getMemoryIndex(m_physicalDevice, memRequirements, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    VkMemoryAllocateInfo memoryAllocateInfo = {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .pNext = nullptr,
+        .allocationSize = memRequirements.size,
+        .memoryTypeIndex = memoryIndex
+    };
+    vkAllocateMemory(m_device, &memoryAllocateInfo, nullptr, &vertexBufferMemory);
+    vkBindBufferMemory(m_device, vertexBuffer, vertexBufferMemory, 0);
+
+    void* data = nullptr;
+    vkMapMemory(m_device, vertexBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data,vertices.data(),bufferSize);
+    vkUnmapMemory(m_device, vertexBufferMemory);
+}
 int VulkanCore::init() {
     // Create Instance
     VkResult result = createInstance(m_instance, layers, instanceExtensions);
@@ -1139,6 +1204,7 @@ int VulkanCore::init() {
         std::cout << "Successfully created pipeline layout\n";
     }
 
+    createVertexBuffer();
     // Graphics Pipeline
     createGraphicsPipeline("shaders/slang.spv");
 
@@ -1240,9 +1306,11 @@ void VulkanCore::recordCommandBuffer(uint32_t imageIndex) {
         .extent = m_swapchainExtent
     };
     vkCmdBindPipeline(m_commandBuffers[frameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
+    VkDeviceSize vboffset = 0;
+    vkCmdBindVertexBuffers(m_commandBuffers[frameIndex],0,1,&vertexBuffer,&vboffset);
     vkCmdSetViewport(m_commandBuffers[frameIndex], 0, 1, &viewport);
     vkCmdSetScissor(m_commandBuffers[frameIndex], 0, 1, &scissor);
-    vkCmdDraw(m_commandBuffers[frameIndex], 3, 1, 0, 0);
+    vkCmdDraw(m_commandBuffers[frameIndex], static_cast<uint32_t>(vertices.size()), 1, 0, 0);
     vkCmdEndRendering(m_commandBuffers[frameIndex]);
 
     transitionImageLayout(
@@ -1327,6 +1395,10 @@ void VulkanCore::cleanup() {
         vkDestroySemaphore(m_device, m_renderFinishedSemaphores[i], nullptr);
     }
     std::cout << "Destroyed synchronization objects\n";
+
+    vkFreeMemory(m_device,vertexBufferMemory, nullptr);
+    vkDestroyBuffer(m_device, vertexBuffer, nullptr);
+    std::cout << "Destroyed vertex buffer\n";
 
     vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
     std::cout << "Destroyed graphics pipeline\n";
