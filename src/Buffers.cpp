@@ -25,7 +25,7 @@ VertexBuffer::VertexBuffer(VulkanDevice& device,VulkanPhysicalDevice& physicalDe
     VkMemoryAllocateInfo memoryAllocateInfo = {
         .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
         .pNext = nullptr,
-        .allocationSize = bufferSize,
+        .allocationSize = memRequirements.size,
         .memoryTypeIndex = memoryIndex
     };
     vkAllocateMemory(device.get(), &memoryAllocateInfo, nullptr, &m_memory);
@@ -92,7 +92,7 @@ IndexBuffer::IndexBuffer(VulkanDevice& device,VulkanPhysicalDevice& physicalDevi
     VkMemoryAllocateInfo memoryAllocateInfo = {
         .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
         .pNext = nullptr,
-        .allocationSize = bufferSize,
+        .allocationSize = memRequirements.size,
         .memoryTypeIndex = memoryIndex
     };
     vkAllocateMemory(device.get(), &memoryAllocateInfo, nullptr, &m_memory);

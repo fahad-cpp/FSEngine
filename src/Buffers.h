@@ -4,6 +4,7 @@
 #include "Vector.h"
 #include <cstdint>
 #include <vector>
+#include <array>
 struct Vertex {
     Vec2 pos;
     Vec3 color;

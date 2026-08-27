@@ -1,5 +1,6 @@
 #include "Logging.h"
 #include "Swapchain.h"
+#include <algorithm>
 #include <climits>
 
 VulkanSwapchain::VulkanSwapchain(VulkanDevice &device, VulkanSurface &surface, FS::Window &window) {
