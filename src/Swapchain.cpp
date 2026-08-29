@@ -14,6 +14,7 @@ void VulkanSwapchain::create(){
     for (uint32_t i = 0; i < surfaceFormats.size(); ++i) {
         if (surfaceFormats[i].format == VK_FORMAT_R8G8B8A8_SRGB) {
             m_surfaceFormat = surfaceFormats[i];
+            break;
         } else if (i == (surfaceFormats.size() - 1)) {
             m_surfaceFormat = surfaceFormats[0];
         }
@@ -23,6 +24,7 @@ void VulkanSwapchain::create(){
     for (uint32_t i = 0; i < presentModes.size(); ++i) {
         if (presentModes[i] == VK_PRESENT_MODE_FIFO_KHR) {
             swapchainPresentMode = presentModes[i];
+            break;
         } else if (i == (presentModes.size() - 1)) {
             swapchainPresentMode = presentModes[0];
         }

@@ -7,6 +7,7 @@ Renderer::Renderer(VulkanDevice &device, VulkanPhysicalDevice &physicalDevice, V
     m_queue = device.getQueue(physicalDevice.getQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT));
 }
 Renderer::~Renderer() {
+    vkQueueWaitIdle(m_queue);
 }
 void transitionImageLayout(VkImage image,VkCommandBuffer commandBuffer,VkPipelineStageFlags2 srcStageMask,VkPipelineStageFlags2 dstStageMask,VkAccessFlags2 srcAccessMask,VkAccessFlags2 dstAccessMask,VkImageLayout oldLayout,VkImageLayout newLayout){
     VkImageMemoryBarrier2 imageMemoryBarrier = {
