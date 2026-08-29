@@ -12,8 +12,8 @@ class VulkanSwapchain {
     std::vector<VkImage> m_images = {};
     std::vector<VkImageView> m_imageViews = {};
     
-    VulkanSurface* m_pSurface = nullptr;
-    FS::Window* m_pWindow = nullptr;
+    VulkanSurface& m_surface;
+    FS::Window& m_window;
     void create();
   public:
     VulkanSwapchain(VulkanDevice &device, VulkanSurface &surface, FS::Window &window);

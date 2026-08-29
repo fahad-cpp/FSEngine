@@ -3,18 +3,16 @@
 #include <algorithm>
 #include <climits>
 
-VulkanSwapchain::VulkanSwapchain(VulkanDevice &device, VulkanSurface &surface, FS::Window &window) {
+VulkanSwapchain::VulkanSwapchain(VulkanDevice &device, VulkanSurface &surface, FS::Window &window) : m_surface(surface),m_window(window){
     m_device = device.get();
-    m_pWindow = &window;
-    m_pSurface = &surface;
     this->create();
 }
 void VulkanSwapchain::create(){
-    VkSurfaceCapabilitiesKHR surfaceCaps = m_pSurface->getCapabilities();
-    std::vector<VkSurfaceFormatKHR> surfaceFormats = m_pSurface->getFormats();
-    std::vector<VkPresentModeKHR> presentModes = m_pSurface->getPresentModes();
+    VkSurfaceCapabilitiesKHR surfaceCaps = m_surface.getCapabilities();
+    std::vector<VkSurfaceFormatKHR> surfaceFormats = m_surface.getFormats();
+    std::vector<VkPresentModeKHR> presentModes = m_surface.getPresentModes();
     for (uint32_t i = 0; i < surfaceFormats.size(); ++i) {
-        if (surfaceFormats[i].format == VK_FORMAT_R8G8B8A8_SRGB || surfaceFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB) {
+        if (surfaceFormats[i].format == VK_FORMAT_R8G8B8A8_SRGB ) {
             m_surfaceFormat = surfaceFormats[i];
         } else if (i == (surfaceFormats.size() - 1)) {
             m_surfaceFormat = surfaceFormats[0];
@@ -30,7 +28,7 @@ void VulkanSwapchain::create(){
         }
     }
 
-    FS::RenderState &renderState = m_pWindow->getRenderState();
+    FS::RenderState &renderState = m_window.getRenderState();
     const uint32_t windowWidth = std::clamp<uint32_t>(renderState.width, surfaceCaps.minImageExtent.width, surfaceCaps.maxImageExtent.width);
     const uint32_t windowHeight = std::clamp<uint32_t>(renderState.height, surfaceCaps.minImageExtent.height, surfaceCaps.maxImageExtent.height);
     m_swapchainExtent = (surfaceCaps.currentExtent.width != UINT_MAX) ? surfaceCaps.currentExtent : VkExtent2D{ windowWidth, windowHeight };
@@ -38,7 +36,7 @@ void VulkanSwapchain::create(){
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
         .pNext = nullptr,
         .flags = 0,
-        .surface = m_pSurface->get(),
+        .surface = m_surface.get(),
         .minImageCount = surfaceCaps.minImageCount,
         .imageFormat = m_surfaceFormat.format,
         .imageColorSpace = m_surfaceFormat.colorSpace,

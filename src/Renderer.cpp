@@ -1,8 +1,6 @@
 #include "Renderer.h"
 
-Renderer::Renderer(VulkanDevice &device, VulkanPhysicalDevice &physicalDevice, VulkanSwapchain &swapchain, BackBufferState &backBufferState, VulkanPipeline &pipeline) {
-    m_pDevice = &device;
-    m_pSwapchain = &swapchain;
+Renderer::Renderer(VulkanDevice &device, VulkanPhysicalDevice &physicalDevice, VulkanSwapchain &swapchain, BackBufferState &backBufferState, VulkanPipeline &pipeline) : m_swapchain(swapchain),m_device(device) {
     m_backBufferState = backBufferState;
     m_pipeline = pipeline.get();
     m_frameIndex = 0;
@@ -46,9 +44,9 @@ void transitionImageLayout(VkImage image,VkCommandBuffer commandBuffer,VkPipelin
 }
 void Renderer::renderCommands(uint32_t imageIndex) {
     VkCommandBuffer commandBuffer = m_backBufferState.commandBuffers[m_frameIndex];
-    VkExtent2D swapchainExtent = m_pSwapchain->getExtent();
-    VkBuffer vertexBuffer = m_pVertexBuffer->get();
-    VkImage image = m_pSwapchain->getImages()[imageIndex];
+    VkExtent2D swapchainExtent = m_swapchain.getExtent();
+    VkBuffer vertexBuffer = m_vertexBuffer;
+    VkImage image = m_swapchain.getImages()[imageIndex];
     VkCommandBufferBeginInfo beginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         .pNext = nullptr,
@@ -71,7 +69,7 @@ void Renderer::renderCommands(uint32_t imageIndex) {
     VkRenderingAttachmentInfo colorAttachment = {
         .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
         .pNext = nullptr,
-        .imageView = m_pSwapchain->getImageViews()[imageIndex],
+        .imageView = m_swapchain.getImageViews()[imageIndex],
         .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         .resolveMode = VK_RESOLVE_MODE_NONE,
         .resolveImageView = VK_NULL_HANDLE,
@@ -112,7 +110,7 @@ void Renderer::renderCommands(uint32_t imageIndex) {
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
     VkDeviceSize offset = 0;
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
-    vkCmdDraw(commandBuffer, m_pVertexBuffer->getVertexCount(), 1, 0, 0);
+    vkCmdDraw(commandBuffer, m_verticesCount, 1, 0, 0);
 
     // Rendering END
     vkCmdEndRendering(commandBuffer);
@@ -131,16 +129,16 @@ void Renderer::renderCommands(uint32_t imageIndex) {
     vkEndCommandBuffer(commandBuffer);
 }
 void Renderer::drawFrame() {
-    VkSwapchainKHR swapchain = m_pSwapchain->get();
+    VkSwapchainKHR swapchain = m_swapchain.get();
     uint32_t imageIndex = 0;
-    vkWaitForFences(m_pDevice->get(), 1, &m_backBufferState.frameFences[m_frameIndex], VK_TRUE, UINT64_MAX);
+    vkWaitForFences(m_device.get(), 1, &m_backBufferState.frameFences[m_frameIndex], VK_TRUE, UINT64_MAX);
     
-    VkResult acquireResult = vkAcquireNextImageKHR(m_pDevice->get(), m_pSwapchain->get(), UINT64_MAX, m_backBufferState.acquireSemaphores[m_frameIndex], VK_NULL_HANDLE, &imageIndex);
+    VkResult acquireResult = vkAcquireNextImageKHR(m_device.get(), m_swapchain.get(), UINT64_MAX, m_backBufferState.acquireSemaphores[m_frameIndex], VK_NULL_HANDLE, &imageIndex);
     if(acquireResult == VK_ERROR_OUT_OF_DATE_KHR){
-        m_pSwapchain->recreate();
+        m_swapchain.recreate();
         return;
     }
-    vkResetFences(m_pDevice->get(), 1, &m_backBufferState.frameFences[m_frameIndex]);
+    vkResetFences(m_device.get(), 1, &m_backBufferState.frameFences[m_frameIndex]);
     
     renderCommands(imageIndex);
 
@@ -169,14 +167,15 @@ void Renderer::drawFrame() {
     };
     VkResult presentResult = vkQueuePresentKHR(m_queue, &presentInfo);
     if(presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR){
-        m_pSwapchain->recreate();
+        m_swapchain.recreate();
     }
     m_frameIndex = (m_frameIndex + 1) % m_framesInFlight;
 }
 
 void Renderer::setVertices(VertexBuffer &vertexBuffer) {
-    m_pVertexBuffer = &vertexBuffer;
+    m_vertexBuffer = vertexBuffer.get();
+    m_verticesCount = vertexBuffer.getVertexCount();
 }
 void Renderer::setIndices(IndexBuffer &indexBuffer) {
-    m_pIndexBuffer = &indexBuffer;
+    m_indexBuffer = indexBuffer.get();
 }

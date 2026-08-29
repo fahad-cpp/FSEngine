@@ -2,22 +2,27 @@
 #define VULKANBUFFERS_H
 #include "Device.h"
 #include "Vector.h"
+#include <array>
 #include <cstdint>
 #include <vector>
-#include <array>
+
 struct Vertex {
     Vec2 pos;
     Vec3 color;
 };
 class VertexBuffer {
   private:
-    VkBuffer m_vertexBuffer;
-    VkDeviceMemory m_memory;
-    VkDevice m_device;
-    std::vector<Vertex> m_vertices;
+    VkBuffer m_stagingBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory m_stagingBufferMemory = VK_NULL_HANDLE;
+    VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory m_memory = VK_NULL_HANDLE;
+    VkDevice m_device = VK_NULL_HANDLE;
+    std::vector<Vertex> m_vertices = {};
+
+    std::pair<VkBuffer, VkDeviceMemory> createBuffer(VkDeviceSize bufferSize, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryProperties, VulkanPhysicalDevice &physicalDevice);
 
   public:
-    VertexBuffer(VulkanDevice &device, VulkanPhysicalDevice &physicalDevice, const std::vector<Vertex> &vertices);
+    VertexBuffer(VulkanDevice &device, VkCommandBuffer &commandBuffer, VulkanPhysicalDevice &physicalDevice, const std::vector<Vertex> &vertices);
     ~VertexBuffer();
     VkVertexInputBindingDescription getBindingDescription();
     std::array<VkVertexInputAttributeDescription, 2> getAttributeDescription();

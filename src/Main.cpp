@@ -32,7 +32,8 @@ int main() {
     VulkanSwapchain swapchain(device, surface, window);
     const uint32_t graphicsQueueFamilyIndex = physicalDevice.getQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
     VulkanCommandPool commandPool(device, graphicsQueueFamilyIndex, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-    VertexBuffer vertexBuffer(device, physicalDevice, vertices);
+    VkCommandBuffer commandBuffer = commandPool.createCommandBuffers(1)[0];
+    VertexBuffer vertexBuffer(device, commandBuffer, physicalDevice, vertices);
     IndexBuffer indexBuffer(device, physicalDevice, indices);
     VulkanPipeline graphicsPipeline(device, swapchain, "shaders/slang.spv", vertexBuffer, indexBuffer);
     const uint32_t framesInFlight = 2;
