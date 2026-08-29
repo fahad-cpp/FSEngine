@@ -20,7 +20,7 @@ class Renderer {
     VkQueue m_queue = VK_NULL_HANDLE;
     uint32_t m_verticesCount = 0;
     VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
-    [[maybe_unused]] uint32_t m_indicesCount = 0;
+    uint32_t m_indicesCount = 0;
     VkBuffer m_indexBuffer = VK_NULL_HANDLE;
 
     VulkanSwapchain &m_swapchain;

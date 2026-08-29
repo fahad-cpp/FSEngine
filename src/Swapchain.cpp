@@ -12,7 +12,7 @@ void VulkanSwapchain::create(){
     std::vector<VkSurfaceFormatKHR> surfaceFormats = m_surface.getFormats();
     std::vector<VkPresentModeKHR> presentModes = m_surface.getPresentModes();
     for (uint32_t i = 0; i < surfaceFormats.size(); ++i) {
-        if (surfaceFormats[i].format == VK_FORMAT_R8G8B8A8_SRGB ) {
+        if (surfaceFormats[i].format == VK_FORMAT_R8G8B8A8_SRGB) {
             m_surfaceFormat = surfaceFormats[i];
         } else if (i == (surfaceFormats.size() - 1)) {
             m_surfaceFormat = surfaceFormats[0];
@@ -23,11 +23,10 @@ void VulkanSwapchain::create(){
     for (uint32_t i = 0; i < presentModes.size(); ++i) {
         if (presentModes[i] == VK_PRESENT_MODE_FIFO_KHR) {
             swapchainPresentMode = presentModes[i];
-        } else if (i == (surfaceFormats.size() - 1)) {
+        } else if (i == (presentModes.size() - 1)) {
             swapchainPresentMode = presentModes[0];
         }
     }
-
     FS::RenderState &renderState = m_window.getRenderState();
     const uint32_t windowWidth = std::clamp<uint32_t>(renderState.width, surfaceCaps.minImageExtent.width, surfaceCaps.maxImageExtent.width);
     const uint32_t windowHeight = std::clamp<uint32_t>(renderState.height, surfaceCaps.minImageExtent.height, surfaceCaps.maxImageExtent.height);

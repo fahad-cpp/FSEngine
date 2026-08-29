@@ -15,11 +15,9 @@ class VertexBuffer {
     VkBuffer m_stagingBuffer = VK_NULL_HANDLE;
     VkDeviceMemory m_stagingBufferMemory = VK_NULL_HANDLE;
     VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory m_memory = VK_NULL_HANDLE;
+    VkDeviceMemory m_vertexBufferMemory = VK_NULL_HANDLE;
     VkDevice m_device = VK_NULL_HANDLE;
     std::vector<Vertex> m_vertices = {};
-
-    std::pair<VkBuffer, VkDeviceMemory> createBuffer(VkDeviceSize bufferSize, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryProperties, VulkanPhysicalDevice &physicalDevice);
 
   public:
     VertexBuffer(VulkanDevice &device, VkCommandBuffer &commandBuffer, VulkanPhysicalDevice &physicalDevice, const std::vector<Vertex> &vertices);
@@ -32,14 +30,17 @@ class VertexBuffer {
 
 class IndexBuffer {
   private:
-    VkBuffer m_indexBuffer;
-    VkDeviceMemory m_memory;
-    VkDevice m_device;
-    std::vector<uint32_t> m_indices;
+    VkBuffer m_stagingBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory m_stagingBufferMemory = VK_NULL_HANDLE;
+    VkBuffer m_indexBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory m_indexBufferMemory = VK_NULL_HANDLE;
+    VkDevice m_device = VK_NULL_HANDLE;
+    std::vector<uint32_t> m_indices = {};
 
   public:
-    IndexBuffer(VulkanDevice &device, VulkanPhysicalDevice &physicalDevice, const std::vector<uint32_t> &indices);
+    IndexBuffer(VulkanDevice &device, VkCommandBuffer commandBuffer, VulkanPhysicalDevice &physicalDevice, const std::vector<uint32_t> &indices);
     ~IndexBuffer();
+    inline uint32_t getIndexCount(){ return static_cast<uint32_t>(m_indices.size());}
     inline VkBuffer get() { return m_indexBuffer; }
 };
 #endif

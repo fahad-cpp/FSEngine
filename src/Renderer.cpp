@@ -110,7 +110,8 @@ void Renderer::renderCommands(uint32_t imageIndex) {
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
     VkDeviceSize offset = 0;
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
-    vkCmdDraw(commandBuffer, m_verticesCount, 1, 0, 0);
+    vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdDrawIndexed(commandBuffer, m_indicesCount, 1, 0, 0, 0);
 
     // Rendering END
     vkCmdEndRendering(commandBuffer);
@@ -173,9 +174,10 @@ void Renderer::drawFrame() {
 }
 
 void Renderer::setVertices(VertexBuffer &vertexBuffer) {
-    m_vertexBuffer = vertexBuffer.get();
     m_verticesCount = vertexBuffer.getVertexCount();
+    m_vertexBuffer = vertexBuffer.get();
 }
 void Renderer::setIndices(IndexBuffer &indexBuffer) {
+    m_indicesCount = indexBuffer.getIndexCount();
     m_indexBuffer = indexBuffer.get();
 }
