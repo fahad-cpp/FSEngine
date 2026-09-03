@@ -1,12 +1,18 @@
 #ifndef VECTOR_H
 #define VECTOR_H
-struct Vec2{
+struct Vector2{
     float x;
     float y;
 };
-struct Vec3{
+struct Vector3{
     float x;
     float y;
     float z;
+};
+struct Vector4{
+    float x;
+    float y;
+    float z;
+    float w;
 };
 #endif
