@@ -231,35 +231,6 @@ uint32_t getMemoryIndex(VkPhysicalDevice &physicalDevice, VkMemoryRequirements r
     }
     return selectedType;
 }
-Buffer createBuffer(DeviceContext &deviceContext, VkBufferUsageFlags usage, VkDeviceSize size, VkMemoryPropertyFlags memoryProperty) {
-    Buffer buffer = {};
-    VkBufferCreateInfo createInfo = {
-        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .size = size,
-        .usage = usage,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        .queueFamilyIndexCount = 0,
-        .pQueueFamilyIndices = nullptr
-    };
-    vkCreateBuffer(deviceContext.device, &createInfo, nullptr, &buffer.buffer);
-
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(deviceContext.device, buffer.buffer, &memRequirements);
-
-    uint32_t memoryIndex = getMemoryIndex(deviceContext.physicalDevice, memRequirements, memoryProperty);
-    VkMemoryAllocateInfo memoryAllocateInfo = {
-        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-        .pNext = nullptr,
-        .allocationSize = memRequirements.size,
-        .memoryTypeIndex = memoryIndex
-    };
-    vkAllocateMemory(deviceContext.device, &memoryAllocateInfo, nullptr, &buffer.memory);
-    vkBindBufferMemory(deviceContext.device, buffer.buffer, buffer.memory, 0);
-
-    return buffer;
-}
 void copyBuffer(DeviceContext &deviceContext, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
     VkCommandBufferAllocateInfo allocateInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -301,36 +272,6 @@ void copyBuffer(DeviceContext &deviceContext, VkBuffer srcBuffer, VkBuffer dstBu
     vkQueueSubmit(deviceContext.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
     vkQueueWaitIdle(deviceContext.graphicsQueue);
     vkFreeCommandBuffers(deviceContext.device, deviceContext.commandPool, 1, &commandBuffer);
-}
-void createVertexBuffer(DeviceContext &deviceContext, const Vertex *vertices, uint32_t vertexCount, Buffer &vertexBuffer) {
-    std::size_t bufferSize = sizeof(vertices[0]) * vertexCount;
-    Buffer stagingBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, bufferSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-
-    void *data = nullptr;
-    vkMapMemory(deviceContext.device, stagingBuffer.memory, 0, bufferSize, 0, &data);
-    memcpy(data, vertices, bufferSize);
-    vkUnmapMemory(deviceContext.device, stagingBuffer.memory);
-
-    vertexBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, bufferSize, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    copyBuffer(deviceContext, stagingBuffer.buffer, vertexBuffer.buffer, bufferSize);
-
-    vkFreeMemory(deviceContext.device, stagingBuffer.memory, nullptr);
-    vkDestroyBuffer(deviceContext.device, stagingBuffer.buffer, nullptr);
-}
-void createIndexBuffer(DeviceContext &deviceContext, const uint32_t *indices, uint32_t indexCount, Buffer &indexBuffer) {
-    std::size_t bufferSize = sizeof(indices[0]) * indexCount;
-    Buffer stagingBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, bufferSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-
-    void *data = nullptr;
-    vkMapMemory(deviceContext.device, stagingBuffer.memory, 0, bufferSize, 0, &data);
-    memcpy(data, indices, bufferSize);
-    vkUnmapMemory(deviceContext.device, stagingBuffer.memory);
-
-    indexBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, bufferSize, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    copyBuffer(deviceContext, stagingBuffer.buffer, indexBuffer.buffer, bufferSize);
-
-    vkFreeMemory(deviceContext.device, stagingBuffer.memory, nullptr);
-    vkDestroyBuffer(deviceContext.device, stagingBuffer.buffer, nullptr);
 }
 void initDeviceContext(DeviceContext &deviceContext, FS::Window &window) {
     createInstance(deviceContext);

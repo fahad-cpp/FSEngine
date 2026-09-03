@@ -1,17 +1,8 @@
-#include "Vulkan.h" // IWYU pragma: keep
 #include "FSWindow.h"
-#include "Vector.h"
+#include "Vulkan.h" // IWYU pragma: keep
+
 
 #define SELECTED_DEVICE 0
-
-struct Buffer {
-    VkBuffer buffer;
-    VkDeviceMemory memory;
-};
-struct Vertex {
-    Vector2 pos;
-    Vector3 color;
-};
 struct DeviceContext {
     VkInstance instance;
     VkPhysicalDevice physicalDevice;
@@ -34,9 +25,6 @@ VkResult createSemaphore(VkDevice &device, VkSemaphore *semaphore);
 VkResult createFences(VkDevice &device, uint32_t count, VkFence *fences, VkFenceCreateFlags flags = 0);
 VkResult createFence(VkDevice &device, VkFence *fence, VkFenceCreateFlags flags = 0);
 uint32_t getMemoryIndex(VkPhysicalDevice &physicalDevice, VkMemoryRequirements requirements, VkMemoryPropertyFlags requiredFlags);
-Buffer createBuffer(DeviceContext &deviceContext, VkBufferUsageFlags usage, VkDeviceSize size, VkMemoryPropertyFlags memoryProperty);
 void copyBuffer(DeviceContext &deviceContext, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
-void createVertexBuffer(DeviceContext &deviceContext, const Vertex *vertices, uint32_t vertexCount, Buffer &vertexBuffer);
-void createIndexBuffer(DeviceContext &deviceContext, const uint32_t *indices, uint32_t indexCount, Buffer &indexBuffer);
 void initDeviceContext(DeviceContext &deviceContext, FS::Window &window);
 void cleanupDeviceContext(DeviceContext &deviceContext);
