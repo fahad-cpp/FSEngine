@@ -1,6 +1,6 @@
 #include "Renderer.h"
 #include "Utilities.h"
-
+#include <chrono>
 VkShaderModule createShaderModule(VkDevice &device, const std::vector<char> &code) {
     VkShaderModuleCreateInfo shaderModuleCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
@@ -13,13 +13,83 @@ VkShaderModule createShaderModule(VkDevice &device, const std::vector<char> &cod
     vkCreateShaderModule(device, &shaderModuleCreateInfo, nullptr, &shaderModule);
     return shaderModule;
 }
-VkResult createPipelineLayout(DeviceContext &deviceContext, VulkanPipeline &pipeline) {
+VkResult createDescriptorPool(DeviceContext &deviceContext, GraphicsPipeline &pipeline) {
+    VkDescriptorPoolSize poolSize = {
+        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .descriptorCount = MAX_FRAMES_IN_FLIGHT
+    };
+    VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+        .maxSets = MAX_FRAMES_IN_FLIGHT,
+        .poolSizeCount = 1,
+        .pPoolSizes = &poolSize
+    };
+    return vkCreateDescriptorPool(deviceContext.device, &descriptorPoolCreateInfo, nullptr, &pipeline.descriptorPool);
+}
+VkResult createDescriptorSets(DeviceContext &deviceContext, GraphicsPipeline &pipeline, FrameData* frames) {
+    VkDescriptorSetLayout layouts[MAX_FRAMES_IN_FLIGHT];
+    for(uint32_t i=0;i<MAX_FRAMES_IN_FLIGHT;++i){
+        layouts[i] = pipeline.descriptorSetLayout;
+    }
+    VkDescriptorSetAllocateInfo allocateInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        .pNext = nullptr,
+        .descriptorPool = pipeline.descriptorPool,
+        .descriptorSetCount = MAX_FRAMES_IN_FLIGHT,
+        .pSetLayouts = layouts
+    };
+    VkResult result = vkAllocateDescriptorSets(deviceContext.device, &allocateInfo , pipeline.descriptorSets);
+
+    for(uint32_t i=0;i<MAX_FRAMES_IN_FLIGHT;++i){
+        VkDescriptorBufferInfo bufferInfo = {
+            .buffer = frames[i].uniformBuffer.buffer,
+            .offset = 0,
+            .range = sizeof(UniformBufferData)
+        };
+        VkWriteDescriptorSet descriptorWrite = {
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .pNext = nullptr,
+            .dstSet = pipeline.descriptorSets[i],
+            .dstBinding = 0,
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .pImageInfo = nullptr,
+            .pBufferInfo = &bufferInfo,
+            .pTexelBufferView = nullptr
+        };
+
+        vkUpdateDescriptorSets(deviceContext.device, 1, &descriptorWrite, 0, nullptr);
+    }
+
+    return result;
+}
+VkResult createDescriptorSetLayout(DeviceContext &deviceContext, GraphicsPipeline &pipeline) {
+    VkDescriptorSetLayoutBinding descriptorBinding = {
+        .binding = 0,
+        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .descriptorCount = 1,
+        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+        .pImmutableSamplers = nullptr
+    };
+    VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .bindingCount = 1,
+        .pBindings = &descriptorBinding
+    };
+    return vkCreateDescriptorSetLayout(deviceContext.device, &descriptorSetLayoutInfo, nullptr, &pipeline.descriptorSetLayout);
+}
+VkResult createPipelineLayout(DeviceContext &deviceContext, GraphicsPipeline &pipeline) {
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
         .pNext = nullptr,
         .flags = 0,
-        .setLayoutCount = 0,
-        .pSetLayouts = nullptr,
+        .setLayoutCount = 1,
+        .pSetLayouts = &pipeline.descriptorSetLayout,
         .pushConstantRangeCount = 0,
         .pPushConstantRanges = nullptr
     };
@@ -47,7 +117,7 @@ std::array<VkVertexInputAttributeDescription, 2> getAttributeDescription() {
             .offset = offsetof(Vertex, color) }
     };
 }
-void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swapchainContext, VulkanPipeline &pipeline, const std::string &shaderPath) {
+void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swapchainContext, GraphicsPipeline &pipeline, const std::string &shaderPath) {
     VkSurfaceCapabilitiesKHR surfaceCaps;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(deviceContext.physicalDevice, deviceContext.surface, &surfaceCaps);
     const std::vector<char> code = readFile(shaderPath);
@@ -124,7 +194,7 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
         .rasterizerDiscardEnable = VK_FALSE,
         .polygonMode = VK_POLYGON_MODE_FILL,
         .cullMode = VK_CULL_MODE_BACK_BIT,
-        .frontFace = VK_FRONT_FACE_CLOCKWISE,
+        .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
         .depthBiasEnable = VK_FALSE,
         .depthBiasConstantFactor = 0.f,
         .depthBiasClamp = 0.f,
@@ -274,11 +344,31 @@ void createIndexBuffer(DeviceContext &deviceContext, const uint32_t *indices, ui
     vkFreeMemory(deviceContext.device, stagingBuffer.memory, nullptr);
     vkDestroyBuffer(deviceContext.device, stagingBuffer.buffer, nullptr);
 }
-void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext, VulkanPipeline &pipeline, Mesh &mesh, uint32_t imageIndex) {
+void createUniformBuffer(DeviceContext &deviceContext, Buffer &uniformBuffer, void **pMapped) {
+    std::size_t bufferSize = sizeof(UniformBufferData);
+
+    uniformBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, bufferSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    *pMapped = nullptr;
+    vkMapMemory(deviceContext.device, uniformBuffer.memory, 0, bufferSize, 0, &*pMapped);
+}
+void updateUniformBuffer(FrameData &frame, SwapchainContext &swapchainContext) {
+    static auto startTime = std::chrono::high_resolution_clock::now();
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float time = std::chrono::duration<float,std::chrono::seconds::period>(currentTime - startTime).count();
+    float aspectRatio = static_cast<float>(swapchainContext.extent.width) / static_cast<float>(swapchainContext.extent.height);
+    UniformBufferData uboData = {};
+    uboData.model = glm::rotate(glm::mat4(1.f),time * glm::radians(90.0f),glm::vec3(0.f,0.f,1.f));
+    uboData.view = glm::lookAt(glm::vec3(2.0f,2.0f,2.0f),glm::vec3(0.f,0.f,0.f),glm::vec3(0.f,0.f,1.f));
+    uboData.projection = glm::perspective(glm::radians(45.f), aspectRatio, 0.1f,10.f);
+    uboData.projection[1][1] *= -1;
+
+    memcpy(frame.uniformBufferMapping, &uboData, sizeof(uboData));
+}
+void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext, GraphicsPipeline &pipeline, Mesh &mesh, uint32_t imageIndex,uint32_t frameIndex) {
     VkImage image = swapchainContext.images[imageIndex];
     VkImageView imageView = swapchainContext.imageViews[imageIndex];
 
-    VkCommandBufferBeginInfo beginInfo = {
+    static const VkCommandBufferBeginInfo beginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         .pNext = nullptr,
         .flags = 0,
@@ -296,7 +386,7 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
         VK_ACCESS_2_NONE,
         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
 
-    VkClearValue clearColor = { VkClearColorValue{ { 0.01f, 0.02f, 0.05f, 1.f } } };
+    static const VkClearValue clearColor = { VkClearColorValue{ { 0.01f, 0.02f, 0.05f, 1.f } } };
     VkRenderingAttachmentInfo attachmentInfo = {
         .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
         .pNext = nullptr,
@@ -325,7 +415,14 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
     // Rendering START
     vkCmdBeginRendering(frameData.commandBuffer, &renderingInfo);
 
-    VkViewport viewport{
+    vkCmdBindPipeline(frameData.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline);
+
+    VkDeviceSize vboffset = 0;
+    vkCmdBindVertexBuffers(frameData.commandBuffer, 0, 1, &mesh.vertexBuffer.buffer, &vboffset);
+
+    vkCmdBindIndexBuffer(frameData.commandBuffer, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+    const VkViewport viewport{
         .x = 0,
         .y = 0,
         .width = static_cast<float>(swapchainContext.extent.width),
@@ -333,17 +430,14 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
         .minDepth = 0.f,
         .maxDepth = 1.f
     };
-    VkRect2D scissor{
+    vkCmdSetViewport(frameData.commandBuffer, 0, 1, &viewport);
+
+    const VkRect2D scissor{
         .offset = { 0, 0 },
         .extent = swapchainContext.extent
     };
-    vkCmdBindPipeline(frameData.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline);
-    VkDeviceSize vboffset = 0;
-    vkCmdBindVertexBuffers(frameData.commandBuffer, 0, 1, &mesh.vertexBuffer.buffer, &vboffset);
-    vkCmdBindIndexBuffer(frameData.commandBuffer, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-    vkCmdSetViewport(frameData.commandBuffer, 0, 1, &viewport);
     vkCmdSetScissor(frameData.commandBuffer, 0, 1, &scissor);
-    vkCmdDraw(frameData.commandBuffer, mesh.vertexCount, 1, 0, 0);
+    vkCmdBindDescriptorSets(frameData.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipelineLayout, 0, 1, &pipeline.descriptorSets[frameIndex], 0,nullptr);
     vkCmdDrawIndexed(frameData.commandBuffer, mesh.indexCount, 1, 0, 0, 0);
 
     // Rendering END
@@ -379,7 +473,7 @@ void drawFrame(DeviceContext &deviceContext, SwapchainContext &swapchainContext,
     VkSemaphore renderFinishedSemaphore = renderer.renderFinishedSemaphores[imageIndex];
 
     vkResetFences(deviceContext.device, 1, &drawFence);
-    recordCommandBuffer(renderer.frames[frameIndex], swapchainContext, renderer.pipeline, mesh, imageIndex);
+    recordCommandBuffer(renderer.frames[frameIndex], swapchainContext, renderer.pipeline, mesh, imageIndex,frameIndex);
 
     VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
     VkSubmitInfo submitInfo = {
@@ -407,6 +501,7 @@ void drawFrame(DeviceContext &deviceContext, SwapchainContext &swapchainContext,
         .pImageIndices = &imageIndex,
         .pResults = nullptr
     };
+    updateUniformBuffer(renderer.frames[frameIndex], swapchainContext);
     VkResult presentResult = vkQueuePresentKHR(graphicsQueue, &presentInfo);
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
         recreateSwapchain(deviceContext, swapchainContext, window);
@@ -414,41 +509,15 @@ void drawFrame(DeviceContext &deviceContext, SwapchainContext &swapchainContext,
     frameIndex = (frameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-void initPipeline(DeviceContext &deviceContext, SwapchainContext &swapchainContext, VulkanPipeline &pipeline) {
+void initPipeline(DeviceContext &deviceContext, SwapchainContext &swapchainContext, GraphicsPipeline &pipeline) {
+    createDescriptorSetLayout(deviceContext, pipeline);
     createPipelineLayout(deviceContext, pipeline);
     createGraphicsPipeline(deviceContext, swapchainContext, pipeline, "shaders/slang.spv");
 }
-void cleanupPipeline(DeviceContext &deviceContext, VulkanPipeline &pipeline) {
+void cleanupPipeline(DeviceContext &deviceContext, GraphicsPipeline &pipeline) {
+    vkDestroyDescriptorSetLayout(deviceContext.device, pipeline.descriptorSetLayout, nullptr);
     vkDestroyPipeline(deviceContext.device, pipeline.pipeline, nullptr);
     vkDestroyPipelineLayout(deviceContext.device, pipeline.pipelineLayout, nullptr);
-}
-void initRenderer(DeviceContext &deviceContext, SwapchainContext &swapchainContext, Renderer &renderer) {
-    createSemaphores(deviceContext.device, MAX_SWAPCHAIN_IMAGES, renderer.renderFinishedSemaphores);
-
-    VkCommandBuffer commandBuffers[MAX_FRAMES_IN_FLIGHT];
-    createCommandBuffers(deviceContext, MAX_FRAMES_IN_FLIGHT, commandBuffers);
-    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-        renderer.frames[i].commandBuffer = commandBuffers[i];
-        createSemaphore(deviceContext.device, &renderer.frames[i].imageAcquireSemaphore);
-        createFence(deviceContext.device, &renderer.frames[i].drawFence, VK_FENCE_CREATE_SIGNALED_BIT);
-    }
-    initPipeline(deviceContext, swapchainContext, renderer.pipeline);
-}
-void cleanupRenderer(DeviceContext &deviceContext, Renderer &renderer) {
-    cleanupPipeline(deviceContext, renderer.pipeline);
-    VkCommandBuffer commandBuffers[MAX_FRAMES_IN_FLIGHT];
-    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-        commandBuffers[i] = renderer.frames[i].commandBuffer;
-    }
-
-    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-        vkDestroyFence(deviceContext.device, renderer.frames[i].drawFence, nullptr);
-        vkDestroySemaphore(deviceContext.device, renderer.frames[i].imageAcquireSemaphore, nullptr);
-    }
-    vkFreeCommandBuffers(deviceContext.device, deviceContext.commandPool, MAX_FRAMES_IN_FLIGHT, commandBuffers);
-    for (uint32_t i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i) {
-        vkDestroySemaphore(deviceContext.device, renderer.renderFinishedSemaphores[i], nullptr);
-    }
 }
 void initMesh(DeviceContext &deviceContext, Mesh &mesh, const Vertex *vertices, uint32_t vertexCount, const uint32_t *indices, uint32_t indexCount) {
     mesh.vertexCount = vertexCount;
@@ -462,4 +531,53 @@ void cleanupMesh(DeviceContext &deviceContext, Mesh &mesh) {
 
     vkFreeMemory(deviceContext.device, mesh.indexBuffer.memory, nullptr);
     vkDestroyBuffer(deviceContext.device, mesh.indexBuffer.buffer, nullptr);
+}
+void initRenderer(DeviceContext &deviceContext, SwapchainContext &swapchainContext, Renderer &renderer) {
+
+    createSemaphores(deviceContext.device, MAX_SWAPCHAIN_IMAGES, renderer.renderFinishedSemaphores);
+
+    VkCommandBuffer commandBuffers[MAX_FRAMES_IN_FLIGHT];
+    createCommandBuffers(deviceContext, MAX_FRAMES_IN_FLIGHT, commandBuffers);
+
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+
+        FrameData &frame = renderer.frames[i];
+
+        createUniformBuffer(deviceContext, frame.uniformBuffer, &frame.uniformBufferMapping);
+
+        frame.commandBuffer = commandBuffers[i];
+
+        createSemaphore(deviceContext.device, &frame.imageAcquireSemaphore);
+
+        createFence(deviceContext.device, &frame.drawFence, VK_FENCE_CREATE_SIGNALED_BIT);
+    }
+    initPipeline(deviceContext, swapchainContext, renderer.pipeline);
+    createDescriptorPool(deviceContext, renderer.pipeline);
+    createDescriptorSets(deviceContext,renderer.pipeline,renderer.frames);
+}
+void cleanupRenderer(DeviceContext &deviceContext, Renderer &renderer) {
+
+    vkDestroyDescriptorPool(deviceContext.device, renderer.pipeline.descriptorPool, nullptr);
+    cleanupPipeline(deviceContext, renderer.pipeline);
+
+    VkCommandBuffer commandBuffers[MAX_FRAMES_IN_FLIGHT];
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+        commandBuffers[i] = renderer.frames[i].commandBuffer;
+    }
+
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+        FrameData &frame = renderer.frames[i];
+        vkUnmapMemory(deviceContext.device, frame.uniformBuffer.memory);
+        frame.uniformBufferMapping = nullptr;
+        vkFreeMemory(deviceContext.device, frame.uniformBuffer.memory, nullptr);
+        vkDestroyBuffer(deviceContext.device, frame.uniformBuffer.buffer, nullptr);
+        vkDestroyFence(deviceContext.device, frame.drawFence, nullptr);
+        vkDestroySemaphore(deviceContext.device, frame.imageAcquireSemaphore, nullptr);
+    }
+
+    vkFreeCommandBuffers(deviceContext.device, deviceContext.commandPool, MAX_FRAMES_IN_FLIGHT, commandBuffers);
+
+    for (uint32_t i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i) {
+        vkDestroySemaphore(deviceContext.device, renderer.renderFinishedSemaphores[i], nullptr);
+    }
 }
