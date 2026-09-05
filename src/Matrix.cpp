@@ -1,6 +1,7 @@
 #include "Matrix.h"
 #include <cmath>
 #include <numbers>
+#include <cstdint>
 
 Vector3 multMat4Vec(const Matrix4 mat,const Vector4 vec) {
     float a, b, c, w;

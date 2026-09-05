@@ -1,6 +1,7 @@
 #include "Renderer.h"
 #include "Utilities.h"
 #include <chrono>
+#include <cstring>
 VkShaderModule createShaderModule(VkDevice &device, const std::vector<char> &code) {
     VkShaderModuleCreateInfo shaderModuleCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
@@ -320,7 +321,7 @@ void createVertexBuffer(DeviceContext &deviceContext, const Vertex *vertices, ui
 
     void *data = nullptr;
     vkMapMemory(deviceContext.device, stagingBuffer.memory, 0, bufferSize, 0, &data);
-    memcpy(data, vertices, bufferSize);
+    std::memcpy(data, vertices, bufferSize);
     vkUnmapMemory(deviceContext.device, stagingBuffer.memory);
 
     vertexBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, bufferSize, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -335,7 +336,7 @@ void createIndexBuffer(DeviceContext &deviceContext, const uint32_t *indices, ui
 
     void *data = nullptr;
     vkMapMemory(deviceContext.device, stagingBuffer.memory, 0, bufferSize, 0, &data);
-    memcpy(data, indices, bufferSize);
+    std::memcpy(data, indices, bufferSize);
     vkUnmapMemory(deviceContext.device, stagingBuffer.memory);
 
     indexBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, bufferSize, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -362,7 +363,7 @@ void updateUniformBuffer(FrameData &frame, SwapchainContext &swapchainContext) {
     uboData.projection = glm::perspective(glm::radians(45.f), aspectRatio, 0.1f,10.f);
     uboData.projection[1][1] *= -1;
 
-    memcpy(frame.uniformBufferMapping, &uboData, sizeof(uboData));
+    std::memcpy(frame.uniformBufferMapping, &uboData, sizeof(uboData));
 }
 void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext, GraphicsPipeline &pipeline, Mesh &mesh, uint32_t imageIndex,uint32_t frameIndex) {
     VkImage image = swapchainContext.images[imageIndex];
