@@ -1,3 +1,5 @@
+#ifndef RENDERER_H
+#define RENDERER_H
 #include "SwapchainContext.h"
 #include "Vector.h"
 #include <array>
@@ -14,9 +16,9 @@ struct Buffer {
     VkDeviceMemory memory;
 };
 struct UniformBufferData {
-    glm::mat4 model;
-    glm::mat4 view;
-    glm::mat4 projection;
+    alignas(16) glm::mat4 model;
+    alignas(16) glm::mat4 view;
+    alignas(16) glm::mat4 projection;
 };
 struct Mesh {
     Buffer vertexBuffer;
@@ -25,7 +27,7 @@ struct Mesh {
     uint32_t indexCount;
 };
 struct Vertex {
-    Vector2 pos;
+    Vector3 pos;
     Vector3 color;
 };
 struct FrameData {
@@ -71,3 +73,4 @@ void initMesh(DeviceContext &deviceContext, Mesh &mesh, const Vertex *vertices, 
 void cleanupMesh(DeviceContext &deviceContext, Mesh &mesh);
 void initRenderer(DeviceContext &deviceContext, SwapchainContext &swapchainContext, Renderer &renderer);
 void cleanupRenderer(DeviceContext &deviceContext, Renderer &renderer);
+#endif

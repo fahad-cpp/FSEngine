@@ -106,7 +106,7 @@ void cleanupSwapchainContext(DeviceContext &deviceContext, SwapchainContext &swa
 }
 void recreateSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window) {
     FS::RenderState &renderState = window.getRenderState();
-    while (renderState.width == 0 || renderState.height == 0) {
+    while (renderState.width <= 0 || renderState.height <= 0) {
         window.processMessages();
     }
     vkDeviceWaitIdle(deviceContext.device);

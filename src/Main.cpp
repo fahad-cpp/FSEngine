@@ -1,5 +1,5 @@
 #include "Renderer.h"
-
+#include "Model.h"
 void handleInput(FS::Window &window) {
     FS::Input &input = window.getInput();
 
@@ -9,18 +9,7 @@ void handleInput(FS::Window &window) {
 }
 int main() {
 
-    const Vertex vertices[] = {
-        { { -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
-        { { 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f } },
-        { { 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } },
-        { { -0.5f, 0.5f }, { 1.0f, 1.0f, 1.0f } }
-    };
-    const uint32_t vertexCount = sizeof(vertices) / sizeof(vertices[0]);
-
-    const uint32_t indices[] = {
-        0, 1, 2, 2, 3, 0
-    };
-    const uint32_t indexCount = sizeof(indices) / sizeof(indices[0]);
+    OBJModel model = loadOBJ("models/king.obj");
 
     FS::Window window("Vulkan Renderer", 720, 720);
 
@@ -34,7 +23,7 @@ int main() {
     initRenderer(deviceContext, swapchainContext, renderer);
 
     Mesh mesh = {};
-    initMesh(deviceContext, mesh, vertices, vertexCount, indices, indexCount);
+    initMesh(deviceContext, mesh, model.vertices.data(), static_cast<uint32_t>(model.vertices.size()), model.indices.data(), static_cast<uint32_t>(model.indices.size()));
 
     while (window.isOpen()) {
         drawFrame(deviceContext, swapchainContext, window, renderer, mesh);

@@ -1,5 +1,5 @@
 struct VSInput {
-    float2 pos;
+    float3 pos;
     float3 color;
 };
 struct UniformBuffer {
@@ -16,7 +16,7 @@ struct VSOutput {
 [shader("vertex")]
 VSOutput vertMain(VSInput vertIn) {
     VSOutput output;
-    output.pos = mul(ubo.projection, mul(ubo.view, mul(ubo.model, float4(vertIn.pos, 0.0, 1.0))));
+    output.pos = mul(ubo.projection, mul(ubo.view, mul(ubo.model, float4(vertIn.pos, 1.0))));
     output.color = vertIn.color;
     return output;
 }

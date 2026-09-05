@@ -108,7 +108,7 @@ std::array<VkVertexInputAttributeDescription, 2> getAttributeDescription() {
         VkVertexInputAttributeDescription{
             .location = 0,
             .binding = 0,
-            .format = VK_FORMAT_R32G32_SFLOAT,
+            .format = VK_FORMAT_R32G32B32_SFLOAT,
             .offset = offsetof(Vertex, pos) },
         VkVertexInputAttributeDescription{
             .location = 1,
@@ -357,8 +357,8 @@ void updateUniformBuffer(FrameData &frame, SwapchainContext &swapchainContext) {
     float time = std::chrono::duration<float,std::chrono::seconds::period>(currentTime - startTime).count();
     float aspectRatio = static_cast<float>(swapchainContext.extent.width) / static_cast<float>(swapchainContext.extent.height);
     UniformBufferData uboData = {};
-    uboData.model = glm::rotate(glm::mat4(1.f),time * glm::radians(90.0f),glm::vec3(0.f,0.f,1.f));
-    uboData.view = glm::lookAt(glm::vec3(2.0f,2.0f,2.0f),glm::vec3(0.f,0.f,0.f),glm::vec3(0.f,0.f,1.f));
+    uboData.model = glm::rotate(glm::mat4(1.f),time * glm::radians(90.0f),glm::vec3(0.f,1.f,0.f));
+    uboData.view = glm::lookAt(glm::vec3(2.0f,2.0f,2.0f),glm::vec3(0.f,1.f,0.f),glm::vec3(0.f,1.f,0.f));
     uboData.projection = glm::perspective(glm::radians(45.f), aspectRatio, 0.1f,10.f);
     uboData.projection[1][1] *= -1;
 

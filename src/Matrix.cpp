@@ -43,7 +43,7 @@ Matrix4 rotate(const Matrix4 matrix, const float angle, const Vector3 axis) {
             { 0       , 0        , 0, 1 }          
         }};
     }
-    return multMat4Mat4(rotationMatrix, matrix);
+    return multMat4Mat4(matrix,rotationMatrix);
 }
 
 //Produces a view matrix for camera
