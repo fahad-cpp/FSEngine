@@ -7,7 +7,7 @@
 #include <vector>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
+#include "Matrix.h"
 
 constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -16,9 +16,9 @@ struct Buffer {
     VkDeviceMemory memory;
 };
 struct UniformBufferData {
-    alignas(16) glm::mat4 model;
-    alignas(16) glm::mat4 view;
-    alignas(16) glm::mat4 projection;
+    alignas(16) Matrix4 model;
+    alignas(16) Matrix4 view;
+    alignas(16) Matrix4 projection;
 };
 struct Mesh {
     Buffer vertexBuffer;
