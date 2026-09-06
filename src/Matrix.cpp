@@ -3,12 +3,12 @@
 #include <numbers>
 #include <iostream>
 #include <cstdint>
-Matrix4 unitMatrix4(){
+Matrix4 unitMatrix4(float scale){
     return {{
-        {1,0,0,0},
-        {0,1,0,0},
-        {0,0,1,0},
-        {0,0,0,1}
+        { scale, 0    , 0    , 0     },
+        { 0    , scale, 0    , 0     },
+        { 0    , 0    , scale, 0     },
+        { 0    , 0    , 0    , 1.f     }
     }};
 }
 Matrix4 multMat4Mat4(Matrix4 mat1, Matrix4 mat2) {

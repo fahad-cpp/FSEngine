@@ -39,10 +39,16 @@ OBJModel loadOBJ(const std::string& filename){
             float x = 0, y = 0, z = 0;
             std::sscanf(line.c_str(), "v %f %f %f", &x, &y, &z);
             Vector3 vertex = {x,y,z};
-            Vector3 color = {dist(engine),dist(engine),dist(engine)};
-            color.x *= color.x;
-            color.y *= color.y;
-            color.z *= color.z;
+            // Vector3 color = {dist(engine),dist(engine),dist(engine)};
+            Vector3 color;
+            float randomvalue = dist(engine);
+            if(randomvalue <= 0.33f){
+                color = {1.f,0.f,0.f};
+            }else if(randomvalue <= 0.67f){
+                color = {0.f,1.f,0.f};
+            }else{
+                color = {0.f,0.f,1.f};
+            }
             vertices.emplace_back(vertex,color);
         } else if (ptr[0] == 'v' && ptr[1] == 't' && (ptr[2] == ' ' || ptr[2] == '\t')) {
             // handle textures

@@ -316,6 +316,9 @@ Buffer createBuffer(DeviceContext &deviceContext, VkBufferUsageFlags usage, VkDe
     return buffer;
 }
 void createVertexBuffer(DeviceContext &deviceContext, const Vertex *vertices, uint32_t vertexCount, Buffer &vertexBuffer) {
+    if(vertexCount == 0){
+        return;
+    }
     std::size_t bufferSize = sizeof(vertices[0]) * vertexCount;
     Buffer stagingBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, bufferSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
@@ -331,6 +334,9 @@ void createVertexBuffer(DeviceContext &deviceContext, const Vertex *vertices, ui
     vkDestroyBuffer(deviceContext.device, stagingBuffer.buffer, nullptr);
 }
 void createIndexBuffer(DeviceContext &deviceContext, const uint32_t *indices, uint32_t indexCount, Buffer &indexBuffer) {
+    if(indexCount == 0){
+        return;
+    }
     std::size_t bufferSize = sizeof(indices[0]) * indexCount;
     Buffer stagingBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, bufferSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
@@ -358,13 +364,9 @@ void updateUniformBuffer(FrameData &frame, SwapchainContext &swapchainContext) {
     float time = std::chrono::duration<float,std::chrono::seconds::period>(currentTime - startTime).count();
     float aspectRatio = static_cast<float>(swapchainContext.extent.width) / static_cast<float>(swapchainContext.extent.height);
     UniformBufferData uboData = {};
-    // uboData.model = glm::rotate(glm::mat4(1.f),time * glm::radians(90.0f),glm::vec3(0.f,1.f,0.f));
-    // uboData.view = glm::lookAt(glm::vec3(2.0f,2.0f,2.0f),glm::vec3(0.f,1.f,0.f),glm::vec3(0.f,1.f,0.f));
-    // uboData.projection = glm::perspective(glm::radians(45.f), aspectRatio, 0.1f,10.f);
-
-    uboData.model = rotate(unitMatrix4(),time * radians(90.f),Vector3{0.f,1.f,0.f});
-    uboData.view = lookAt(Vector3{3.f,3.f,3.f}, Vector3{0.f,1.f,0.f}, Vector3{0.f,1.f,0.f});
-    uboData.projection = perspective(radians(45.f), aspectRatio, 0.1f, 10.f);
+    uboData.model = rotate(unitMatrix4(1.f),time * radians(90.f),Vector3{0.f,1.f,0.f});
+    uboData.view = lookAt(Vector3{2.f,2.f,2.f}, Vector3{0.f,1.f,0.f}, Vector3{0.f,1.f,0.f});
+    uboData.projection = perspective(radians(45.f), aspectRatio, 1.f, 10.f);
     uboData.projection.values[1][1] *= -1;
 
     std::memcpy(frame.uniformBufferMapping, &uboData, sizeof(uboData));
@@ -423,10 +425,11 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
     vkCmdBindPipeline(frameData.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline);
 
     VkDeviceSize vboffset = 0;
-    vkCmdBindVertexBuffers(frameData.commandBuffer, 0, 1, &mesh.vertexBuffer.buffer, &vboffset);
+    if(mesh.vertexBuffer.buffer != VK_NULL_HANDLE){
+        vkCmdBindVertexBuffers(frameData.commandBuffer, 0, 1, &mesh.vertexBuffer.buffer, &vboffset);
+    }
 
-    vkCmdBindIndexBuffer(frameData.commandBuffer, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-
+    
     const VkViewport viewport{
         .x = 0,
         .y = 0,
@@ -436,14 +439,17 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
         .maxDepth = 1.f
     };
     vkCmdSetViewport(frameData.commandBuffer, 0, 1, &viewport);
-
+    
     const VkRect2D scissor{
         .offset = { 0, 0 },
         .extent = swapchainContext.extent
     };
     vkCmdSetScissor(frameData.commandBuffer, 0, 1, &scissor);
     vkCmdBindDescriptorSets(frameData.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipelineLayout, 0, 1, &pipeline.descriptorSets[frameIndex], 0,nullptr);
-    vkCmdDrawIndexed(frameData.commandBuffer, mesh.indexCount, 1, 0, 0, 0);
+    if(mesh.indexBuffer.buffer != VK_NULL_HANDLE){
+        vkCmdBindIndexBuffer(frameData.commandBuffer, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(frameData.commandBuffer, mesh.indexCount, 1, 0, 0, 0);
+    }
 
     // Rendering END
     vkCmdEndRendering(frameData.commandBuffer);
@@ -531,11 +537,15 @@ void initMesh(DeviceContext &deviceContext, Mesh &mesh, const Vertex *vertices, 
     createIndexBuffer(deviceContext, indices, mesh.indexCount, mesh.indexBuffer);
 }
 void cleanupMesh(DeviceContext &deviceContext, Mesh &mesh) {
-    vkFreeMemory(deviceContext.device, mesh.vertexBuffer.memory, nullptr);
-    vkDestroyBuffer(deviceContext.device, mesh.vertexBuffer.buffer, nullptr);
+    if(mesh.vertexBuffer.buffer != VK_NULL_HANDLE){
+        vkFreeMemory(deviceContext.device, mesh.vertexBuffer.memory, nullptr);
+        vkDestroyBuffer(deviceContext.device, mesh.vertexBuffer.buffer, nullptr);
+    }
 
-    vkFreeMemory(deviceContext.device, mesh.indexBuffer.memory, nullptr);
-    vkDestroyBuffer(deviceContext.device, mesh.indexBuffer.buffer, nullptr);
+    if(mesh.indexBuffer.buffer != VK_NULL_HANDLE){
+        vkFreeMemory(deviceContext.device, mesh.indexBuffer.memory, nullptr);
+        vkDestroyBuffer(deviceContext.device, mesh.indexBuffer.buffer, nullptr);
+    }
 }
 void initRenderer(DeviceContext &deviceContext, SwapchainContext &swapchainContext, Renderer &renderer) {
 
