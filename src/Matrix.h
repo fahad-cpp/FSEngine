@@ -1,10 +1,6 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 #include "Vector.h"
-// Things i need:
-// [matrix] rotate(matrix,float angle,vec3 axis);
-// [matrix] lookAt(vec3 eyePos,vec3 center,vec3 up);
-// [matrix] perspective(float3 fov,aspectRatio,near-plane,far-plane);
 struct Matrix4 {
     float values[4][4];
 };

@@ -1,5 +1,6 @@
 #include "SwapchainContext.h"
 #include <algorithm>
+#include <climits>
 void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window) {
     VkSurfaceCapabilitiesKHR surfaceCaps;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(deviceContext.physicalDevice, deviceContext.surface, &surfaceCaps);

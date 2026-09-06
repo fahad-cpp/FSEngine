@@ -1,13 +1,15 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "Model.h"
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <random>
+#include <cstdio>
 OBJModel loadOBJ(const std::string& filename){
     std::vector<Vertex> vertices = {};
     std::vector<uint32_t> indices = {};
     std::random_device rd;
-    std::mt19937 engine(rd());
+    std::mt19937 engine(static_cast<std::mt19937>(rd()));
     std::uniform_real_distribution<float> dist(0.f,1.f);
     
 
@@ -35,7 +37,7 @@ OBJModel loadOBJ(const std::string& filename){
 
         if (ptr[0] == 'v' && (ptr[1] == ' ' || ptr[1] == '\t')) {
             float x = 0, y = 0, z = 0;
-            sscanf_s(line.c_str(), "v %f %f %f", &x, &y, &z);
+            std::sscanf(line.c_str(), "v %f %f %f", &x, &y, &z);
             Vector3 vertex = {x,y,z};
             Vector3 color = {dist(engine),dist(engine),dist(engine)};
             color.x *= color.x;
@@ -54,9 +56,9 @@ OBJModel loadOBJ(const std::string& filename){
             // Handle arbitrary amount of vertices in a face
             while (stream >> vertex) {
                 int v, t, n;
-                if (sscanf_s(vertex.c_str(), "%d/%d/%d", &v, &t, &n) == 3) {
+                if (std::sscanf(vertex.c_str(), "%d/%d/%d", &v, &t, &n) == 3) {
                     faceIndices.emplace_back(v - 1);
-                } else if (sscanf_s(vertex.c_str(), "%d//%d", &v, &n) == 2) {
+                } else if (std::sscanf(vertex.c_str(), "%d//%d", &v, &n) == 2) {
                     faceIndices.emplace_back(v - 1);
                 } else {
                     std::cerr << "Unsupported face format :" << filename << "\n";

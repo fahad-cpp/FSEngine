@@ -5,8 +5,6 @@
 #include <array>
 #include <string>
 #include <vector>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include "Matrix.h"
 
 constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
