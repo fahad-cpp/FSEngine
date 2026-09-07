@@ -1,5 +1,8 @@
-#include "Renderer.h"
 #include "Model.h"
+#include "Renderer.h"
+#include "Timer.h"
+#include <iostream>
+
 void handleInput(FS::Window &window) {
     FS::Input &input = window.getInput();
 
@@ -8,9 +11,18 @@ void handleInput(FS::Window &window) {
     }
 }
 int main() {
+    // OBJModel model = loadOBJ("models/cube.obj");
+    OBJModel model = {
+        .vertices = {
+            { { -0.5f, 0.f, 0.5f }, { 1.0f, 0.0f, 0.0f } },
+            { { 0.5f, 0.f,  0.5f}, { 0.0f, 1.0f, 0.0f } },
+            { { 0.5f, 0.f ,-0.5f}, { 0.0f, 0.0f, 1.0f } },
+            { { -0.5f, 0.f ,-0.5f}, { 1.0f, 1.0f, 1.0f } } },
+        .indices = { 0, 1, 2, 2, 3, 0 }
+    };
 
-    OBJModel model = loadOBJ("models/king.obj");
-
+    Timer timer;
+    startTimer(timer);
     FS::Window window("Vulkan Renderer", 720, 720);
 
     DeviceContext deviceContext = {};
@@ -24,7 +36,9 @@ int main() {
 
     Mesh mesh = {};
     initMesh(deviceContext, mesh, model.vertices.data(), static_cast<uint32_t>(model.vertices.size()), model.indices.data(), static_cast<uint32_t>(model.indices.size()));
+    endTimer(timer);
 
+    std::cout << "Setup took: " << timer.diff / 1000 << " ms\n";
     while (window.isOpen()) {
         drawFrame(deviceContext, swapchainContext, window, renderer, mesh);
         handleInput(window);

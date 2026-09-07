@@ -13,6 +13,10 @@ struct Buffer {
     VkBuffer buffer;
     VkDeviceMemory memory;
 };
+struct Image{
+    VkImage image;
+    VkDeviceMemory imageMemory;
+};
 struct UniformBufferData {
     alignas(16) Matrix4 model;
     alignas(16) Matrix4 view;
@@ -59,6 +63,8 @@ std::array<VkVertexInputAttributeDescription, 2> getAttributeDescription();
 
 void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swapchainContext, GraphicsPipeline &pipeline, const std::string &shaderPath);
 Buffer createBuffer(DeviceContext &deviceContext, VkBufferUsageFlags usage, VkDeviceSize size, VkMemoryPropertyFlags memoryProperty);
+Image createImage(DeviceContext& deviceContext,uint32_t width,uint32_t height,VkFormat format,VkImageTiling tiling,VkImageUsageFlags usage,VkMemoryPropertyFlags memoryFlags);
+void createTextureImage(DeviceContext& deviceContext,const std::string& filepath,Image& textureImage);
 void createVertexBuffer(DeviceContext &deviceContext, const Vertex *vertices, uint32_t vertexCount, Buffer &vertexBuffer);
 void createIndexBuffer(DeviceContext &deviceContext, const uint32_t *indices, uint32_t indexCount, Buffer &indexBuffer);
 void createUniformBuffer(DeviceContext &deviceContext, const UniformBufferData uniformBufferData, Buffer &uniformBuffer, void **pMapped);

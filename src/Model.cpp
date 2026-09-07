@@ -5,7 +5,10 @@
 #include <sstream>
 #include <random>
 #include <cstdio>
+#include "Timer.h"
 OBJModel loadOBJ(const std::string& filename){
+    Timer timer;
+    startTimer(timer);
     std::vector<Vertex> vertices = {};
     std::vector<uint32_t> indices = {};
     std::random_device rd;
@@ -96,6 +99,7 @@ OBJModel loadOBJ(const std::string& filename){
         vertices,
         indices
     };
-    std::cout << "Succesfully loaded model:" << filename << "\n";
+    endTimer(timer);
+    std::cout << "Succesfully loaded model:" << filename << " : " << timer.diff / 1000.f << " ms\n";
     return mesh;
 }

@@ -1,7 +1,10 @@
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 #include "Renderer.h"
 #include "Utilities.h"
 #include <chrono>
 #include <cstring>
+#include <iostream>
 VkShaderModule createShaderModule(VkDevice &device, const std::vector<char> &code) {
     VkShaderModuleCreateInfo shaderModuleCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
@@ -315,6 +318,62 @@ Buffer createBuffer(DeviceContext &deviceContext, VkBufferUsageFlags usage, VkDe
 
     return buffer;
 }
+Image createImage(DeviceContext& deviceContext,uint32_t width,uint32_t height,VkFormat format,VkImageTiling tiling,VkImageUsageFlags usage,VkMemoryPropertyFlags memoryFlags){
+    Image image = {};
+    VkImageCreateInfo imageInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .imageType = VK_IMAGE_TYPE_2D,
+        .format = format,
+        .extent = {width,height,1},
+        .mipLevels = 1,
+        .arrayLayers = 1,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .tiling = tiling,
+        .usage = usage,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .queueFamilyIndexCount = 0,
+        .pQueueFamilyIndices = nullptr,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+    };
+
+    vkCreateImage(deviceContext.device, &imageInfo, nullptr, &image.image);
+    VkMemoryRequirements memRequirements;
+    vkGetImageMemoryRequirements(deviceContext.device, image.image, &memRequirements);
+    uint32_t memoryIndex = getMemoryIndex(deviceContext.physicalDevice, memRequirements, memoryFlags);
+    VkMemoryAllocateInfo allocateInfo = {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .pNext = nullptr,
+        .allocationSize = memRequirements.size,
+        .memoryTypeIndex = memoryIndex
+    };
+    vkAllocateMemory(deviceContext.device, &allocateInfo, nullptr, &image.imageMemory);
+    vkBindImageMemory(deviceContext.device, image.image, image.imageMemory, 0);
+
+    return image;
+}
+void createTextureImage(DeviceContext &deviceContext,const std::string& filepath,Image& textureImage){
+    int texWidth,texHeight,texChannels;
+    stbi_uc *pixels = stbi_load(filepath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    VkDeviceSize imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * 4);
+
+    if(!pixels){    
+        std::cerr << "Failed to load texture: " << filepath << "\n";
+    }
+
+    Buffer stagingBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, imageSize,VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    void* data = nullptr;
+    vkMapMemory(deviceContext.device, stagingBuffer.memory, 0, imageSize, 0, &data);
+    std::memcpy(data,pixels,imageSize);
+    vkUnmapMemory(deviceContext.device, stagingBuffer.memory);
+
+    stbi_image_free(pixels);
+
+    textureImage = createImage(deviceContext, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    //TODO std::memcpy data into image
+}
 void createVertexBuffer(DeviceContext &deviceContext, const Vertex *vertices, uint32_t vertexCount, Buffer &vertexBuffer) {
     if(vertexCount == 0){
         return;
@@ -365,8 +424,8 @@ void updateUniformBuffer(FrameData &frame, SwapchainContext &swapchainContext) {
     float aspectRatio = static_cast<float>(swapchainContext.extent.width) / static_cast<float>(swapchainContext.extent.height);
     UniformBufferData uboData = {};
     uboData.model = rotate(unitMatrix4(1.f),time * radians(90.f),Vector3{0.f,1.f,0.f});
-    uboData.view = lookAt(Vector3{2.f,2.f,2.f}, Vector3{0.f,1.f,0.f}, Vector3{0.f,1.f,0.f});
-    uboData.projection = perspective(radians(45.f), aspectRatio, 1.f, 10.f);
+    uboData.view = lookAt(Vector3{2.f,2.f,2.f}, Vector3{0.f,0.f,0.f}, Vector3{0.f,1.f,0.f});
+    uboData.projection = perspective(radians(45.f), aspectRatio, 0.1f, 10.f);
     uboData.projection.values[1][1] *= -1;
 
     std::memcpy(frame.uniformBufferMapping, &uboData, sizeof(uboData));
