@@ -16,7 +16,16 @@ const std::vector<char> readFile(const std::string &path) {
     return fileContent;
 }
 
-void transitionImageLayout(VkImage &image, VkCommandBuffer &commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout, VkPipelineStageFlags2 srcStageMask, VkPipelineStageFlags2 dstStageMask, VkAccessFlags2 srcAccessMask, VkAccessFlags2 dstAccessMask) {
+void transitionImageLayout(
+    VkImage &image,
+    VkCommandBuffer &commandBuffer,
+    VkImageLayout oldLayout,
+    VkImageLayout newLayout,
+    VkPipelineStageFlags2 srcStageMask,
+    VkPipelineStageFlags2 dstStageMask,
+    VkAccessFlags2 srcAccessMask,
+    VkAccessFlags2 dstAccessMask
+) {
     VkImageMemoryBarrier2 imageMemoryBarrier = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
         .pNext = nullptr,
@@ -34,7 +43,8 @@ void transitionImageLayout(VkImage &image, VkCommandBuffer &commandBuffer, VkIma
             .baseMipLevel = 0,
             .levelCount = 1,
             .baseArrayLayer = 0,
-            .layerCount = 1 }
+            .layerCount = 1 
+        }
     };
 
     VkDependencyInfo dependencyInfo = {

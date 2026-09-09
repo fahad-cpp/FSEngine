@@ -14,8 +14,12 @@ file(GLOB SOURCES src/*.cpp src/*.h)
 add_executable(VulkanApp ${SOURCES})
 add_subdirectory(vendor/FSWindow)
 
-target_include_directories(VulkanApp PUBLIC ${VULKAN_INCLUDE} vendor/stb)
+target_include_directories(VulkanApp SYSTEM PRIVATE ${VULKAN_INCLUDE} vendor/stb)
 
-target_compile_options(VulkanApp PRIVATE -ggdb -Wall -Wextra -Weffc++ -Werror -pedantic-errors)
+target_compile_options(
+    VulkanApp PRIVATE -Wall -Wextra -Weffc++ -Wconversion -Wsign-conversion -Werror -pedantic-errors
+    $<$<CONFIG:Debug>:-ggdb>
+    $<$<CONFIG:Release>:-O2>
+)
 
 target_link_libraries(VulkanApp Vulkan::Vulkan FSWindow)

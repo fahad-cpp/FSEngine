@@ -1,6 +1,7 @@
 #include "SwapchainContext.h"
 #include <algorithm>
 #include <climits>
+#include <iostream>
 void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window) {
     VkSurfaceCapabilitiesKHR surfaceCaps;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(deviceContext.physicalDevice, deviceContext.surface, &surfaceCaps);
@@ -37,7 +38,7 @@ void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainCo
         }
     }
 
-    FS::RenderState renderState = window.getRenderState();
+    FS::RenderState& renderState = window.getRenderState();
     uint32_t windowWidth = std::clamp<uint32_t>(renderState.width, surfaceCaps.minImageExtent.width, surfaceCaps.maxImageExtent.width);
     uint32_t windowHeight = std::clamp<uint32_t>(renderState.height, surfaceCaps.minImageExtent.height, surfaceCaps.maxImageExtent.height);
     swapchainContext.extent = (surfaceCaps.currentExtent.width != UINT_MAX) ? surfaceCaps.currentExtent : VkExtent2D{ windowWidth, windowHeight };
@@ -70,27 +71,9 @@ void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainCo
     swapchainContext.imageCount = swapchainImageCount;
 }
 void createSwapchainImageViews(DeviceContext &deviceContext, SwapchainContext &swapchainContext) {
-    VkImageSubresourceRange subresourceRange = {
-        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-        .baseMipLevel = 0,
-        .levelCount = 1,
-        .baseArrayLayer = 0,
-        .layerCount = 1
-    };
     for (uint32_t i = 0; i < swapchainContext.imageCount; ++i) {
-        VkImageViewCreateInfo imageViewCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .image = swapchainContext.images[i],
-            .viewType = VK_IMAGE_VIEW_TYPE_2D,
-            .format = swapchainContext.surfaceFormat.format,
-            // VK_COMPONENT_SWIZZLE_IDENTITY for all components
-            .components = {},
-            .subresourceRange = subresourceRange
-        };
-        VkImageView imageView;
-        vkCreateImageView(deviceContext.device, &imageViewCreateInfo, nullptr, &imageView);
+        VkImageView imageView = VK_NULL_HANDLE;
+        createImageView(deviceContext, swapchainContext.images[i], swapchainContext.surfaceFormat.format, imageView);
         swapchainContext.imageViews[i] = imageView;
     }
 }
@@ -106,11 +89,12 @@ void cleanupSwapchainContext(DeviceContext &deviceContext, SwapchainContext &swa
     swapchainContext.swapchain = VK_NULL_HANDLE;
 }
 void recreateSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window) {
+    vkDeviceWaitIdle(deviceContext.device);
     FS::RenderState &renderState = window.getRenderState();
     while (renderState.width <= 0 || renderState.height <= 0) {
+        std::cout << "Window is minimized, waiting...";
         window.processMessages();
     }
-    vkDeviceWaitIdle(deviceContext.device);
     cleanupSwapchainContext(deviceContext, swapchainContext);
     initSwapchainContext(deviceContext, swapchainContext, window);
 }

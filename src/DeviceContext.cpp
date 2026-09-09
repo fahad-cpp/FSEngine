@@ -1,10 +1,11 @@
 #include "DeviceContext.h"
-
 VkResult createInstance(DeviceContext &deviceContext) {
     // TODO: check for layers support
+    #ifdef _DEBUG
     const char *instanceLayers[] = {
         "VK_LAYER_KHRONOS_validation"
     };
+    #endif
 
     const char *instanceExtensions[] = {
         VK_KHR_SURFACE_EXTENSION_NAME,
@@ -33,8 +34,13 @@ VkResult createInstance(DeviceContext &deviceContext) {
         .pNext = nullptr,
         .flags = 0,
         .pApplicationInfo = &applicationInfo,
+        #ifdef _DEBUG
         .enabledLayerCount = sizeof(instanceLayers) / sizeof(instanceLayers[0]),
         .ppEnabledLayerNames = instanceLayers,
+        #else
+        .enabledLayerCount = 0,
+        .ppEnabledLayerNames = nullptr,
+        #endif
         .enabledExtensionCount = sizeof(instanceExtensions) / sizeof(instanceExtensions[0]),
         .ppEnabledExtensionNames = instanceExtensions
     };
@@ -75,6 +81,7 @@ VkResult createDevice(DeviceContext &deviceContext) {
     requiredFeatures.multiDrawIndirect = supportedFeatures.multiDrawIndirect;
     requiredFeatures.sparseBinding = supportedFeatures.sparseBinding;
     requiredFeatures.sparseResidencyImage2D = supportedFeatures.sparseResidencyImage2D;
+    requiredFeatures.samplerAnisotropy = VK_TRUE;
     requiredFeatures.tessellationShader = VK_TRUE;
     requiredFeatures.geometryShader = VK_TRUE;
 
@@ -166,8 +173,40 @@ VkResult createCommandBuffers(DeviceContext &deviceContext, uint32_t count, VkCo
         .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
         .commandBufferCount = count
     };
-
+    
     return vkAllocateCommandBuffers(deviceContext.device, &commandBufferAllocateInfo, cmdBuffers);
+}
+VkCommandBuffer startOneTimeCommandBuffer(DeviceContext& deviceContext){
+    VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+    createCommandBuffers(deviceContext, 1, &commandBuffer);
+
+    VkCommandBufferBeginInfo beginInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .pNext = nullptr,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+        .pInheritanceInfo = nullptr
+    };
+
+    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+    return commandBuffer;
+}
+void endOneTimeCommandBuffer(DeviceContext& deviceContext,VkCommandBuffer& commandBuffer){
+    vkEndCommandBuffer(commandBuffer);
+    VkSubmitInfo submitInfo = {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .pNext = nullptr,
+        .waitSemaphoreCount = 0,
+        .pWaitSemaphores = nullptr,
+        .pWaitDstStageMask = nullptr,
+        .commandBufferCount = 1,
+        .pCommandBuffers = &commandBuffer,
+        .signalSemaphoreCount = 0,
+        .pSignalSemaphores = nullptr
+    };
+    vkQueueSubmit(deviceContext.graphicsQueue , 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(deviceContext.graphicsQueue);
+    vkFreeCommandBuffers(deviceContext.device, deviceContext.commandPool, 1, &commandBuffer);
 }
 VkResult createSemaphores(VkDevice &device, uint32_t count, VkSemaphore *semaphores) {
     VkSemaphoreCreateInfo createInfo = {
@@ -215,6 +254,26 @@ VkResult createFence(VkDevice &device, VkFence *fence, VkFenceCreateFlags flags)
     };
     return vkCreateFence(device, &createInfo, nullptr, fence);
 }
+VkResult createImageView(DeviceContext& deviceContext,VkImage image,VkFormat format,VkImageView& imageView){
+    VkImageViewCreateInfo createInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .image = image,
+        .viewType = VK_IMAGE_VIEW_TYPE_2D,
+        .format = format,
+        // VK_COMPONENT_SWIZZLE_IDENTITY for all components
+        .components = {},
+        .subresourceRange = {
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1
+        }
+    };
+    return vkCreateImageView(deviceContext.device, &createInfo, nullptr, &imageView);
+}
 uint32_t getMemoryIndex(VkPhysicalDevice &physicalDevice, VkMemoryRequirements requirements, VkMemoryPropertyFlags requiredFlags) {
     uint32_t selectedType = ~0u;
     VkPhysicalDeviceMemoryProperties memoryProperties;
@@ -231,47 +290,29 @@ uint32_t getMemoryIndex(VkPhysicalDevice &physicalDevice, VkMemoryRequirements r
     }
     return selectedType;
 }
-void copyBuffer(DeviceContext &deviceContext, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
-    VkCommandBufferAllocateInfo allocateInfo = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        .pNext = nullptr,
-        .commandPool = deviceContext.commandPool,
-        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        .commandBufferCount = 1
-    };
-    VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(deviceContext.device, &allocateInfo, &commandBuffer);
-
-    VkCommandBufferBeginInfo beginInfo = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        .pNext = nullptr,
-        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-        .pInheritanceInfo = nullptr
-    };
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
+void copyBuffer(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
     VkBufferCopy copyRegion = {
         .srcOffset = 0,
         .dstOffset = 0,
         .size = size
     };
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-    vkEndCommandBuffer(commandBuffer);
-
-    VkSubmitInfo submitInfo = {
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .pNext = nullptr,
-        .waitSemaphoreCount = 0,
-        .pWaitSemaphores = nullptr,
-        .pWaitDstStageMask = nullptr,
-        .commandBufferCount = 1,
-        .pCommandBuffers = &commandBuffer,
-        .signalSemaphoreCount = 0,
-        .pSignalSemaphores = nullptr
+}
+void copyBufferToImage(VkCommandBuffer commandBuffer,VkBuffer srcBuffer,VkImage dstImage,uint32_t width,uint32_t height){
+    VkBufferImageCopy copyRegion = {
+        .bufferOffset = 0,
+        .bufferRowLength = 0,
+        .bufferImageHeight = 0,
+        .imageSubresource = {
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .mipLevel = 0,
+            .baseArrayLayer = 0,
+            .layerCount = 1
+        },
+        .imageOffset = {0,0,0},
+        .imageExtent = {width,height,1}
     };
-    vkQueueSubmit(deviceContext.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(deviceContext.graphicsQueue);
-    vkFreeCommandBuffers(deviceContext.device, deviceContext.commandPool, 1, &commandBuffer);
+    vkCmdCopyBufferToImage(commandBuffer, srcBuffer, dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 }
 void initDeviceContext(DeviceContext &deviceContext, FS::Window &window) {
     createInstance(deviceContext);
