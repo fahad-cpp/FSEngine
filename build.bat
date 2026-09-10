@@ -12,6 +12,7 @@ start "" /b compileShader.bat
 
 if "%CLEANBUILD%" == "YES" (
     rmdir /S /Q build
+    rmdir /S /Q bin
     cmake --preset %PRESET%
     if errorlevel 1 (
         echo Cmake Configuration Failed.

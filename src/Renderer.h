@@ -13,10 +13,6 @@ struct Buffer {
     VkBuffer buffer;
     VkDeviceMemory memory;
 };
-struct Image{
-    VkImage image;
-    VkDeviceMemory memory;
-};
 struct Texture{
     Image image;
     VkImageView imageView;
@@ -65,7 +61,6 @@ std::array<VkVertexInputAttributeDescription, 3> getAttributeDescription();
 
 void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swapchainContext, GraphicsPipeline &pipeline, const std::string &shaderPath);
 Buffer createBuffer(DeviceContext &deviceContext, VkBufferUsageFlags usage, VkDeviceSize size, VkMemoryPropertyFlags memoryProperty);
-Image createImage(DeviceContext& deviceContext,uint32_t width,uint32_t height,VkFormat format,VkImageTiling tiling,VkImageUsageFlags usage,VkMemoryPropertyFlags memoryFlags);
 void createTextureSampler(DeviceContext& deviceContext,VkSampler& sampler);
 void createTexture(DeviceContext& deviceContext,const std::string& filepath,Texture& texture);
 void cleanupTexture(DeviceContext& deviceContext,Texture& texture);

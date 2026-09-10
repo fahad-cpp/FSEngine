@@ -24,7 +24,8 @@ void transitionImageLayout(
     VkPipelineStageFlags2 srcStageMask,
     VkPipelineStageFlags2 dstStageMask,
     VkAccessFlags2 srcAccessMask,
-    VkAccessFlags2 dstAccessMask
+    VkAccessFlags2 dstAccessMask,
+    VkImageAspectFlags aspectFlags
 ) {
     VkImageMemoryBarrier2 imageMemoryBarrier = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -39,7 +40,7 @@ void transitionImageLayout(
         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
         .image = image,
         .subresourceRange = {
-            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .aspectMask = aspectFlags,
             .baseMipLevel = 0,
             .levelCount = 1,
             .baseArrayLayer = 0,

@@ -1,4 +1,42 @@
 #include "DeviceContext.h"
+#include <array>
+#include <string>
+#include <assert.h>
+std::string getDebugMessageTypeString(const VkDebugUtilsMessageTypeFlagsEXT messageType){
+    if(messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT){
+        return "General";
+    }else if(messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT){
+        return "Performance";
+    }else if(messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT){
+        return "Validation";
+    }else if(messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT){
+        return "Address Binding";
+    }
+    return "InvalidType";
+}
+static VKAPI_ATTR VkBool32 VKAPI_CALL 
+debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
+    [[maybe_unused]] void* pUserData
+){
+    const char* severity = "";
+    if(messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT){
+        severity = "VERBOSE";
+    }else if(messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT){
+        severity = "ERROR";
+    }else if(messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT){
+        severity = "WARN";
+    }else if(messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT){
+        severity = "INFO";
+    }
+
+    std::string typeString = getDebugMessageTypeString(messageType);
+    std::fprintf(stderr,"[VULKAN %s (%s)]:\n%s\n\n",severity,typeString.c_str(),callbackData->pMessage);
+
+    return VK_FALSE;
+}
 VkResult createInstance(DeviceContext &deviceContext) {
     // TODO: check for layers support
     #ifdef _DEBUG
@@ -28,10 +66,45 @@ VkResult createInstance(DeviceContext &deviceContext) {
         .apiVersion = VK_MAKE_API_VERSION(0, 1, 4, 0)
     };
 
-    // Instance Create Info
+    VkValidationFeatureEnableEXT features[] = {
+        // VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
+        VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,
+        // VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+        // VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT
+    };
+
+    
+    VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+        .pNext = nullptr,
+        .flags = 0,
+        .messageSeverity = 
+        // VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+        // VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | 
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | 
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT, 
+        
+        .messageType = 
+        // VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | 
+        // VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
+        
+        .pfnUserCallback = debugCallback,
+        .pUserData = nullptr
+    };
+    
+    VkValidationFeaturesEXT validationFeatures = {
+        .sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
+        .pNext = &debugUtilsMessengerCreateInfo,
+        .enabledValidationFeatureCount = static_cast<uint32_t>(std::size(features)),
+        .pEnabledValidationFeatures = features,
+        .disabledValidationFeatureCount = 0,
+        .pDisabledValidationFeatures = nullptr
+    };
+
     VkInstanceCreateInfo instanceCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-        .pNext = nullptr,
+        .pNext = &validationFeatures,
         .flags = 0,
         .pApplicationInfo = &applicationInfo,
         #ifdef _DEBUG
@@ -46,7 +119,10 @@ VkResult createInstance(DeviceContext &deviceContext) {
     };
 
     // Create the Instance
-    return vkCreateInstance(&instanceCreateInfo, nullptr, &deviceContext.instance);
+    VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &deviceContext.instance);
+    const auto vkCreateDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(deviceContext.instance, "vkCreateDebugUtilsMessengerEXT"));
+    vkCreateDebugUtilsMessengerEXT(deviceContext.instance, &debugUtilsMessengerCreateInfo, nullptr, &deviceContext.debugMessenger);
+    return result;
 }
 VkResult getPhysicalDevice(DeviceContext &deviceContext) {
     // Enumerate Device
@@ -91,8 +167,10 @@ VkResult createDevice(DeviceContext &deviceContext) {
     requiredFeaturesvk13.dynamicRendering = VK_TRUE;
     requiredFeaturesvk13.synchronization2 = VK_TRUE;
 
-    uint32_t queueFamilyCount = 16;
+    uint32_t queueFamilyCount = 0;
     VkQueueFamilyProperties queueFamilyProperties[16];
+    vkGetPhysicalDeviceQueueFamilyProperties(deviceContext.physicalDevice, &queueFamilyCount, nullptr);
+    assert(queueFamilyCount < 16);
     vkGetPhysicalDeviceQueueFamilyProperties(deviceContext.physicalDevice, &queueFamilyCount, queueFamilyProperties);
     VkQueueFlags queueFlags = VK_QUEUE_GRAPHICS_BIT;
     uint32_t familyIndex = 0;
@@ -254,7 +332,42 @@ VkResult createFence(VkDevice &device, VkFence *fence, VkFenceCreateFlags flags)
     };
     return vkCreateFence(device, &createInfo, nullptr, fence);
 }
-VkResult createImageView(DeviceContext& deviceContext,VkImage image,VkFormat format,VkImageView& imageView){
+Image createImage(DeviceContext& deviceContext,uint32_t width,uint32_t height,VkFormat format,VkImageTiling tiling,VkImageUsageFlags usage,VkMemoryPropertyFlags memoryFlags){
+    Image image = {};
+    VkImageCreateInfo imageInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .imageType = VK_IMAGE_TYPE_2D,
+        .format = format,
+        .extent = {width,height,1},
+        .mipLevels = 1,
+        .arrayLayers = 1,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .tiling = tiling,
+        .usage = usage,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .queueFamilyIndexCount = 0,
+        .pQueueFamilyIndices = nullptr,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+    };
+
+    vkCreateImage(deviceContext.device, &imageInfo, nullptr, &image.image);
+    VkMemoryRequirements memRequirements;
+    vkGetImageMemoryRequirements(deviceContext.device, image.image, &memRequirements);
+    uint32_t memoryIndex = getMemoryIndex(deviceContext.physicalDevice, memRequirements, memoryFlags);
+    VkMemoryAllocateInfo allocateInfo = {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .pNext = nullptr,
+        .allocationSize = memRequirements.size,
+        .memoryTypeIndex = memoryIndex
+    };
+    vkAllocateMemory(deviceContext.device, &allocateInfo, nullptr, &image.memory);
+    vkBindImageMemory(deviceContext.device, image.image, image.memory, 0);
+
+    return image;
+}
+VkResult createImageView(DeviceContext& deviceContext,VkImage image,const VkFormat format,const VkImageAspectFlags aspectFlags,VkImageView& imageView){
     VkImageViewCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
         .pNext = nullptr,
@@ -265,7 +378,7 @@ VkResult createImageView(DeviceContext& deviceContext,VkImage image,VkFormat for
         // VK_COMPONENT_SWIZZLE_IDENTITY for all components
         .components = {},
         .subresourceRange = {
-            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .aspectMask = aspectFlags,
             .baseMipLevel = 0,
             .levelCount = 1,
             .baseArrayLayer = 0,
@@ -327,5 +440,7 @@ void cleanupDeviceContext(DeviceContext &deviceContext) {
     vkDestroyCommandPool(deviceContext.device, deviceContext.commandPool, nullptr);
     vkDestroySurfaceKHR(deviceContext.instance, deviceContext.surface, nullptr);
     vkDestroyDevice(deviceContext.device, nullptr);
+    const auto vkDestroyDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(deviceContext.instance, "vkDestroyDebugUtilsMessengerEXT"));
+    vkDestroyDebugUtilsMessengerEXT(deviceContext.instance,deviceContext.debugMessenger,nullptr);
     vkDestroyInstance(deviceContext.instance, nullptr);
 }

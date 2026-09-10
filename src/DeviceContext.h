@@ -4,6 +4,7 @@
 
 #define SELECTED_DEVICE 0
 struct DeviceContext {
+    VkDebugUtilsMessengerEXT debugMessenger;
     VkInstance instance;
     VkPhysicalDevice physicalDevice;
     VkDevice device;
@@ -11,6 +12,10 @@ struct DeviceContext {
     VkQueue graphicsQueue;
     VkCommandPool commandPool;
     uint32_t graphicsFamilyIndex;
+};
+struct Image{
+    VkImage image;
+    VkDeviceMemory memory;
 };
 
 VkResult createInstance(DeviceContext &deviceContext);
@@ -26,7 +31,8 @@ VkResult createSemaphores(VkDevice &device, uint32_t count, VkSemaphore *semapho
 VkResult createSemaphore(VkDevice &device, VkSemaphore *semaphore);
 VkResult createFences(VkDevice &device, uint32_t count, VkFence *fences, VkFenceCreateFlags flags = 0);
 VkResult createFence(VkDevice &device, VkFence *fence, VkFenceCreateFlags flags = 0);
-VkResult createImageView(DeviceContext& deviceContext,VkImage image,VkFormat format,VkImageView& imageView);
+Image createImage(DeviceContext& deviceContext,uint32_t width,uint32_t height,VkFormat format,VkImageTiling tiling,VkImageUsageFlags usage,VkMemoryPropertyFlags memoryFlags);
+VkResult createImageView(DeviceContext& deviceContext,VkImage image,const VkFormat format,const VkImageAspectFlags aspectFlags,VkImageView& imageView);
 uint32_t getMemoryIndex(VkPhysicalDevice &physicalDevice, VkMemoryRequirements requirements, VkMemoryPropertyFlags requiredFlags);
 void copyBuffer(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 void copyBufferToImage(VkCommandBuffer commandBuffer,VkBuffer srcBuffer,VkImage dstImage,uint32_t width,uint32_t height);

@@ -13,6 +13,7 @@ void transitionImageLayout(
     VkPipelineStageFlags2 srcStageMask,
     VkPipelineStageFlags2 dstStageMask,
     VkAccessFlags2 srcAccessMask,
-    VkAccessFlags2 dstAccessMask
+    VkAccessFlags2 dstAccessMask,
+    VkImageAspectFlags aspectFlags
 );
 #endif

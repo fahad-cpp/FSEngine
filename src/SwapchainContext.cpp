@@ -2,14 +2,17 @@
 #include <algorithm>
 #include <climits>
 #include <iostream>
+#include <assert.h>
 void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window) {
     VkSurfaceCapabilitiesKHR surfaceCaps;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(deviceContext.physicalDevice, deviceContext.surface, &surfaceCaps);
 
     // Find correct format
     constexpr uint32_t MAX_SURFACE_FORMATS = 64;
-    uint32_t formatCount = MAX_SURFACE_FORMATS;
+    uint32_t formatCount = 0;
     VkSurfaceFormatKHR availableFormats[MAX_SURFACE_FORMATS];
+    vkGetPhysicalDeviceSurfaceFormatsKHR(deviceContext.physicalDevice, deviceContext.surface, &formatCount, nullptr);
+    assert(formatCount < MAX_SURFACE_FORMATS);
     vkGetPhysicalDeviceSurfaceFormatsKHR(deviceContext.physicalDevice, deviceContext.surface, &formatCount, availableFormats);
 
     for (uint32_t i = 0; i < formatCount; ++i) {
@@ -38,7 +41,7 @@ void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainCo
         }
     }
 
-    FS::RenderState& renderState = window.getRenderState();
+    FS::RenderState &renderState = window.getRenderState();
     uint32_t windowWidth = std::clamp<uint32_t>(renderState.width, surfaceCaps.minImageExtent.width, surfaceCaps.maxImageExtent.width);
     uint32_t windowHeight = std::clamp<uint32_t>(renderState.height, surfaceCaps.minImageExtent.height, surfaceCaps.maxImageExtent.height);
     swapchainContext.extent = (surfaceCaps.currentExtent.width != UINT_MAX) ? surfaceCaps.currentExtent : VkExtent2D{ windowWidth, windowHeight };
@@ -69,11 +72,15 @@ void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainCo
     std::fill_n(swapchainContext.images, MAX_SWAPCHAIN_IMAGES, VK_NULL_HANDLE);
     vkGetSwapchainImagesKHR(deviceContext.device, swapchainContext.swapchain, &swapchainImageCount, swapchainContext.images);
     swapchainContext.imageCount = swapchainImageCount;
+
+    swapchainContext.depth.image = createImage(deviceContext, swapchainContext.extent.width, swapchainContext.extent.height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    createImageView(deviceContext, swapchainContext.depth.image.image, VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT, swapchainContext.depth.imageView);
 }
 void createSwapchainImageViews(DeviceContext &deviceContext, SwapchainContext &swapchainContext) {
     for (uint32_t i = 0; i < swapchainContext.imageCount; ++i) {
         VkImageView imageView = VK_NULL_HANDLE;
-        createImageView(deviceContext, swapchainContext.images[i], swapchainContext.surfaceFormat.format, imageView);
+        createImageView(deviceContext, swapchainContext.images[i], swapchainContext.surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, imageView);
         swapchainContext.imageViews[i] = imageView;
     }
 }
@@ -82,6 +89,9 @@ void initSwapchainContext(DeviceContext &deviceContext, SwapchainContext &swapch
     createSwapchainImageViews(deviceContext, swapchainContext);
 }
 void cleanupSwapchainContext(DeviceContext &deviceContext, SwapchainContext &swapchainContext) {
+    vkDestroyImageView(deviceContext.device, swapchainContext.depth.imageView, nullptr);
+    vkDestroyImage(deviceContext.device, swapchainContext.depth.image.image, nullptr);
+    vkFreeMemory(deviceContext.device, swapchainContext.depth.image.memory, nullptr);
     for (uint32_t i = 0; i < swapchainContext.imageCount; ++i) {
         vkDestroyImageView(deviceContext.device, swapchainContext.imageViews[i], nullptr);
     }
