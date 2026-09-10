@@ -695,7 +695,7 @@ void initMesh(DeviceContext &deviceContext, Mesh &mesh, OBJModel &model) {
     mesh.indexCount = static_cast<uint32_t>(model.indices.size());
     createVertexBuffer(deviceContext, model.vertices.data(), mesh.vertexCount, mesh.vertexBuffer);
     createIndexBuffer(deviceContext, model.indices.data(), mesh.indexCount, mesh.indexBuffer);
-    createTexture(deviceContext, "textures/statue.jpg", mesh.texture);
+    createTexture(deviceContext, "textures/viking_room.png", mesh.texture);
 }
 void cleanupMesh(DeviceContext &deviceContext, Mesh &mesh) {
     cleanupTexture(deviceContext, mesh.texture);

@@ -1,20 +1,23 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "Model.h"
+#include "Timer.h"
+#include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <random>
-#include <cstdio>
-#include "Timer.h"
-OBJModel loadOBJ(const std::string& filename){
+
+struct OBJIndex {
+    uint32_t position;
+    uint32_t texture;
+    uint32_t normal;
+};
+OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
     Timer timer;
     startTimer(timer);
-    std::vector<Vertex> vertices = {};
-    std::vector<uint32_t> indices = {};
-    std::random_device rd;
-    std::mt19937 engine(static_cast<std::mt19937>(rd()));
-    std::uniform_real_distribution<float> dist(0.f,1.f);
-    
+    OBJModel mesh;
+    std::vector<Vector3> positions = {};
+    std::vector<Vector2> texcoords = {};
+    std::vector<OBJIndex> objIndices = {};
 
     std::ifstream OBJFile(filename, std::ios::binary | std::ios::ate);
     if (!OBJFile) {
@@ -41,34 +44,36 @@ OBJModel loadOBJ(const std::string& filename){
         if (ptr[0] == 'v' && (ptr[1] == ' ' || ptr[1] == '\t')) {
             float x = 0, y = 0, z = 0;
             std::sscanf(line.c_str(), "v %f %f %f", &x, &y, &z);
-            Vector3 vertex = {x,y,z};
-            // Vector3 color = {dist(engine),dist(engine),dist(engine)};
-            Vector3 color;
-            float randomvalue = dist(engine);
-            if(randomvalue <= 0.33f){
-                color = {1.f,0.f,0.f};
-            }else if(randomvalue <= 0.67f){
-                color = {0.f,1.f,0.f};
-            }else{
-                color = {0.f,0.f,1.f};
+            Vector3 position = {};
+            if (flipYZ) {
+                position = { x, z, -y };
+            } else {
+                position = { x, y, z };
             }
-            vertices.emplace_back(vertex,color);
+            positions.emplace_back(position);
         } else if (ptr[0] == 'v' && ptr[1] == 't' && (ptr[2] == ' ' || ptr[2] == '\t')) {
+            float u = 0.f, v = 0.f, w = 0.f;
+            if (std::sscanf(line.c_str(), "vt %f %f %f", &u, &v, &w) != 2) {
+                std::cerr << "Unhandled texture coordinates : loadOBJ()\n";
+                return {};
+            }
+            Vector2 tex = { u, 1.f - v };
+            texcoords.push_back(tex);
             // handle textures
         } else if (ptr[0] == 'v' && ptr[1] == 'n' && (ptr[2] == ' ' || ptr[2] == '\t')) {
-            //handle normals
+            // handle normals
         } else if (ptr[0] == 'f' && (ptr[1] == ' ' || ptr[1] == '\t')) {
             std::istringstream stream(line.c_str() + 1);
-            std::vector<uint32_t> faceIndices;
+            std::vector<OBJIndex> faceIndices;
             faceIndices.reserve(3);
             std::string vertex;
             // Handle arbitrary amount of vertices in a face
             while (stream >> vertex) {
-                int v, t, n;
+                int v = 0, t = 0, n = 0;
                 if (std::sscanf(vertex.c_str(), "%d/%d/%d", &v, &t, &n) == 3) {
-                    faceIndices.emplace_back(v - 1);
+                    faceIndices.emplace_back(v - 1, t - 1, n - 1);
                 } else if (std::sscanf(vertex.c_str(), "%d//%d", &v, &n) == 2) {
-                    faceIndices.emplace_back(v - 1);
+                    faceIndices.emplace_back(v - 1, 0, n - 1);
                 } else {
                     std::cerr << "Unsupported face format :" << filename << "\n";
                     std::cerr << "Encountered:" + vertex;
@@ -82,23 +87,38 @@ OBJModel loadOBJ(const std::string& filename){
 
             // Use TRIANGLE_FAN ordering
             for (std::size_t i = 2; i < faceIndices.size(); i++) {
-                indices.emplace_back(faceIndices[0]);
-                indices.emplace_back(faceIndices[i-1]);
-                indices.emplace_back(faceIndices[i]);
+                objIndices.emplace_back(faceIndices[0]);
+                objIndices.emplace_back(faceIndices[i - 1]);
+                objIndices.emplace_back(faceIndices[i]);
             }
         }
 
-        //skip until EOF or newline
+        // skip until EOF or newline
         while ((*ptr != '\0') && *ptr != '\n')
             ptr++;
-        //skip newline
+        // skip newline
         if (*ptr == '\n')
             ptr++;
     }
-    OBJModel mesh = {
-        vertices,
-        indices
-    };
+
+    // structure obj into unique vertices and indices
+    std::vector<OBJIndex> uniqueIndices;
+    uint32_t uniqueCount = 0;
+    for (uint32_t i = 0; i < objIndices.size(); i++) {
+        const OBJIndex index = objIndices[i];
+        const auto it = std::find_if(uniqueIndices.begin(), uniqueIndices.end(), [&index](const OBJIndex &objindex) {
+            return ((objindex.position == index.position) && (objindex.texture == index.texture)); // && (objindex.normal == index.normal));
+        });
+        if (it == uniqueIndices.end()) {
+            mesh.vertices.emplace_back(positions[index.position], Vector3{ 1.f, 1.f, 1.f }, texcoords[index.texture]);
+            uniqueIndices.push_back(index);
+            mesh.indices.push_back(uniqueCount);
+            uniqueCount++;
+        } else {
+            uint32_t foundIndex = static_cast<uint32_t>(std::distance(uniqueIndices.begin(), it));
+            mesh.indices.push_back(foundIndex);
+        }
+    }
     endTimer(timer);
     std::cout << "Succesfully loaded model:" << filename << " : " << timer.diff / 1000.f << " ms\n";
     return mesh;

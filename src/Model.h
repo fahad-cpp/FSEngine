@@ -14,5 +14,5 @@ struct OBJModel{
     std::vector<uint32_t> indices;
 };
 
-OBJModel loadOBJ(const std::string& filepath);
+OBJModel loadOBJ(const std::string& filepath,bool flipYZ=false);
 #endif
