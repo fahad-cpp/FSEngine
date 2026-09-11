@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <assert.h>
 #include <climits>
-#include <iostream>
+#include "../Logging.h"
 
 void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window) {
     VkSurfaceCapabilitiesKHR surfaceCaps;
@@ -91,8 +91,7 @@ void initSwapchainContext(DeviceContext &deviceContext, SwapchainContext &swapch
 }
 void cleanupSwapchainContext(DeviceContext &deviceContext, SwapchainContext &swapchainContext) {
     vkDestroyImageView(deviceContext.device, swapchainContext.depth.imageView, nullptr);
-    vkDestroyImage(deviceContext.device, swapchainContext.depth.image.image, nullptr);
-    vkFreeMemory(deviceContext.device, swapchainContext.depth.image.memory, nullptr);
+    cleanupImage(deviceContext, swapchainContext.depth.image);
     for (uint32_t i = 0; i < swapchainContext.imageCount; ++i) {
         vkDestroyImageView(deviceContext.device, swapchainContext.imageViews[i], nullptr);
     }
@@ -102,8 +101,8 @@ void cleanupSwapchainContext(DeviceContext &deviceContext, SwapchainContext &swa
 void recreateSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window) {
     vkDeviceWaitIdle(deviceContext.device);
     FS::RenderState &renderState = window.getRenderState();
-    while (renderState.width <= 0 || renderState.height <= 0) {
-        std::cout << "Window is minimized, waiting...";
+    while (renderState.width == 0 || renderState.height == 0) {
+        LOG_INFO("Window is minimized, waiting...");
         window.processMessages();
     }
     cleanupSwapchainContext(deviceContext, swapchainContext);

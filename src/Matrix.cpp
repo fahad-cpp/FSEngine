@@ -1,7 +1,7 @@
 #include "Matrix.h"
+#include "Logging.h"
 #include <cmath>
 #include <numbers>
-#include <iostream>
 #include <cstdint>
 Matrix4 unitMatrix4(float scale){
     return {{
@@ -58,7 +58,8 @@ Matrix4 rotate(const Matrix4 matrix, const float angle, const Vector3 axis) {
             { 0, 0       ,  0       , 1 }
         }};
     }else{
-        std::cerr << "Unhandled axis rotation\n";
+        LOG_ERROR("Unhandled axis rotation");
+        return matrix;
     }
     return multMat4Mat4(rotationMatrix,matrix);
 }

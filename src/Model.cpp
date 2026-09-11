@@ -3,7 +3,6 @@
 #include "Timer.h"
 #include <cstdio>
 #include <fstream>
-#include <iostream>
 #include <sstream>
 
 struct OBJIndex {
@@ -22,7 +21,7 @@ OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
 
     std::ifstream OBJFile(filename, std::ios::binary | std::ios::ate);
     if (!OBJFile) {
-        std::cerr << "Cannot open file " << filename << "\n";
+        LOG_ERROR("Cannot open file " << filename);
         return {};
     }
 
@@ -44,7 +43,7 @@ OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
 
         if (ptr[0] == 'v' && (ptr[1] == ' ' || ptr[1] == '\t')) {
             float x = 0, y = 0, z = 0;
-            if(std::sscanf(line.c_str(), "v %f %f %f", &x, &y, &z) != 3){
+            if (std::sscanf(line.c_str(), "v %f %f %f", &x, &y, &z) != 3) {
                 LOG_ERROR("Unhandled vertex positions");
                 return {};
             }
@@ -65,7 +64,7 @@ OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
             texcoords.push_back(tex);
         } else if (ptr[0] == 'v' && ptr[1] == 'n' && (ptr[2] == ' ' || ptr[2] == '\t')) {
             float x = 0.f, y = 0.f, z = 0.f;
-            if(std::sscanf(line.c_str(),"vn %f %f %f",&x, &y, &z) != 3){
+            if (std::sscanf(line.c_str(), "vn %f %f %f", &x, &y, &z) != 3) {
                 LOG_ERROR("Invalid normals");
                 return {};
             }
@@ -89,13 +88,13 @@ OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
                 } else if (std::sscanf(vertex.c_str(), "%d//%d", &v, &n) == 2) {
                     faceIndices.emplace_back(v - 1, 0, n - 1);
                 } else {
-                    std::cerr << "Unsupported face format :" << filename << "\n";
-                    std::cerr << "Encountered:" + vertex;
+                    LOG_ERROR("Unsupported face format :" << filename);
+                    LOG_ERROR("Encountered:" + vertex);
                     return {};
                 }
             }
             if (faceIndices.size() < 3) {
-                std::cerr << "Less than 3 points in face: " << filename << "\n";
+                LOG_ERROR("Less than 3 points in face: " << filename);
                 return {};
             }
 
@@ -134,6 +133,6 @@ OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
         }
     }
     endTimer(timer);
-    std::cout << "Succesfully loaded model:" << filename << " : " << timer.diff / 1000.f << " ms\n";
+    LOG_INFO("Succesfully loaded model:" << filename << " : " << timer.diff / 1000.f << " ms");
     return mesh;
 }

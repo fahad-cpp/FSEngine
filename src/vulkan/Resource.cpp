@@ -57,8 +57,7 @@ Buffer createVertexBuffer(DeviceContext &deviceContext, const Vertex *vertices, 
     copyBuffer(commandBuffer, stagingBuffer.buffer, vertexBuffer.buffer, bufferSize);
     endOneTimeCommandBuffer(deviceContext, commandBuffer);
 
-    vkDestroyBuffer(deviceContext.device, stagingBuffer.buffer, nullptr);
-    vkFreeMemory(deviceContext.device, stagingBuffer.memory, nullptr);
+    cleanupBuffer(deviceContext, stagingBuffer);
     return vertexBuffer;
 }
 Buffer createIndexBuffer(DeviceContext &deviceContext, const uint32_t *indices, uint32_t indexCount) {
@@ -80,8 +79,7 @@ Buffer createIndexBuffer(DeviceContext &deviceContext, const uint32_t *indices, 
     copyBuffer(commandBuffer, stagingBuffer.buffer, indexBuffer.buffer, bufferSize);
     endOneTimeCommandBuffer(deviceContext, commandBuffer);
 
-    vkDestroyBuffer(deviceContext.device, stagingBuffer.buffer, nullptr);
-    vkFreeMemory(deviceContext.device, stagingBuffer.memory, nullptr);
+    cleanupBuffer(deviceContext, stagingBuffer);
     return indexBuffer;
 }
 Buffer createUniformBuffer(DeviceContext &deviceContext, void **pMapped) {
@@ -224,8 +222,7 @@ Texture createTexture(DeviceContext &deviceContext, const std::string &filepath)
         VK_IMAGE_ASPECT_COLOR_BIT);
     endOneTimeCommandBuffer(deviceContext, commandBuffer);
 
-    vkDestroyBuffer(deviceContext.device, stagingBuffer.buffer, nullptr);
-    vkFreeMemory(deviceContext.device, stagingBuffer.memory, nullptr);
+    cleanupBuffer(deviceContext, stagingBuffer);
 
     texture.imageView = createImageView(deviceContext, texture.image.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
     texture.sampler = createTextureSampler(deviceContext);
@@ -233,8 +230,7 @@ Texture createTexture(DeviceContext &deviceContext, const std::string &filepath)
 }
 void cleanupTexture(DeviceContext &deviceContext, Texture &texture) {
     vkDestroySampler(deviceContext.device, texture.sampler, nullptr);
-    vkDestroyImage(deviceContext.device, texture.image.image, nullptr);
-    vkFreeMemory(deviceContext.device, texture.image.memory, nullptr);
+    cleanupImage(deviceContext, texture.image);
     vkDestroyImageView(deviceContext.device, texture.imageView, nullptr);
 }
 Mesh createMesh(DeviceContext &deviceContext, OBJModel &model) {
@@ -250,12 +246,10 @@ void cleanupMesh(DeviceContext &deviceContext, Mesh &mesh) {
     cleanupTexture(deviceContext, mesh.texture);
 
     if (mesh.vertexBuffer.buffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(deviceContext.device, mesh.vertexBuffer.buffer, nullptr);
-        vkFreeMemory(deviceContext.device, mesh.vertexBuffer.memory, nullptr);
+        cleanupBuffer(deviceContext, mesh.vertexBuffer);
     }
 
     if (mesh.indexBuffer.buffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(deviceContext.device, mesh.indexBuffer.buffer, nullptr);
-        vkFreeMemory(deviceContext.device, mesh.indexBuffer.memory, nullptr);
+        cleanupBuffer(deviceContext, mesh.indexBuffer);
     }
 }

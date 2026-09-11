@@ -570,8 +570,7 @@ void cleanupVulkanRenderer(DeviceContext &deviceContext, VulkanRenderer &rendere
         FrameData &frame = renderer.frames[i];
         vkUnmapMemory(deviceContext.device, frame.uniformBuffer.memory);
         frame.uniformBufferMapping = nullptr;
-        vkDestroyBuffer(deviceContext.device, frame.uniformBuffer.buffer, nullptr);
-        vkFreeMemory(deviceContext.device, frame.uniformBuffer.memory, nullptr);
+        cleanupBuffer(deviceContext, frame.uniformBuffer);
         vkDestroyFence(deviceContext.device, frame.drawFence, nullptr);
         vkDestroySemaphore(deviceContext.device, frame.imageAcquireSemaphore, nullptr);
     }
