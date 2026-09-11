@@ -1,9 +1,9 @@
-#define STB_IMAGE_IMPLEMENTATION
 #include "Renderer.h"
-#include "Utilities.h"
-#include <cstring>
-#include <iostream>
-#include <stb_image.h>
+#include "../Utilities.h"
+#include "VulkanUtils.h"
+#include <array>
+#include <chrono> // IWYU pragma: keep
+
 
 VkShaderModule createShaderModule(VkDevice &device, const std::vector<char> &code) {
     VkShaderModuleCreateInfo shaderModuleCreateInfo = {
@@ -140,7 +140,7 @@ std::array<VkVertexInputAttributeDescription, 3> getAttributeDescription() {
             .location = 1,
             .binding = 0,
             .format = VK_FORMAT_R32G32B32_SFLOAT,
-            .offset = offsetof(Vertex, color) },
+            .offset = offsetof(Vertex, normal) },
         VkVertexInputAttributeDescription{
             .location = 2,
             .binding = 0,
@@ -331,171 +331,18 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
     vkCreateGraphicsPipelines(deviceContext.device, nullptr, 1, &graphicsPipelineInfo, nullptr, &pipeline.pipeline);
     vkDestroyShaderModule(deviceContext.device, module, nullptr);
 }
-Buffer createBuffer(DeviceContext &deviceContext, VkBufferUsageFlags usage, VkDeviceSize size, VkMemoryPropertyFlags memoryProperty) {
-    Buffer buffer = {};
-    VkBufferCreateInfo createInfo = {
-        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .size = size,
-        .usage = usage,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        .queueFamilyIndexCount = 0,
-        .pQueueFamilyIndices = nullptr
-    };
-    vkCreateBuffer(deviceContext.device, &createInfo, nullptr, &buffer.buffer);
 
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(deviceContext.device, buffer.buffer, &memRequirements);
-
-    uint32_t memoryIndex = getMemoryIndex(deviceContext.physicalDevice, memRequirements, memoryProperty);
-    VkMemoryAllocateInfo memoryAllocateInfo = {
-        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-        .pNext = nullptr,
-        .allocationSize = memRequirements.size,
-        .memoryTypeIndex = memoryIndex
-    };
-    vkAllocateMemory(deviceContext.device, &memoryAllocateInfo, nullptr, &buffer.memory);
-    vkBindBufferMemory(deviceContext.device, buffer.buffer, buffer.memory, 0);
-
-    return buffer;
-}
-void createTextureSampler(DeviceContext &deviceContext, VkSampler &sampler) {
-    VkPhysicalDeviceProperties physicalDeviceProperties;
-    vkGetPhysicalDeviceProperties(deviceContext.physicalDevice, &physicalDeviceProperties);
-    VkSamplerCreateInfo samplerCreateInfo = {
-        .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .magFilter = VK_FILTER_LINEAR,
-        .minFilter = VK_FILTER_LINEAR,
-        .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-        .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-        .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-        .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-        .mipLodBias = 0.f,
-        .anisotropyEnable = VK_TRUE,
-        .maxAnisotropy = physicalDeviceProperties.limits.maxSamplerAnisotropy,
-        .compareEnable = VK_FALSE,
-        .compareOp = VK_COMPARE_OP_ALWAYS,
-        .minLod = 0.f,
-        .maxLod = 0.f,
-        .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
-        .unnormalizedCoordinates = VK_FALSE
-    };
-    vkCreateSampler(deviceContext.device, &samplerCreateInfo, nullptr, &sampler);
-}
-void createTexture(DeviceContext &deviceContext, const std::string &filepath, Texture &texture) {
-    int texWidth, texHeight, texChannels;
-    stbi_uc *pixels = stbi_load(filepath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    VkDeviceSize imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * 4);
-
-    if (!pixels) {
-        std::cerr << "Failed to load texture: " << filepath << "\n";
-    }
-
-    Buffer stagingBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, imageSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-    void *data = nullptr;
-    vkMapMemory(deviceContext.device, stagingBuffer.memory, 0, imageSize, 0, &data);
-    std::memcpy(data, pixels, imageSize);
-    vkUnmapMemory(deviceContext.device, stagingBuffer.memory);
-
-    stbi_image_free(pixels);
-
-    texture.image = createImage(deviceContext, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    VkCommandBuffer commandBuffer = startOneTimeCommandBuffer(deviceContext);
-    transitionImageLayout(
-        texture.image.image,
-        commandBuffer,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
-        VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-        VK_ACCESS_2_NONE,
-        VK_ACCESS_2_TRANSFER_WRITE_BIT,
-        VK_IMAGE_ASPECT_COLOR_BIT);
-    copyBufferToImage(commandBuffer, stagingBuffer.buffer, texture.image.image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-    transitionImageLayout(
-        texture.image.image,
-        commandBuffer,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-        VK_ACCESS_2_TRANSFER_WRITE_BIT,
-        VK_ACCESS_2_SHADER_READ_BIT,
-        VK_IMAGE_ASPECT_COLOR_BIT);
-    endOneTimeCommandBuffer(deviceContext, commandBuffer);
-
-    vkDestroyBuffer(deviceContext.device, stagingBuffer.buffer, nullptr);
-    vkFreeMemory(deviceContext.device, stagingBuffer.memory, nullptr);
-
-    createImageView(deviceContext, texture.image.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, texture.imageView);
-    createTextureSampler(deviceContext, texture.sampler);
-}
-void cleanupTexture(DeviceContext &deviceContext, Texture &texture) {
-    vkDestroySampler(deviceContext.device, texture.sampler, nullptr);
-    vkDestroyImage(deviceContext.device, texture.image.image, nullptr);
-    vkFreeMemory(deviceContext.device, texture.image.memory, nullptr);
-    vkDestroyImageView(deviceContext.device, texture.imageView, nullptr);
-}
-void createVertexBuffer(DeviceContext &deviceContext, const Vertex *vertices, uint32_t vertexCount, Buffer &vertexBuffer) {
-    if (vertexCount == 0) {
-        return;
-    }
-    std::size_t bufferSize = sizeof(vertices[0]) * vertexCount;
-    Buffer stagingBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, bufferSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-
-    void *data = nullptr;
-    vkMapMemory(deviceContext.device, stagingBuffer.memory, 0, bufferSize, 0, &data);
-    std::memcpy(data, vertices, bufferSize);
-    vkUnmapMemory(deviceContext.device, stagingBuffer.memory);
-
-    vertexBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, bufferSize, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    VkCommandBuffer commandBuffer = startOneTimeCommandBuffer(deviceContext);
-    copyBuffer(commandBuffer, stagingBuffer.buffer, vertexBuffer.buffer, bufferSize);
-    endOneTimeCommandBuffer(deviceContext, commandBuffer);
-
-    vkDestroyBuffer(deviceContext.device, stagingBuffer.buffer, nullptr);
-    vkFreeMemory(deviceContext.device, stagingBuffer.memory, nullptr);
-}
-void createIndexBuffer(DeviceContext &deviceContext, const uint32_t *indices, uint32_t indexCount, Buffer &indexBuffer) {
-    if (indexCount == 0) {
-        return;
-    }
-    std::size_t bufferSize = sizeof(indices[0]) * indexCount;
-    Buffer stagingBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, bufferSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-
-    void *data = nullptr;
-    vkMapMemory(deviceContext.device, stagingBuffer.memory, 0, bufferSize, 0, &data);
-    std::memcpy(data, indices, bufferSize);
-    vkUnmapMemory(deviceContext.device, stagingBuffer.memory);
-
-    indexBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, bufferSize, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    VkCommandBuffer commandBuffer = startOneTimeCommandBuffer(deviceContext);
-    copyBuffer(commandBuffer, stagingBuffer.buffer, indexBuffer.buffer, bufferSize);
-    endOneTimeCommandBuffer(deviceContext, commandBuffer);
-
-    vkDestroyBuffer(deviceContext.device, stagingBuffer.buffer, nullptr);
-    vkFreeMemory(deviceContext.device, stagingBuffer.memory, nullptr);
-}
-void createUniformBuffer(DeviceContext &deviceContext, Buffer &uniformBuffer, void **pMapped) {
-    std::size_t bufferSize = sizeof(UniformBufferData);
-
-    uniformBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, bufferSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-    *pMapped = nullptr;
-    vkMapMemory(deviceContext.device, uniformBuffer.memory, 0, bufferSize, 0, &*pMapped);
-}
 void updateUniformBuffer(FrameData &frame, SwapchainContext &swapchainContext) {
-    // static auto startTime = std::chrono::high_resolution_clock::now();
-    // auto currentTime = std::chrono::high_resolution_clock::now();
-    // float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+#if 0
+    static auto startTime = std::chrono::high_resolution_clock::now();
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+#else
+    float time = -1.f;
+#endif
     float aspectRatio = static_cast<float>(swapchainContext.extent.width) / static_cast<float>(swapchainContext.extent.height);
     UniformBufferData uboData = {};
-    uboData.model = rotate(unitMatrix4(1.f),-1.f * radians(90),Vector3{0.f,1.f,0.f});
+    uboData.model = rotate(unitMatrix4(1.f), time * radians(90), Vector3{ 0.f, 1.f, 0.f });
     uboData.view = lookAt(Vector3{ 2.f, 2.f, 2.f }, Vector3{ 0.f, 0.f, 0.f }, Vector3{ 0.f, 1.f, 0.f });
     uboData.projection = perspective(radians(45.f), aspectRatio, 0.1f, 10.f);
     uboData.projection.values[1][1] *= -1;
@@ -523,9 +370,8 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
         VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
         VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
         VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_ASPECT_DEPTH_BIT
-    );
-    
+        VK_IMAGE_ASPECT_DEPTH_BIT);
+
     transitionImageLayout(
         image,
         frameData.commandBuffer,
@@ -535,11 +381,10 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
         VK_ACCESS_2_NONE,
         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_ASPECT_COLOR_BIT
-    );
+        VK_IMAGE_ASPECT_COLOR_BIT);
 
     static const VkClearValue clearColor = { .color = VkClearColorValue{ { 0.01f, 0.02f, 0.05f, 1.f } } };
-    static const VkClearValue clearDepth = { .depthStencil = VkClearDepthStencilValue{ 1.f, 0} };
+    static const VkClearValue clearDepth = { .depthStencil = VkClearDepthStencilValue{ 1.f, 0 } };
     VkRenderingAttachmentInfo colorAttachmentInfo = {
         .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
         .pNext = nullptr,
@@ -620,12 +465,11 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
         VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
         VK_ACCESS_2_NONE,
-        VK_IMAGE_ASPECT_COLOR_BIT
-    );
+        VK_IMAGE_ASPECT_COLOR_BIT);
 
     vkEndCommandBuffer(frameData.commandBuffer);
 }
-void drawFrame(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, Renderer &renderer, Mesh &mesh) {
+void drawFrame(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer, Mesh &mesh) {
 
     FS::RenderState &renderState = window.getRenderState();
     bool windowMinimized = (renderState.width <= 0) || (renderState.height <= 0);
@@ -689,27 +533,7 @@ void cleanupPipeline(DeviceContext &deviceContext, GraphicsPipeline &pipeline) {
     vkDestroyPipeline(deviceContext.device, pipeline.pipeline, nullptr);
     vkDestroyPipelineLayout(deviceContext.device, pipeline.pipelineLayout, nullptr);
 }
-void initMesh(DeviceContext &deviceContext, Mesh &mesh, OBJModel &model) {
-    mesh.vertexCount = static_cast<uint32_t>(model.vertices.size());
-    mesh.indexCount = static_cast<uint32_t>(model.indices.size());
-    createVertexBuffer(deviceContext, model.vertices.data(), mesh.vertexCount, mesh.vertexBuffer);
-    createIndexBuffer(deviceContext, model.indices.data(), mesh.indexCount, mesh.indexBuffer);
-    createTexture(deviceContext, "textures/viking_room.png", mesh.texture);
-}
-void cleanupMesh(DeviceContext &deviceContext, Mesh &mesh) {
-    cleanupTexture(deviceContext, mesh.texture);
-
-    if (mesh.vertexBuffer.buffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(deviceContext.device, mesh.vertexBuffer.buffer, nullptr);
-        vkFreeMemory(deviceContext.device, mesh.vertexBuffer.memory, nullptr);
-    }
-
-    if (mesh.indexBuffer.buffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(deviceContext.device, mesh.indexBuffer.buffer, nullptr);
-        vkFreeMemory(deviceContext.device, mesh.indexBuffer.memory, nullptr);
-    }
-}
-void initRenderer(DeviceContext &deviceContext, SwapchainContext &swapchainContext, Renderer &renderer, Mesh &mesh) {
+void initVulkanRenderer(DeviceContext &deviceContext, SwapchainContext &swapchainContext, VulkanRenderer &renderer, Mesh &mesh) {
 
     createSemaphores(deviceContext.device, MAX_SWAPCHAIN_IMAGES, renderer.renderFinishedSemaphores);
 
@@ -720,7 +544,7 @@ void initRenderer(DeviceContext &deviceContext, SwapchainContext &swapchainConte
 
         FrameData &frame = renderer.frames[i];
 
-        createUniformBuffer(deviceContext, frame.uniformBuffer, &frame.uniformBufferMapping);
+        frame.uniformBuffer = createUniformBuffer(deviceContext, &frame.uniformBufferMapping);
 
         frame.commandBuffer = commandBuffers[i];
 
@@ -732,7 +556,7 @@ void initRenderer(DeviceContext &deviceContext, SwapchainContext &swapchainConte
     createDescriptorPool(deviceContext, renderer.pipeline);
     createDescriptorSets(deviceContext, renderer.pipeline, renderer.frames, mesh);
 }
-void cleanupRenderer(DeviceContext &deviceContext, Renderer &renderer) {
+void cleanupVulkanRenderer(DeviceContext &deviceContext, VulkanRenderer &renderer) {
 
     vkDestroyDescriptorPool(deviceContext.device, renderer.pipeline.descriptorPool, nullptr);
     cleanupPipeline(deviceContext, renderer.pipeline);

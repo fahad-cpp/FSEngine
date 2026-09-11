@@ -6,7 +6,7 @@
 #include <cstdint>
 struct Vertex {
     Vector3 pos;
-    Vector3 color;
+    Vector3 normal;
     Vector2 texCoord;
 };
 

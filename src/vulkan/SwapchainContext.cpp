@@ -1,8 +1,9 @@
 #include "SwapchainContext.h"
 #include <algorithm>
+#include <assert.h>
 #include <climits>
 #include <iostream>
-#include <assert.h>
+
 void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window) {
     VkSurfaceCapabilitiesKHR surfaceCaps;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(deviceContext.physicalDevice, deviceContext.surface, &surfaceCaps);
@@ -75,12 +76,12 @@ void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainCo
 
     swapchainContext.depth.image = createImage(deviceContext, swapchainContext.extent.width, swapchainContext.extent.height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    createImageView(deviceContext, swapchainContext.depth.image.image, VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT, swapchainContext.depth.imageView);
+    swapchainContext.depth.imageView = createImageView(deviceContext, swapchainContext.depth.image.image, VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 void createSwapchainImageViews(DeviceContext &deviceContext, SwapchainContext &swapchainContext) {
     for (uint32_t i = 0; i < swapchainContext.imageCount; ++i) {
         VkImageView imageView = VK_NULL_HANDLE;
-        createImageView(deviceContext, swapchainContext.images[i], swapchainContext.surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, imageView);
+        imageView = createImageView(deviceContext, swapchainContext.images[i], swapchainContext.surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT);
         swapchainContext.imageViews[i] = imageView;
     }
 }

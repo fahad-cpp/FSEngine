@@ -1,49 +1,50 @@
 #include "DeviceContext.h"
+#include "../Logging.h"
 #include <array>
-#include <string>
 #include <assert.h>
-static std::string getDebugMessageTypeString(const VkDebugUtilsMessageTypeFlagsEXT messageType){
-    if(messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT){
+#include <string>
+
+static std::string getDebugMessageTypeString(const VkDebugUtilsMessageTypeFlagsEXT messageType) {
+    if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT) {
         return "General";
-    }else if(messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT){
+    } else if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT) {
         return "Performance";
-    }else if(messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT){
+    } else if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT) {
         return "Validation";
-    }else if(messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT){
+    } else if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT) {
         return "Address Binding";
     }
     return "InvalidType";
 }
-static VKAPI_ATTR VkBool32 VKAPI_CALL 
+static VKAPI_ATTR VkBool32 VKAPI_CALL
 debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
-    [[maybe_unused]] void* pUserData
-){
-    const char* severity = "";
-    if(messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT){
+    const VkDebugUtilsMessengerCallbackDataEXT *callbackData,
+    [[maybe_unused]] void *pUserData) {
+    const char *severity = "";
+    if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
         severity = "VERBOSE";
-    }else if(messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT){
+    } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
         severity = "ERROR";
-    }else if(messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT){
+    } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
         severity = "WARN";
-    }else if(messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT){
+    } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
         severity = "INFO";
     }
 
     std::string typeString = getDebugMessageTypeString(messageType);
-    std::fprintf(stderr,"[VULKAN %s (%s)]:\n%s\n\n",severity,typeString.c_str(),callbackData->pMessage);
+    std::fprintf(stderr, "[VULKAN %s (%s)]:\n%s\n\n", severity, typeString.c_str(), callbackData->pMessage);
 
     return VK_FALSE;
 }
-VkResult createInstance(DeviceContext &deviceContext) {
-    // TODO: check for layers support
-    #ifdef _DEBUG
+VkInstance createInstance(DeviceContext &deviceContext) {
+// TODO: check for layers support
+#ifdef _DEBUG
     const char *instanceLayers[] = {
         "VK_LAYER_KHRONOS_validation"
     };
-    #endif
+#endif
 
     const char *instanceExtensions[] = {
         VK_KHR_SURFACE_EXTENSION_NAME,
@@ -56,7 +57,7 @@ VkResult createInstance(DeviceContext &deviceContext) {
     };
 
     // Application Info
-    VkApplicationInfo applicationInfo = {
+    const VkApplicationInfo applicationInfo = {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
         .pNext = nullptr,
         .pApplicationName = "MyApp",
@@ -66,34 +67,33 @@ VkResult createInstance(DeviceContext &deviceContext) {
         .apiVersion = VK_MAKE_API_VERSION(0, 1, 4, 0)
     };
 
-    VkValidationFeatureEnableEXT features[] = {
+    const VkValidationFeatureEnableEXT features[] = {
         // VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
         VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,
         // VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
         // VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT
     };
 
-    
-    VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfo = {
+    const VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
         .pNext = nullptr,
         .flags = 0,
-        .messageSeverity = 
-        // VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-        // VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | 
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | 
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT, 
-        
-        .messageType = 
-        // VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | 
-        // VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
+        .messageSeverity =
+            // VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+            // VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+
+        .messageType =
+            // VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+            // VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
-        
+
         .pfnUserCallback = debugCallback,
         .pUserData = nullptr
     };
-    
-    VkValidationFeaturesEXT validationFeatures = {
+
+    const VkValidationFeaturesEXT validationFeatures = {
         .sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
         .pNext = &debugUtilsMessengerCreateInfo,
         .enabledValidationFeatureCount = static_cast<uint32_t>(std::size(features)),
@@ -102,38 +102,77 @@ VkResult createInstance(DeviceContext &deviceContext) {
         .pDisabledValidationFeatures = nullptr
     };
 
-    VkInstanceCreateInfo instanceCreateInfo = {
+    const VkInstanceCreateInfo instanceCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
         .pNext = &validationFeatures,
         .flags = 0,
         .pApplicationInfo = &applicationInfo,
-        #ifdef _DEBUG
+#ifdef _DEBUG
         .enabledLayerCount = sizeof(instanceLayers) / sizeof(instanceLayers[0]),
         .ppEnabledLayerNames = instanceLayers,
-        #else
+#else
         .enabledLayerCount = 0,
         .ppEnabledLayerNames = nullptr,
-        #endif
+#endif
         .enabledExtensionCount = sizeof(instanceExtensions) / sizeof(instanceExtensions[0]),
         .ppEnabledExtensionNames = instanceExtensions
     };
 
     // Create the Instance
-    VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &deviceContext.instance);
-    const auto vkCreateDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(deviceContext.instance, "vkCreateDebugUtilsMessengerEXT"));
-    vkCreateDebugUtilsMessengerEXT(deviceContext.instance, &debugUtilsMessengerCreateInfo, nullptr, &deviceContext.debugMessenger);
-    return result;
+    VkInstance instance = VK_NULL_HANDLE;
+    VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
+    if (result != VK_SUCCESS) {
+        LOG_ERROR("Failed to create instance " << result);
+        return VK_NULL_HANDLE;
+    }
+    const auto vkCreateDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
+    vkCreateDebugUtilsMessengerEXT(instance, &debugUtilsMessengerCreateInfo, nullptr, &deviceContext.debugMessenger);
+    return instance;
 }
-VkResult getPhysicalDevice(DeviceContext &deviceContext) {
+VkPhysicalDevice getPhysicalDevice(DeviceContext &deviceContext) {
     // Enumerate Device
     uint32_t physicalDeviceCount = 16;
     VkPhysicalDevice physicalDevices[16];
     VkResult result = vkEnumeratePhysicalDevices(deviceContext.instance, &physicalDeviceCount, physicalDevices);
-    // Select a device
-    deviceContext.physicalDevice = physicalDevices[SELECTED_DEVICE];
-    return result;
+    if (result != VK_SUCCESS) {
+        LOG_ERROR("Failed to select physical device " << result);
+        return VK_NULL_HANDLE;
+    }
+
+    return physicalDevices[SELECTED_DEVICE];
 }
-VkResult createDevice(DeviceContext &deviceContext) {
+uint32_t getQueueFamilyIndex(DeviceContext &deviceContext, VkQueueFlags queueFlags) {
+    uint32_t queueFamilyCount = 0;
+    VkQueueFamilyProperties queueFamilyProperties[16];
+    vkGetPhysicalDeviceQueueFamilyProperties(deviceContext.physicalDevice, &queueFamilyCount, nullptr);
+    assert(queueFamilyCount < 16);
+    vkGetPhysicalDeviceQueueFamilyProperties(deviceContext.physicalDevice, &queueFamilyCount, queueFamilyProperties);
+    uint32_t familyIndex = 0;
+    for (uint32_t i = 0; i < queueFamilyCount; ++i) {
+        if ((queueFamilyProperties[i].queueFlags & queueFlags) == queueFlags) {
+            familyIndex = i;
+            break;
+        }
+    }
+    return familyIndex;
+}
+uint32_t getMemoryIndex(VkPhysicalDevice &physicalDevice, VkMemoryRequirements requirements, VkMemoryPropertyFlags requiredFlags) {
+    uint32_t selectedType = ~0u;
+    VkPhysicalDeviceMemoryProperties memoryProperties;
+    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
+
+    for (uint32_t memoryType = 0; memoryType < VK_MAX_MEMORY_TYPES; ++memoryType) {
+        if (requirements.memoryTypeBits & (1 << memoryType)) {
+            const VkMemoryType &type = memoryProperties.memoryTypes[memoryType];
+            if ((type.propertyFlags & requiredFlags) == requiredFlags) {
+                selectedType = memoryType;
+                break;
+            }
+        }
+    }
+    return selectedType;
+}
+VkDevice createDevice(DeviceContext &deviceContext) {
 
     const char *deviceExtensions[] = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -167,20 +206,7 @@ VkResult createDevice(DeviceContext &deviceContext) {
     requiredFeaturesvk13.dynamicRendering = VK_TRUE;
     requiredFeaturesvk13.synchronization2 = VK_TRUE;
 
-    uint32_t queueFamilyCount = 0;
-    VkQueueFamilyProperties queueFamilyProperties[16];
-    vkGetPhysicalDeviceQueueFamilyProperties(deviceContext.physicalDevice, &queueFamilyCount, nullptr);
-    assert(queueFamilyCount < 16);
-    vkGetPhysicalDeviceQueueFamilyProperties(deviceContext.physicalDevice, &queueFamilyCount, queueFamilyProperties);
-    VkQueueFlags queueFlags = VK_QUEUE_GRAPHICS_BIT;
-    uint32_t familyIndex = 0;
-    for (uint32_t i = 0; i < queueFamilyCount; ++i) {
-        if ((queueFamilyProperties[i].queueFlags & queueFlags) == queueFlags) {
-            familyIndex = i;
-            break;
-        }
-    }
-    deviceContext.graphicsFamilyIndex = familyIndex;
+    uint32_t familyIndex = getQueueFamilyIndex(deviceContext, VK_QUEUE_GRAPHICS_BIT);
     // Queue Create Info
     float priority = 1.f;
     const VkDeviceQueueCreateInfo queueCreateInfo[] = {
@@ -206,12 +232,21 @@ VkResult createDevice(DeviceContext &deviceContext) {
         .pEnabledFeatures = &requiredFeatures
     };
 
-    return vkCreateDevice(deviceContext.physicalDevice, &deviceCreateInfo, nullptr, &deviceContext.device);
+    VkDevice device = VK_NULL_HANDLE;
+    VkResult result = vkCreateDevice(deviceContext.physicalDevice, &deviceCreateInfo, nullptr, &device);
+    if (result != VK_SUCCESS) {
+        LOG_ERROR("Failed to create device " << result);
+    }
+    return device;
 }
-void getQueue(DeviceContext &deviceContext) {
-    vkGetDeviceQueue(deviceContext.device, deviceContext.graphicsFamilyIndex, 0, &deviceContext.graphicsQueue);
+VkQueue getQueue(DeviceContext &deviceContext, VkQueueFlags queueFlags) {
+    VkQueue queue = VK_NULL_HANDLE;
+    uint32_t familyIndex = getQueueFamilyIndex(deviceContext, queueFlags);
+    vkGetDeviceQueue(deviceContext.device, familyIndex, 0, &queue);
+    return queue;
 }
-VkResult createSurface(DeviceContext &deviceContext, FS::Window &windowHandle) {
+VkSurfaceKHR createSurface(DeviceContext &deviceContext, FS::Window &windowHandle) {
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
 #ifdef _WIN32
     VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
@@ -220,7 +255,7 @@ VkResult createSurface(DeviceContext &deviceContext, FS::Window &windowHandle) {
         .hinstance = GetModuleHandleA(nullptr),
         .hwnd = windowHandle.getNative()
     };
-    return vkCreateWin32SurfaceKHR(deviceContext.instance, &surfaceCreateInfo, nullptr, &deviceContext.surface);
+    VkResult result = vkCreateWin32SurfaceKHR(deviceContext.instance, &surfaceCreateInfo, nullptr, &surface);
 #elif __linux__
     VkXlibSurfaceCreateInfoKHR surfaceCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR,
@@ -229,19 +264,31 @@ VkResult createSurface(DeviceContext &deviceContext, FS::Window &windowHandle) {
         .dpy = XOpenDisplay(0),
         .window = windowHandle.getNative()
     };
-    return vkCreateXlibSurfaceKHR(deviceContext.instance, &surfaceCreateInfo, nullptr, &deviceContext.surface);
+    VkResult result = vkCreateXlibSurfaceKHR(deviceContext.instance, &surfaceCreateInfo, nullptr, &surface);
 #endif
+    if (result != VK_SUCCESS) {
+        LOG_ERROR("Failed to create surface " << result);
+        return VK_NULL_HANDLE;
+    }
+    return surface;
 }
 
-VkResult createCommandPool(DeviceContext &deviceContext) {
+VkCommandPool createCommandPool(DeviceContext &deviceContext, VkQueueFlags queueFlags) {
+    VkCommandPool commandPool = VK_NULL_HANDLE;
+    uint32_t familyIndex = getQueueFamilyIndex(deviceContext, queueFlags);
     VkCommandPoolCreateInfo commandPoolCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
         .pNext = nullptr,
         .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-        .queueFamilyIndex = deviceContext.graphicsFamilyIndex
+        .queueFamilyIndex = familyIndex
     };
 
-    return vkCreateCommandPool(deviceContext.device, &commandPoolCreateInfo, nullptr, &deviceContext.commandPool);
+    VkResult result = vkCreateCommandPool(deviceContext.device, &commandPoolCreateInfo, nullptr, &commandPool);
+    if (result != VK_SUCCESS) {
+        LOG_ERROR("Failed to create command pool " << result);
+        return VK_NULL_HANDLE;
+    }
+    return commandPool;
 }
 VkResult createCommandBuffers(DeviceContext &deviceContext, uint32_t count, VkCommandBuffer *cmdBuffers) {
     VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
@@ -251,10 +298,10 @@ VkResult createCommandBuffers(DeviceContext &deviceContext, uint32_t count, VkCo
         .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
         .commandBufferCount = count
     };
-    
+
     return vkAllocateCommandBuffers(deviceContext.device, &commandBufferAllocateInfo, cmdBuffers);
 }
-VkCommandBuffer startOneTimeCommandBuffer(DeviceContext& deviceContext){
+VkCommandBuffer startOneTimeCommandBuffer(DeviceContext &deviceContext) {
     VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
     createCommandBuffers(deviceContext, 1, &commandBuffer);
 
@@ -269,7 +316,7 @@ VkCommandBuffer startOneTimeCommandBuffer(DeviceContext& deviceContext){
 
     return commandBuffer;
 }
-void endOneTimeCommandBuffer(DeviceContext& deviceContext,VkCommandBuffer& commandBuffer){
+void endOneTimeCommandBuffer(DeviceContext &deviceContext, VkCommandBuffer &commandBuffer) {
     vkEndCommandBuffer(commandBuffer);
     VkSubmitInfo submitInfo = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -282,7 +329,7 @@ void endOneTimeCommandBuffer(DeviceContext& deviceContext,VkCommandBuffer& comma
         .signalSemaphoreCount = 0,
         .pSignalSemaphores = nullptr
     };
-    vkQueueSubmit(deviceContext.graphicsQueue , 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueSubmit(deviceContext.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
     vkQueueWaitIdle(deviceContext.graphicsQueue);
     vkFreeCommandBuffers(deviceContext.device, deviceContext.commandPool, 1, &commandBuffer);
 }
@@ -332,77 +379,7 @@ VkResult createFence(VkDevice &device, VkFence *fence, VkFenceCreateFlags flags)
     };
     return vkCreateFence(device, &createInfo, nullptr, fence);
 }
-Image createImage(DeviceContext& deviceContext,uint32_t width,uint32_t height,VkFormat format,VkImageTiling tiling,VkImageUsageFlags usage,VkMemoryPropertyFlags memoryFlags){
-    Image image = {};
-    VkImageCreateInfo imageInfo = {
-        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .imageType = VK_IMAGE_TYPE_2D,
-        .format = format,
-        .extent = {width,height,1},
-        .mipLevels = 1,
-        .arrayLayers = 1,
-        .samples = VK_SAMPLE_COUNT_1_BIT,
-        .tiling = tiling,
-        .usage = usage,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        .queueFamilyIndexCount = 0,
-        .pQueueFamilyIndices = nullptr,
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
-    };
 
-    vkCreateImage(deviceContext.device, &imageInfo, nullptr, &image.image);
-    VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(deviceContext.device, image.image, &memRequirements);
-    uint32_t memoryIndex = getMemoryIndex(deviceContext.physicalDevice, memRequirements, memoryFlags);
-    VkMemoryAllocateInfo allocateInfo = {
-        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-        .pNext = nullptr,
-        .allocationSize = memRequirements.size,
-        .memoryTypeIndex = memoryIndex
-    };
-    vkAllocateMemory(deviceContext.device, &allocateInfo, nullptr, &image.memory);
-    vkBindImageMemory(deviceContext.device, image.image, image.memory, 0);
-
-    return image;
-}
-VkResult createImageView(DeviceContext& deviceContext,VkImage image,const VkFormat format,const VkImageAspectFlags aspectFlags,VkImageView& imageView){
-    VkImageViewCreateInfo createInfo = {
-        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .image = image,
-        .viewType = VK_IMAGE_VIEW_TYPE_2D,
-        .format = format,
-        // VK_COMPONENT_SWIZZLE_IDENTITY for all components
-        .components = {},
-        .subresourceRange = {
-            .aspectMask = aspectFlags,
-            .baseMipLevel = 0,
-            .levelCount = 1,
-            .baseArrayLayer = 0,
-            .layerCount = 1
-        }
-    };
-    return vkCreateImageView(deviceContext.device, &createInfo, nullptr, &imageView);
-}
-uint32_t getMemoryIndex(VkPhysicalDevice &physicalDevice, VkMemoryRequirements requirements, VkMemoryPropertyFlags requiredFlags) {
-    uint32_t selectedType = ~0u;
-    VkPhysicalDeviceMemoryProperties memoryProperties;
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
-
-    for (uint32_t memoryType = 0; memoryType < VK_MAX_MEMORY_TYPES; ++memoryType) {
-        if (requirements.memoryTypeBits & (1 << memoryType)) {
-            const VkMemoryType &type = memoryProperties.memoryTypes[memoryType];
-            if ((type.propertyFlags & requiredFlags) == requiredFlags) {
-                selectedType = memoryType;
-                break;
-            }
-        }
-    }
-    return selectedType;
-}
 void copyBuffer(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
     VkBufferCopy copyRegion = {
         .srcOffset = 0,
@@ -411,7 +388,7 @@ void copyBuffer(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstB
     };
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 }
-void copyBufferToImage(VkCommandBuffer commandBuffer,VkBuffer srcBuffer,VkImage dstImage,uint32_t width,uint32_t height){
+void copyBufferToImage(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImage dstImage, uint32_t width, uint32_t height) {
     VkBufferImageCopy copyRegion = {
         .bufferOffset = 0,
         .bufferRowLength = 0,
@@ -420,27 +397,27 @@ void copyBufferToImage(VkCommandBuffer commandBuffer,VkBuffer srcBuffer,VkImage 
             .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
             .mipLevel = 0,
             .baseArrayLayer = 0,
-            .layerCount = 1
-        },
-        .imageOffset = {0,0,0},
-        .imageExtent = {width,height,1}
+            .layerCount = 1 },
+        .imageOffset = { 0, 0, 0 },
+        .imageExtent = { width, height, 1 }
     };
     vkCmdCopyBufferToImage(commandBuffer, srcBuffer, dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 }
 void initDeviceContext(DeviceContext &deviceContext, FS::Window &window) {
-    createInstance(deviceContext);
-    getPhysicalDevice(deviceContext);
-    createDevice(deviceContext);
-    getQueue(deviceContext);
-    createSurface(deviceContext, window);
-    createCommandPool(deviceContext);
+    deviceContext.instance = createInstance(deviceContext);
+    deviceContext.physicalDevice = getPhysicalDevice(deviceContext);
+    deviceContext.device = createDevice(deviceContext);
+    deviceContext.graphicsQueue = getQueue(deviceContext, VK_QUEUE_GRAPHICS_BIT);
+    deviceContext.surface = createSurface(deviceContext, window);
+    deviceContext.commandPool = createCommandPool(deviceContext, VK_QUEUE_GRAPHICS_BIT);
 }
 void cleanupDeviceContext(DeviceContext &deviceContext) {
     vkDeviceWaitIdle(deviceContext.device);
+
     vkDestroyCommandPool(deviceContext.device, deviceContext.commandPool, nullptr);
     vkDestroySurfaceKHR(deviceContext.instance, deviceContext.surface, nullptr);
     vkDestroyDevice(deviceContext.device, nullptr);
     const auto vkDestroyDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(deviceContext.instance, "vkDestroyDebugUtilsMessengerEXT"));
-    vkDestroyDebugUtilsMessengerEXT(deviceContext.instance,deviceContext.debugMessenger,nullptr);
+    vkDestroyDebugUtilsMessengerEXT(deviceContext.instance, deviceContext.debugMessenger, nullptr);
     vkDestroyInstance(deviceContext.instance, nullptr);
 }

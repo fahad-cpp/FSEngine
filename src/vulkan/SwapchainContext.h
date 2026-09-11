@@ -1,6 +1,10 @@
+#ifndef SWAPCHAINCONTEXT_H
+#define SWAPCHAINCONTEXT_H
 #include "DeviceContext.h"
+#include "Resource.h"
+
 constexpr uint32_t MAX_SWAPCHAIN_IMAGES = 8;
-struct DepthBuffer{
+struct DepthBuffer {
     Image image;
     VkImageView imageView;
 };
@@ -19,3 +23,4 @@ void createSwapchainImageViews(DeviceContext &deviceContext, SwapchainContext &s
 void initSwapchainContext(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window);
 void cleanupSwapchainContext(DeviceContext &deviceContext, SwapchainContext &swapchainContext);
 void recreateSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window);
+#endif

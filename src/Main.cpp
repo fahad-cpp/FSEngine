@@ -1,5 +1,4 @@
-#include "Model.h"
-#include "Renderer.h"
+#include "vulkan/Renderer.h"
 #include "Timer.h"
 
 void handleInput(FS::Window &window) {
@@ -10,27 +9,10 @@ void handleInput(FS::Window &window) {
     }
 }
 int main() {
-    // OBJModel model = {
-    //     .vertices = {
-    //         { { -0.5f, 0.f, 0.5f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } },
-    //         { {  0.5f, 0.f, 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
-    //         { {  0.5f, 0.f,-0.5f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f } },
-    //         { { -0.5f, 0.f,-0.5f }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f } },
-
-    //         { { -0.5f, -0.5f, 0.5f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } },
-    //         { {  0.5f, -0.5f, 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
-    //         { {  0.5f, -0.5f,-0.5f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f } },
-    //         { { -0.5f, -0.5f,-0.5f }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f } }, 
-    //     },
-    //     .indices = { 
-    //         0, 1, 2, 2, 3, 0,
-    //         4, 5, 6, 6, 7, 4
-    //     }
-    // };
     OBJModel model = loadOBJ("models/viking_room.obj",true);
 
     Timer timer;
-    FS::Window window("Vulkan Renderer", 720, 720);
+    FS::Window window("FSEngine", 720, 720);
 
     DeviceContext deviceContext = {};
     TIME_FUNC("initDeviceContext",timer,initDeviceContext(deviceContext, window));
@@ -39,11 +21,10 @@ int main() {
     TIME_FUNC("initSwapchainContext",timer,initSwapchainContext(deviceContext, swapchainContext, window));
 
     Mesh mesh = {};
-    TIME_FUNC("initMesh",timer,initMesh(deviceContext, mesh, model));
+    TIME_FUNC("createMesh",timer,mesh = createMesh(deviceContext, model));
     
-    Renderer renderer = {};
-    TIME_FUNC("initRenderer",timer,initRenderer(deviceContext, swapchainContext, renderer, mesh));
-
+    VulkanRenderer renderer = {};
+    TIME_FUNC("initVulkanRenderer",timer,initVulkanRenderer(deviceContext, swapchainContext, renderer, mesh));
     window.focus();
     while (window.isOpen()) {
         startTimer(timer);
@@ -53,10 +34,9 @@ int main() {
         endTimer(timer);
         std::cout << "\rFPS: " << microsecToFPS(timer.diff) << std::flush;
     }
-
     vkDeviceWaitIdle(deviceContext.device);
     cleanupMesh(deviceContext, mesh);
-    cleanupRenderer(deviceContext, renderer);
+    cleanupVulkanRenderer(deviceContext, renderer);
     cleanupSwapchainContext(deviceContext, swapchainContext);
     cleanupDeviceContext(deviceContext);
     window.close();

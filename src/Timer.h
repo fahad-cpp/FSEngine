@@ -2,6 +2,7 @@
 #define TIMER_H
 #include <chrono>
 #include <iostream> // IWYU pragma: keep
+#include "Logging.h"
 struct Timer{
     std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
     std::chrono::time_point<std::chrono::high_resolution_clock> endTime;
@@ -11,7 +12,7 @@ struct Timer{
     startTimer(timer);\
     func;\
     endTimer(timer);\
-    std::cout << label << " : " << (timer.diff / 1000.f) << " ms\n";
+    LOG_INFO(label << " : " << (timer.diff / 1000.f) << " ms");
 void startTimer(Timer& timer);
 void endTimer(Timer& timer);
 float microsecToFPS(float microSeconds);

@@ -17,6 +17,7 @@ OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
     OBJModel mesh;
     std::vector<Vector3> positions = {};
     std::vector<Vector2> texcoords = {};
+    std::vector<Vector3> normals = {};
     std::vector<OBJIndex> objIndices = {};
 
     std::ifstream OBJFile(filename, std::ios::binary | std::ios::ate);
@@ -43,24 +44,38 @@ OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
 
         if (ptr[0] == 'v' && (ptr[1] == ' ' || ptr[1] == '\t')) {
             float x = 0, y = 0, z = 0;
-            std::sscanf(line.c_str(), "v %f %f %f", &x, &y, &z);
+            if(std::sscanf(line.c_str(), "v %f %f %f", &x, &y, &z) != 3){
+                LOG_ERROR("Unhandled vertex positions");
+                return {};
+            }
             Vector3 position = {};
             if (flipYZ) {
                 position = { x, z, -y };
             } else {
                 position = { x, y, z };
             }
-            positions.emplace_back(position);
+            positions.push_back(position);
         } else if (ptr[0] == 'v' && ptr[1] == 't' && (ptr[2] == ' ' || ptr[2] == '\t')) {
             float u = 0.f, v = 0.f, w = 0.f;
             if (std::sscanf(line.c_str(), "vt %f %f %f", &u, &v, &w) != 2) {
-                std::cerr << "Unhandled texture coordinates : loadOBJ()\n";
+                LOG_ERROR("Unhandled textures");
                 return {};
             }
             Vector2 tex = { u, 1.f - v };
             texcoords.push_back(tex);
         } else if (ptr[0] == 'v' && ptr[1] == 'n' && (ptr[2] == ' ' || ptr[2] == '\t')) {
-            // handle normals
+            float x = 0.f, y = 0.f, z = 0.f;
+            if(std::sscanf(line.c_str(),"vn %f %f %f",&x, &y, &z) != 3){
+                LOG_ERROR("Invalid normals");
+                return {};
+            }
+            Vector3 normal = {};
+            if (flipYZ) {
+                normal = { x, z, -y };
+            } else {
+                normal = { x, y, z };
+            }
+            normals.push_back(normal);
         } else if (ptr[0] == 'f' && (ptr[1] == ' ' || ptr[1] == '\t')) {
             std::istringstream stream(line.c_str() + 1);
             std::vector<OBJIndex> faceIndices;
@@ -106,10 +121,10 @@ OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
     for (uint32_t i = 0; i < objIndices.size(); i++) {
         const OBJIndex index = objIndices[i];
         const auto it = std::find_if(uniqueIndices.begin(), uniqueIndices.end(), [&index](const OBJIndex &objindex) {
-            return ((objindex.position == index.position) && (objindex.texture == index.texture)); // && (objindex.normal == index.normal));
+            return ((objindex.position == index.position) && (objindex.texture == index.texture) && (objindex.normal == index.normal));
         });
         if (it == uniqueIndices.end()) {
-            mesh.vertices.emplace_back(positions[index.position], Vector3{ 1.f, 1.f, 1.f }, texcoords[index.texture]);
+            mesh.vertices.emplace_back(positions[index.position], normals[index.normal], texcoords[index.texture]);
             uniqueIndices.push_back(index);
             mesh.indices.push_back(uniqueCount);
             uniqueCount++;

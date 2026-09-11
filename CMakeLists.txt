@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED 23)
 find_package(Vulkan REQUIRED)
 set(VULKAN_INCLUDE "$ENV{VULKAN_SDK}/Include")
 
-file(GLOB SOURCES src/*.cpp src/*.h)
+file(GLOB SOURCES src/*.cpp src/vulkan/*.cpp)
 
 add_executable(VulkanApp ${SOURCES})
 add_subdirectory(vendor/FSWindow)
