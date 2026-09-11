@@ -1,7 +1,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "Renderer.h"
 #include "Utilities.h"
-#include <chrono>
 #include <cstring>
 #include <iostream>
 #include <stb_image.h>
@@ -491,12 +490,12 @@ void createUniformBuffer(DeviceContext &deviceContext, Buffer &uniformBuffer, vo
     vkMapMemory(deviceContext.device, uniformBuffer.memory, 0, bufferSize, 0, &*pMapped);
 }
 void updateUniformBuffer(FrameData &frame, SwapchainContext &swapchainContext) {
-    static auto startTime = std::chrono::high_resolution_clock::now();
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+    // static auto startTime = std::chrono::high_resolution_clock::now();
+    // auto currentTime = std::chrono::high_resolution_clock::now();
+    // float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
     float aspectRatio = static_cast<float>(swapchainContext.extent.width) / static_cast<float>(swapchainContext.extent.height);
     UniformBufferData uboData = {};
-    uboData.model = rotate(unitMatrix4(1.f), time * radians(90.f), Vector3{ 0.f, 1.f, 0.f });
+    uboData.model = rotate(unitMatrix4(1.f),-1.f * radians(90),Vector3{0.f,1.f,0.f});
     uboData.view = lookAt(Vector3{ 2.f, 2.f, 2.f }, Vector3{ 0.f, 0.f, 0.f }, Vector3{ 0.f, 1.f, 0.f });
     uboData.projection = perspective(radians(45.f), aspectRatio, 0.1f, 10.f);
     uboData.projection.values[1][1] *= -1;

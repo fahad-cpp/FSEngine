@@ -14,4 +14,5 @@ struct Timer{
     std::cout << label << " : " << (timer.diff / 1000.f) << " ms\n";
 void startTimer(Timer& timer);
 void endTimer(Timer& timer);
+float microsecToFPS(float microSeconds);
 #endif

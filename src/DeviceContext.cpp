@@ -2,7 +2,7 @@
 #include <array>
 #include <string>
 #include <assert.h>
-std::string getDebugMessageTypeString(const VkDebugUtilsMessageTypeFlagsEXT messageType){
+static std::string getDebugMessageTypeString(const VkDebugUtilsMessageTypeFlagsEXT messageType){
     if(messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT){
         return "General";
     }else if(messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT){

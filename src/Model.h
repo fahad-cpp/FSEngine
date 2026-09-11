@@ -3,6 +3,7 @@
 #include "Vector.h"
 #include <vector>
 #include <string>
+#include <cstdint>
 struct Vertex {
     Vector3 pos;
     Vector3 color;

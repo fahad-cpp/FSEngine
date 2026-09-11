@@ -10,7 +10,6 @@ void handleInput(FS::Window &window) {
     }
 }
 int main() {
-    OBJModel model = loadOBJ("models/viking_room.obj",true);
     // OBJModel model = {
     //     .vertices = {
     //         { { -0.5f, 0.f, 0.5f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } },
@@ -28,6 +27,7 @@ int main() {
     //         4, 5, 6, 6, 7, 4
     //     }
     // };
+    OBJModel model = loadOBJ("models/viking_room.obj",true);
 
     Timer timer;
     FS::Window window("Vulkan Renderer", 720, 720);
@@ -44,10 +44,14 @@ int main() {
     Renderer renderer = {};
     TIME_FUNC("initRenderer",timer,initRenderer(deviceContext, swapchainContext, renderer, mesh));
 
+    window.focus();
     while (window.isOpen()) {
+        startTimer(timer);
         drawFrame(deviceContext, swapchainContext, window, renderer, mesh);
         handleInput(window);
         window.processMessages();
+        endTimer(timer);
+        std::cout << "\rFPS: " << microsecToFPS(timer.diff) << std::flush;
     }
 
     vkDeviceWaitIdle(deviceContext.device);

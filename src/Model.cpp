@@ -59,7 +59,6 @@ OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
             }
             Vector2 tex = { u, 1.f - v };
             texcoords.push_back(tex);
-            // handle textures
         } else if (ptr[0] == 'v' && ptr[1] == 'n' && (ptr[2] == ' ' || ptr[2] == '\t')) {
             // handle normals
         } else if (ptr[0] == 'f' && (ptr[1] == ' ' || ptr[1] == '\t')) {
