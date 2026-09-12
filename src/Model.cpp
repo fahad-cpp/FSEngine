@@ -87,6 +87,8 @@ OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
                     faceIndices.emplace_back(v - 1, t - 1, n - 1);
                 } else if (std::sscanf(vertex.c_str(), "%d//%d", &v, &n) == 2) {
                     faceIndices.emplace_back(v - 1, 0, n - 1);
+                } else if (std::sscanf(vertex.c_str(), "%d/%d", &v, &t) == 2) {
+                    faceIndices.emplace_back(v - 1, t - 1, 0);
                 } else {
                     LOG_ERROR("Unsupported face format :" << filename);
                     LOG_ERROR("Encountered:" + vertex);
@@ -123,7 +125,13 @@ OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
             return ((objindex.position == index.position) && (objindex.texture == index.texture) && (objindex.normal == index.normal));
         });
         if (it == uniqueIndices.end()) {
-            mesh.vertices.emplace_back(positions[index.position], normals[index.normal], texcoords[index.texture]);
+            Vector3 normal = {0.f,0.f,0.f};
+            Vector3 position = {0.f,0.f,0.f};
+            Vector2 texcoord = {0.f,0.f};
+            if(positions.size())position = positions[index.position];
+            if(texcoords.size())texcoord = texcoords[index.texture];
+            if(normals.size())normal = normals[index.normal];
+            mesh.vertices.emplace_back(position,normal,texcoord);
             uniqueIndices.push_back(index);
             mesh.indices.push_back(uniqueCount);
             uniqueCount++;

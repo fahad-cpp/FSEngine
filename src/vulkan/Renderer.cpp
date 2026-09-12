@@ -333,7 +333,7 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
 }
 
 void updateUniformBuffer(FrameData &frame, SwapchainContext &swapchainContext) {
-#if 0
+#if 1
     static auto startTime = std::chrono::high_resolution_clock::now();
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
@@ -343,8 +343,8 @@ void updateUniformBuffer(FrameData &frame, SwapchainContext &swapchainContext) {
     float aspectRatio = static_cast<float>(swapchainContext.extent.width) / static_cast<float>(swapchainContext.extent.height);
     UniformBufferData uboData = {};
     uboData.model = rotate(unitMatrix4(1.f), time * radians(90), Vector3{ 0.f, 1.f, 0.f });
-    uboData.view = lookAt(Vector3{ 2.f, 2.f, 2.f }, Vector3{ 0.f, 0.f, 0.f }, Vector3{ 0.f, 1.f, 0.f });
-    uboData.projection = perspective(radians(45.f), aspectRatio, 0.1f, 10.f);
+    uboData.view = lookAt(Vector3{ 10.f, 10.f, 10.f }, Vector3{ 0.f, 3.f, 0.f }, Vector3{ 0.f, 1.f, 0.f });
+    uboData.projection = perspective(radians(45.f), aspectRatio, 0.1f, 100.f);
     uboData.projection.values[1][1] *= -1;
 
     std::memcpy(frame.uniformBufferMapping, &uboData, sizeof(uboData));

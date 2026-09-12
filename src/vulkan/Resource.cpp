@@ -333,7 +333,7 @@ Mesh createMesh(DeviceContext &deviceContext, OBJModel &model) {
     mesh.indexCount = static_cast<uint32_t>(model.indices.size());
     mesh.vertexBuffer = createVertexBuffer(deviceContext, model.vertices.data(), mesh.vertexCount);
     mesh.indexBuffer = createIndexBuffer(deviceContext, model.indices.data(), mesh.indexCount);
-    mesh.texture = createTexture(deviceContext, "textures/viking_room.png");
+    mesh.texture = createTexture(deviceContext, "textures/Zenith.png");
     return mesh;
 }
 void cleanupMesh(DeviceContext &deviceContext, Mesh &mesh) {

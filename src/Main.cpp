@@ -9,7 +9,7 @@ void handleInput(FS::Window &window) {
     }
 }
 int main() {
-    OBJModel model = loadOBJ("models/viking_room.obj",true);
+    OBJModel model = loadOBJ("models/Zenith.obj",true);
 
     Timer timer;
     FS::Window window("FSEngine", 720, 720);
