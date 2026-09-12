@@ -8,8 +8,9 @@ void transitionImageLayout(
     VkPipelineStageFlags2 dstStageMask,
     VkAccessFlags2 srcAccessMask,
     VkAccessFlags2 dstAccessMask,
-    VkImageAspectFlags aspectFlags) {
-    VkImageMemoryBarrier2 imageMemoryBarrier = {
+    VkImageAspectFlags aspectFlags,
+    uint32_t mipLevels) {
+    const VkImageMemoryBarrier2 imageMemoryBarrier = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
         .pNext = nullptr,
         .srcStageMask = srcStageMask,
@@ -24,12 +25,12 @@ void transitionImageLayout(
         .subresourceRange = {
             .aspectMask = aspectFlags,
             .baseMipLevel = 0,
-            .levelCount = 1,
+            .levelCount = mipLevels,
             .baseArrayLayer = 0,
             .layerCount = 1 }
     };
 
-    VkDependencyInfo dependencyInfo = {
+    const VkDependencyInfo dependencyInfo = {
         .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
         .pNext = nullptr,
         .dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT,

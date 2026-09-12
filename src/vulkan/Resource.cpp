@@ -1,9 +1,10 @@
+#define NOMINMAX
 #define STB_IMAGE_IMPLEMENTATION
 #include "Resource.h"
 #include "../Logging.h"
 #include "VulkanUtils.h"
 #include "stb_image.h"
-
+#include <algorithm>
 
 Buffer createBuffer(DeviceContext &deviceContext, VkBufferUsageFlags usage, VkDeviceSize size, VkMemoryPropertyFlags memoryProperty) {
     Buffer buffer = {};
@@ -91,7 +92,7 @@ Buffer createUniformBuffer(DeviceContext &deviceContext, void **pMapped) {
     vkMapMemory(deviceContext.device, uniformBuffer.memory, 0, bufferSize, 0, &*pMapped);
     return uniformBuffer;
 }
-Image createImage(DeviceContext &deviceContext, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags memoryFlags) {
+Image createImage(DeviceContext &deviceContext, uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags memoryFlags) {
     Image image = {};
     VkImageCreateInfo imageInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -100,7 +101,7 @@ Image createImage(DeviceContext &deviceContext, uint32_t width, uint32_t height,
         .imageType = VK_IMAGE_TYPE_2D,
         .format = format,
         .extent = { width, height, 1 },
-        .mipLevels = 1,
+        .mipLevels = mipLevels,
         .arrayLayers = 1,
         .samples = VK_SAMPLE_COUNT_1_BIT,
         .tiling = tiling,
@@ -130,7 +131,7 @@ void cleanupImage(DeviceContext &deviceContext, Image &image) {
     vkDestroyImage(deviceContext.device, image.image, nullptr);
     vkFreeMemory(deviceContext.device, image.memory, nullptr);
 }
-VkImageView createImageView(DeviceContext &deviceContext, VkImage image, const VkFormat format, const VkImageAspectFlags aspectFlags) {
+VkImageView createImageView(DeviceContext &deviceContext, VkImage image, const VkFormat format, const VkImageAspectFlags aspectFlags, uint32_t mipLevels) {
     VkImageViewCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
         .pNext = nullptr,
@@ -143,7 +144,7 @@ VkImageView createImageView(DeviceContext &deviceContext, VkImage image, const V
         .subresourceRange = {
             .aspectMask = aspectFlags,
             .baseMipLevel = 0,
-            .levelCount = 1,
+            .levelCount = mipLevels,
             .baseArrayLayer = 0,
             .layerCount = 1 }
     };
@@ -170,13 +171,103 @@ VkSampler createTextureSampler(DeviceContext &deviceContext) {
         .compareEnable = VK_FALSE,
         .compareOp = VK_COMPARE_OP_ALWAYS,
         .minLod = 0.f,
-        .maxLod = 0.f,
+        .maxLod = VK_LOD_CLAMP_NONE,
         .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
         .unnormalizedCoordinates = VK_FALSE
     };
     VkSampler sampler = VK_NULL_HANDLE;
     vkCreateSampler(deviceContext.device, &samplerCreateInfo, nullptr, &sampler);
     return sampler;
+}
+void generateMipMaps(VkCommandBuffer commandBuffer, VkImage image, int32_t texWidth, int32_t texHeight, uint32_t mipLevels) {
+    VkImageMemoryBarrier2 barrier = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+        .pNext = nullptr,
+        .srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+        .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+        .dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT,
+        .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+        .image = image,
+        .subresourceRange = {
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1 }
+    };
+
+    const VkDependencyInfo dependencyInfo = {
+        .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+        .pNext = nullptr,
+        .dependencyFlags = 0,
+        .memoryBarrierCount = 0,
+        .pMemoryBarriers = nullptr,
+        .bufferMemoryBarrierCount = 0,
+        .pBufferMemoryBarriers = nullptr,
+        .imageMemoryBarrierCount = 1,
+        .pImageMemoryBarriers = &barrier
+    };
+
+    int32_t width = texWidth; 
+    int32_t height = texHeight;
+    for (uint32_t i = 1; i < mipLevels; i++) {
+        barrier.subresourceRange.baseMipLevel = i - 1;
+        barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
+        barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+        barrier.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+
+        vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
+
+        VkImageBlit blit = {
+            .srcSubresource = { .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .mipLevel = i - 1, .baseArrayLayer = 0, .layerCount = 1 },
+            .srcOffsets = { VkOffset3D{ 0, 0, 0 }, VkOffset3D{ width, height, 1 } },
+            .dstSubresource = { .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .mipLevel = i, .baseArrayLayer = 0, .layerCount = 1 },
+            .dstOffsets = { VkOffset3D{ 0, 0, 0 }, VkOffset3D{ (1 < width) ? (width / 2) : 1, (1 < height) ? (height / 2) : 1, 1 } }
+        };
+
+        vkCmdBlitImage(
+            commandBuffer,
+            image,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1, &blit,
+            VK_FILTER_LINEAR
+        );
+
+        barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
+        barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+        barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+        barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+        
+        vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
+
+        if(1 < width){
+            width /= 2;
+        }
+        if(1 < height){
+            height /= 2;
+        }
+    }
+    barrier.subresourceRange.baseMipLevel = mipLevels - 1;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+    barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+    barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+
+    vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
+    
 }
 Texture createTexture(DeviceContext &deviceContext, const std::string &filepath) {
     Texture texture = {};
@@ -196,7 +287,15 @@ Texture createTexture(DeviceContext &deviceContext, const std::string &filepath)
 
     stbi_image_free(pixels);
 
-    texture.image = createImage(deviceContext, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
+    texture.image = createImage(
+        deviceContext,
+        static_cast<uint32_t>(texWidth),
+        static_cast<uint32_t>(texHeight),
+        mipLevels,
+        VK_FORMAT_R8G8B8A8_SRGB,
+        VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     VkCommandBuffer commandBuffer = startOneTimeCommandBuffer(deviceContext);
     transitionImageLayout(
@@ -208,23 +307,18 @@ Texture createTexture(DeviceContext &deviceContext, const std::string &filepath)
         VK_PIPELINE_STAGE_2_TRANSFER_BIT,
         VK_ACCESS_2_NONE,
         VK_ACCESS_2_TRANSFER_WRITE_BIT,
-        VK_IMAGE_ASPECT_COLOR_BIT);
+        VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+
+    
     copyBufferToImage(commandBuffer, stagingBuffer.buffer, texture.image.image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-    transitionImageLayout(
-        texture.image.image,
-        commandBuffer,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-        VK_ACCESS_2_TRANSFER_WRITE_BIT,
-        VK_ACCESS_2_SHADER_READ_BIT,
-        VK_IMAGE_ASPECT_COLOR_BIT);
+
+    generateMipMaps(commandBuffer, texture.image.image, texWidth, texHeight, mipLevels);
+
     endOneTimeCommandBuffer(deviceContext, commandBuffer);
 
     cleanupBuffer(deviceContext, stagingBuffer);
 
-    texture.imageView = createImageView(deviceContext, texture.image.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+    texture.imageView = createImageView(deviceContext, texture.image.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
     texture.sampler = createTextureSampler(deviceContext);
     return texture;
 }

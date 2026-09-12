@@ -11,5 +11,6 @@ void transitionImageLayout(
     VkPipelineStageFlags2 dstStageMask,
     VkAccessFlags2 srcAccessMask,
     VkAccessFlags2 dstAccessMask,
-    VkImageAspectFlags aspectFlags);
+    VkImageAspectFlags aspectFlags,
+    uint32_t mipLevels);
 #endif

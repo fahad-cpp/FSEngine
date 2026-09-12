@@ -370,7 +370,7 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
         VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
         VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
         VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_ASPECT_DEPTH_BIT);
+        VK_IMAGE_ASPECT_DEPTH_BIT,1);
 
     transitionImageLayout(
         image,
@@ -381,7 +381,7 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
         VK_ACCESS_2_NONE,
         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_ASPECT_COLOR_BIT);
+        VK_IMAGE_ASPECT_COLOR_BIT,1);
 
     static const VkClearValue clearColor = { .color = VkClearColorValue{ { 0.01f, 0.02f, 0.05f, 1.f } } };
     static const VkClearValue clearDepth = { .depthStencil = VkClearDepthStencilValue{ 1.f, 0 } };
@@ -465,7 +465,7 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
         VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
         VK_ACCESS_2_NONE,
-        VK_IMAGE_ASPECT_COLOR_BIT);
+        VK_IMAGE_ASPECT_COLOR_BIT,1);
 
     vkEndCommandBuffer(frameData.commandBuffer);
 }

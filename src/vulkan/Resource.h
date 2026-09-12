@@ -37,10 +37,11 @@ Buffer createVertexBuffer(DeviceContext &deviceContext, const Vertex *vertices, 
 Buffer createIndexBuffer(DeviceContext &deviceContext, const uint32_t *indices, uint32_t indexCount);
 Buffer createUniformBuffer(DeviceContext &deviceContext, void **pMapped);
 // image / texture
-Image createImage(DeviceContext &deviceContext, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags memoryFlags);
+Image createImage(DeviceContext &deviceContext, uint32_t width, uint32_t height,uint32_t mipLevels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags memoryFlags);
 void cleanupImage(DeviceContext &deviceContext, Image &image);
-VkImageView createImageView(DeviceContext &deviceContext, VkImage image, const VkFormat format, const VkImageAspectFlags aspectFlags);
+VkImageView createImageView(DeviceContext &deviceContext, VkImage image, const VkFormat format, const VkImageAspectFlags aspectFlags,uint32_t mipLevels);
 VkSampler createTextureSampler(DeviceContext &deviceContext);
+void generateMipMaps(VkCommandBuffer commandBuffer,VkImage image,int32_t texWidth,int32_t texHeight,uint32_t mipLevels);
 Texture createTexture(DeviceContext &deviceContext, const std::string &filepath);
 void cleanupTexture(DeviceContext &deviceContext, Texture &texture);
 // mesh

@@ -74,14 +74,13 @@ void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainCo
     vkGetSwapchainImagesKHR(deviceContext.device, swapchainContext.swapchain, &swapchainImageCount, swapchainContext.images);
     swapchainContext.imageCount = swapchainImageCount;
 
-    swapchainContext.depth.image = createImage(deviceContext, swapchainContext.extent.width, swapchainContext.extent.height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    swapchainContext.depth.imageView = createImageView(deviceContext, swapchainContext.depth.image.image, VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT);
+    swapchainContext.depth.image = createImage(deviceContext, swapchainContext.extent.width, swapchainContext.extent.height, 1, VK_FORMAT_D32_SFLOAT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    swapchainContext.depth.imageView = createImageView(deviceContext, swapchainContext.depth.image.image, VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
 }
 void createSwapchainImageViews(DeviceContext &deviceContext, SwapchainContext &swapchainContext) {
     for (uint32_t i = 0; i < swapchainContext.imageCount; ++i) {
         VkImageView imageView = VK_NULL_HANDLE;
-        imageView = createImageView(deviceContext, swapchainContext.images[i], swapchainContext.surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT);
+        imageView = createImageView(deviceContext, swapchainContext.images[i], swapchainContext.surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT,1);
         swapchainContext.imageViews[i] = imageView;
     }
 }
