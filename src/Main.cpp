@@ -13,7 +13,6 @@ int main() {
 
     Timer timer;
     FS::Window window("FSEngine", 720, 720);
-    LOG_ERROR("Test error");
 
     DeviceContext deviceContext = {};
     TIME_FUNC("initDeviceContext",timer,initDeviceContext(deviceContext, window));

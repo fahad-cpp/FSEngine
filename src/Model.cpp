@@ -4,7 +4,22 @@
 #include <cstdio>
 #include <fstream>
 #include <sstream>
-
+#include <unordered_map>
+namespace std {
+template <>
+struct hash<OBJIndex> {
+    size_t operator()(OBJIndex const &index) const {
+        uint64_t hash = index.position;
+        uint64_t hashConstant = 0x9E3779B185EBCA87ULL;
+        hash = hash * hashConstant + index.texture;
+        hash = hash * hashConstant + index.normal;
+        return hash;
+    }
+};
+};
+bool operator==(const OBJIndex &ind1, const OBJIndex &ind2) {
+    return ((ind1.position == ind2.position) && (ind1.texture == ind2.texture) && (ind1.normal == ind2.normal));
+}
 OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
     Timer timer;
     startTimer(timer);
@@ -112,26 +127,28 @@ OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
     }
 
     // structure obj into unique vertices and indices
-    std::vector<OBJIndex> uniqueIndices;
+    std::unordered_map<OBJIndex, uint32_t> uniqueIndices;
+    
     uint32_t uniqueCount = 0;
     for (uint32_t i = 0; i < objIndices.size(); i++) {
         const OBJIndex index = objIndices[i];
-        const auto it = std::find_if(uniqueIndices.begin(), uniqueIndices.end(), [&index](const OBJIndex &objindex) {
-            return ((objindex.position == index.position) && (objindex.texture == index.texture) && (objindex.normal == index.normal));
-        });
+        const auto it = uniqueIndices.find(index);
         if (it == uniqueIndices.end()) {
-            Vector3 normal = {0.f,0.f,0.f};
-            Vector3 position = {0.f,0.f,0.f};
-            Vector2 texcoord = {0.f,0.f};
-            if(positions.size())position = positions[index.position];
-            if(texcoords.size())texcoord = texcoords[index.texture];
-            if(normals.size())normal = normals[index.normal];
-            mesh.vertices.emplace_back(position,normal,texcoord);
-            uniqueIndices.push_back(index);
+            Vector3 normal = { 0.f, 0.f, 0.f };
+            Vector3 position = { 0.f, 0.f, 0.f };
+            Vector2 texcoord = { 0.f, 0.f };
+            if (positions.size())
+                position = positions[index.position];
+            if (texcoords.size())
+                texcoord = texcoords[index.texture];
+            if (normals.size())
+                normal = normals[index.normal];
+            mesh.vertices.emplace_back(position, normal, texcoord);
+            uniqueIndices[index] = uniqueCount;
             mesh.indices.push_back(uniqueCount);
             uniqueCount++;
         } else {
-            uint32_t foundIndex = static_cast<uint32_t>(std::distance(uniqueIndices.begin(), it));
+            uint32_t foundIndex = uniqueIndices[index];
             mesh.indices.push_back(foundIndex);
         }
     }

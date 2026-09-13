@@ -4,6 +4,7 @@
 #include "../Model.h"
 #include "DeviceContext.h"
 #include <string>
+#include <cstring>
 
 struct UniformBufferData {
     alignas(16) Matrix4 model;
