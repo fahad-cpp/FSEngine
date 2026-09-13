@@ -3,6 +3,7 @@
 #include "VulkanUtils.h"
 #include <array>
 #include <chrono> // IWYU pragma: keep
+#include <cstring>
 
 
 VkShaderModule createShaderModule(VkDevice &device, const std::vector<char> &code) {

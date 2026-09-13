@@ -5,6 +5,7 @@
 #include "VulkanUtils.h"
 #include "stb_image.h"
 #include <algorithm>
+#include <cstring>
 
 Buffer createBuffer(DeviceContext &deviceContext, VkBufferUsageFlags usage, VkDeviceSize size, VkMemoryPropertyFlags memoryProperty) {
     Buffer buffer = {};
