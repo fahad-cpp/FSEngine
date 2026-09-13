@@ -1,7 +1,7 @@
 @echo off
 setlocal
 set "EXENAME=VulkanApp.exe"
-set "PRESET=clang-release"
+set "PRESET=clang-debug"
 
 if not exist build mkdir build >nul 2>nul
 if not exist CMakeCache.txt set "CLEANBUILD=YES"

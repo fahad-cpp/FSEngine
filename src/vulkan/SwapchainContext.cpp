@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <assert.h>
 #include <climits>
+#include <thread>
 #include "../Logging.h"
 
 void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window) {
@@ -43,6 +44,12 @@ void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainCo
     }
 
     FS::RenderState &renderState = window.getRenderState();
+    while(surfaceCaps.currentExtent.width == 0 || surfaceCaps.currentExtent.height == 0){
+        std::this_thread::sleep_for(std::chrono::duration<float,std::chrono::milliseconds::period>(16));
+        LOG_LIVE("Window Minimized.");
+        window.processMessages();
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(deviceContext.physicalDevice, deviceContext.surface, &surfaceCaps);
+    }
     uint32_t windowWidth = std::clamp<uint32_t>(renderState.width, surfaceCaps.minImageExtent.width, surfaceCaps.maxImageExtent.width);
     uint32_t windowHeight = std::clamp<uint32_t>(renderState.height, surfaceCaps.minImageExtent.height, surfaceCaps.maxImageExtent.height);
     swapchainContext.extent = (surfaceCaps.currentExtent.width != UINT_MAX) ? surfaceCaps.currentExtent : VkExtent2D{ windowWidth, windowHeight };
@@ -99,11 +106,6 @@ void cleanupSwapchainContext(DeviceContext &deviceContext, SwapchainContext &swa
 }
 void recreateSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window) {
     vkDeviceWaitIdle(deviceContext.device);
-    FS::RenderState &renderState = window.getRenderState();
-    while (renderState.width == 0 || renderState.height == 0) {
-        LOG_INFO("Window is minimized, waiting...");
-        window.processMessages();
-    }
     cleanupSwapchainContext(deviceContext, swapchainContext);
     initSwapchainContext(deviceContext, swapchainContext, window);
 }

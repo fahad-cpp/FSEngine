@@ -5,11 +5,6 @@
 #include <fstream>
 #include <sstream>
 
-struct OBJIndex {
-    uint32_t position;
-    uint32_t texture;
-    uint32_t normal;
-};
 OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
     Timer timer;
     startTimer(timer);

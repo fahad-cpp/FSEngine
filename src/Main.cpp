@@ -13,6 +13,7 @@ int main() {
 
     Timer timer;
     FS::Window window("FSEngine", 720, 720);
+    LOG_ERROR("Test error");
 
     DeviceContext deviceContext = {};
     TIME_FUNC("initDeviceContext",timer,initDeviceContext(deviceContext, window));
@@ -32,7 +33,7 @@ int main() {
         handleInput(window);
         window.processMessages();
         endTimer(timer);
-        std::cout << "\rFPS: " << microsecToFPS(timer.diff) << std::flush;
+        LOG_LIVE("FPS: " << microsecToFPS(timer.diff));
     }
     vkDeviceWaitIdle(deviceContext.device);
     cleanupMesh(deviceContext, mesh);
