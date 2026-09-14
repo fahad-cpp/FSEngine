@@ -2,6 +2,7 @@
 #define RENDERER_H
 #include "Resource.h"
 #include "SwapchainContext.h"
+#include "../Scene.h"
 
 
 constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
@@ -25,7 +26,6 @@ struct VulkanRenderer {
     VkSemaphore renderFinishedSemaphores[MAX_SWAPCHAIN_IMAGES];
     FrameData frames[MAX_FRAMES_IN_FLIGHT];
 };
-
 VkResult createDescriptorPool(DeviceContext &deviceContext, GraphicsPipeline &pipeline);
 VkResult createDescriptorSets(DeviceContext &deviceContext, GraphicsPipeline &pipeline, FrameData *frames, Mesh &mesh);
 VkResult createDescriptorSetLayout(DeviceContext &deviceContext);
@@ -38,7 +38,7 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
 
 void updateUniformBuffer(FrameData &frame, SwapchainContext &swapchainContext);
 void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext, GraphicsPipeline &pipeline, Mesh &mesh, uint32_t imageIndex, uint32_t frameIndex);
-void drawFrame(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer, Mesh &mesh);
+void drawFrame(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer, Mesh &mesh,Camera& camera);
 void initPipeline(DeviceContext &deviceContext, SwapchainContext &swapchainContext, GraphicsPipeline &pipeline);
 void cleanupPipeline(DeviceContext &deviceContext, GraphicsPipeline &pipeline);
 void initVulkanRenderer(DeviceContext &deviceContext, SwapchainContext &swapchainContext, VulkanRenderer &renderer, Mesh &mesh);

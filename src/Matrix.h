@@ -8,7 +8,10 @@ Vector3 multMat4Vec(const Matrix4 mat, const Vector4 vec);
 Matrix4 multMat4Mat4(Matrix4 mat1, Matrix4 mat2);
 Matrix4 unitMatrix4(float scale = 1.f);
 Matrix4 rotate(const Matrix4 matrix, const float angle, const Vector3 axis);
+Vector3 rotate(const Vector3 vec, const float angle, const Vector3 axis);
+Vector3 rotate(const Vector3 vec, const Vector3 rotation);
 Matrix4 lookAt(const Vector3 eye, const Vector3 center, const Vector3 up);
 Matrix4 perspective(const float fov, const float aspectRatio, const float nearPlane, const float farPlane);
 float radians(float degree);
+float degree(float radians);
 #endif

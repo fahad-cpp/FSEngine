@@ -226,7 +226,7 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
         .rasterizerDiscardEnable = VK_FALSE,
         .polygonMode = VK_POLYGON_MODE_FILL,
         .cullMode = VK_CULL_MODE_BACK_BIT,
-        .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+        .frontFace = VK_FRONT_FACE_CLOCKWISE,
         .depthBiasEnable = VK_FALSE,
         .depthBiasConstantFactor = 0.f,
         .depthBiasClamp = 0.f,
@@ -333,19 +333,22 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
     vkDestroyShaderModule(deviceContext.device, module, nullptr);
 }
 
-void updateUniformBuffer(FrameData &frame, SwapchainContext &swapchainContext) {
-#if 1
+void updateUniformBuffer(FrameData &frame, SwapchainContext &swapchainContext,Camera& camera) {
+#if 0
     static auto startTime = std::chrono::high_resolution_clock::now();
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 #else
-    float time = -1.f;
+    float time = 4.f;
 #endif
+    Vector3 cameraPoint = rotate(Vector3{0.f,0.f,1.f},camera.rotation);
+    //cameraPoint = normalize(cameraPoint);
+    Vector3 lookatpos = {camera.position.x + cameraPoint.x,camera.position.y + cameraPoint.y, camera.position.z + cameraPoint.z};
     float aspectRatio = static_cast<float>(swapchainContext.extent.width) / static_cast<float>(swapchainContext.extent.height);
     UniformBufferData uboData = {};
     uboData.model = rotate(unitMatrix4(1.f), time * radians(90), Vector3{ 0.f, 1.f, 0.f });
-    uboData.view = lookAt(Vector3{ 10.f, 10.f, 10.f }, Vector3{ 0.f, 3.f, 0.f }, Vector3{ 0.f, 1.f, 0.f });
-    uboData.projection = perspective(radians(45.f), aspectRatio, 0.1f, 100.f);
+    uboData.view = lookAt(camera.position, lookatpos, Vector3{ 0.f, 1.f, 0.f });
+    uboData.projection = perspective(radians(45.f), aspectRatio, 0.1f, 10000.f);
     uboData.projection.values[1][1] *= -1;
 
     std::memcpy(frame.uniformBufferMapping, &uboData, sizeof(uboData));
@@ -470,7 +473,7 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
 
     vkEndCommandBuffer(frameData.commandBuffer);
 }
-void drawFrame(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer, Mesh &mesh) {
+void drawFrame(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer, Mesh &mesh,Camera& camera) {
 
     FS::RenderState &renderState = window.getRenderState();
     bool windowMinimized = (renderState.width <= 0) || (renderState.height <= 0);
@@ -516,7 +519,7 @@ void drawFrame(DeviceContext &deviceContext, SwapchainContext &swapchainContext,
         .pImageIndices = &imageIndex,
         .pResults = nullptr
     };
-    updateUniformBuffer(renderer.frames[frameIndex], swapchainContext);
+    updateUniformBuffer(renderer.frames[frameIndex], swapchainContext,camera);
     VkResult presentResult = vkQueuePresentKHR(graphicsQueue, &presentInfo);
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
         recreateSwapchain(deviceContext, swapchainContext, window);
