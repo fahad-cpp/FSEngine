@@ -8,7 +8,7 @@ void handleInput(FS::Window &window,Camera& camera) {
         window.close();
     }
 
-    float moveSpeed = 0.01f;
+    float moveSpeed = 0.1f;
     if(isDown(FS::Buttons::BUTTON_W)){
         Vector3 rotated = rotate(Vector3{0.f,0.f,moveSpeed},camera.rotation.y,Vector3{0.f,1.f,0.f});
         camera.position.x += rotated.x;
@@ -58,7 +58,7 @@ void handleInput(FS::Window &window,Camera& camera) {
 
 }
 int main() {
-    OBJModel model = loadOBJ("models/viking_room.obj",true);
+    OBJModel model = loadOBJ("models/sponza.obj");
 
     Timer timer;
     FS::Window window("FSEngine", 720, 720);
