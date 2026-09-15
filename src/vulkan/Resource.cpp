@@ -320,21 +320,19 @@ Texture createTexture(DeviceContext &deviceContext, const std::string &filepath)
     cleanupBuffer(deviceContext, stagingBuffer);
 
     texture.imageView = createImageView(deviceContext, texture.image.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
-    texture.sampler = createTextureSampler(deviceContext);
     return texture;
 }
 void cleanupTexture(DeviceContext &deviceContext, Texture &texture) {
-    vkDestroySampler(deviceContext.device, texture.sampler, nullptr);
     cleanupImage(deviceContext, texture.image);
     vkDestroyImageView(deviceContext.device, texture.imageView, nullptr);
 }
-Mesh createMesh(DeviceContext &deviceContext, OBJModel &model) {
+Mesh createMesh(DeviceContext &deviceContext, OBJModel &model,const std::string& texturePath) {
     Mesh mesh = {};
     mesh.vertexCount = static_cast<uint32_t>(model.vertices.size());
     mesh.indexCount = static_cast<uint32_t>(model.indices.size());
     mesh.vertexBuffer = createVertexBuffer(deviceContext, model.vertices.data(), mesh.vertexCount);
     mesh.indexBuffer = createIndexBuffer(deviceContext, model.indices.data(), mesh.indexCount);
-    mesh.texture = createTexture(deviceContext, "textures/viking_room.png");
+    mesh.texture = createTexture(deviceContext, texturePath);
     return mesh;
 }
 void cleanupMesh(DeviceContext &deviceContext, Mesh &mesh) {

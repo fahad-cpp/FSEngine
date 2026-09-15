@@ -1,5 +1,6 @@
 #include "DeviceContext.h"
 #include "../Logging.h"
+#include "../Scene.h"
 #include <array>
 #include <assert.h>
 #include <string>
@@ -333,6 +334,113 @@ void endOneTimeCommandBuffer(DeviceContext &deviceContext, VkCommandBuffer &comm
     vkQueueWaitIdle(deviceContext.graphicsQueue);
     vkFreeCommandBuffers(deviceContext.device, deviceContext.commandPool, 1, &commandBuffer);
 }
+VkDescriptorSetLayout createDescriptorSetLayout(DeviceContext &deviceContext) {
+    const VkDescriptorSetLayoutBinding descriptorBindings[2] = {
+        { .binding = 0,
+          .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+          .descriptorCount = 1,
+          .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+          .pImmutableSamplers = nullptr },
+        { .binding = 1,
+          .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+          .descriptorCount = 1,
+          .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+          .pImmutableSamplers = nullptr }
+    };
+    VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .bindingCount = sizeof(descriptorBindings) / sizeof(descriptorBindings[0]),
+        .pBindings = descriptorBindings
+    };
+    VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+    VkResult result = vkCreateDescriptorSetLayout(deviceContext.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout);
+    if(result != VK_SUCCESS){
+        LOG_ERROR("Failed to create Descriptor Set layout " << result);
+    }
+    return descriptorSetLayout;
+}
+VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext,uint32_t entityCount) {
+    VkDescriptorPoolSize poolSizes[2] = {
+        { .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+          .descriptorCount = MAX_FRAMES_IN_FLIGHT * entityCount},
+        { .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+          .descriptorCount = MAX_FRAMES_IN_FLIGHT * entityCount}
+    };
+    VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+        .maxSets = MAX_FRAMES_IN_FLIGHT * entityCount,
+        .poolSizeCount = sizeof(poolSizes) / sizeof(poolSizes[0]),
+        .pPoolSizes = poolSizes
+    };
+    VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+    VkResult result = vkCreateDescriptorPool(deviceContext.device, &descriptorPoolCreateInfo, nullptr, &descriptorPool);
+    if(result != VK_SUCCESS){
+        LOG_ERROR("Failed to create descriptor pool " << result);
+        return VK_NULL_HANDLE;
+    }
+    return descriptorPool;
+}
+VkResult createDescriptorSets(DeviceContext &deviceContext, Entity& entity) {
+    VkDescriptorSetLayout layouts[MAX_FRAMES_IN_FLIGHT];
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+        layouts[i] = deviceContext.descriptorSetLayout;
+    }
+    VkDescriptorSetAllocateInfo allocateInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        .pNext = nullptr,
+        .descriptorPool = deviceContext.descriptorPool,
+        .descriptorSetCount = MAX_FRAMES_IN_FLIGHT,
+        .pSetLayouts = layouts
+    };
+    VkResult result = vkAllocateDescriptorSets(deviceContext.device, &allocateInfo, entity.descriptorSets);
+    if(result != VK_SUCCESS){
+        LOG_ERROR("Failed to allocate descriptor sets");
+        return result;
+    }
+
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+        VkDescriptorBufferInfo bufferInfo = {
+            .buffer = entity.uniformBuffer.buffer,
+            .offset = 0,
+            .range = sizeof(UniformBufferData)
+        };
+        VkDescriptorImageInfo imageInfo = {
+            .sampler = deviceContext.sampler,
+            .imageView = entity.mesh.texture.imageView,
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        };
+        VkWriteDescriptorSet descriptorWrites[2] = {
+            { .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+              .pNext = nullptr,
+              .dstSet = entity.descriptorSets[i],
+              .dstBinding = 0,
+              .dstArrayElement = 0,
+              .descriptorCount = 1,
+              .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+              .pImageInfo = nullptr,
+              .pBufferInfo = &bufferInfo,
+              .pTexelBufferView = nullptr },
+            { .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+              .pNext = nullptr,
+              .dstSet = entity.descriptorSets[i],
+              .dstBinding = 1,
+              .dstArrayElement = 0,
+              .descriptorCount = 1,
+              .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+              .pImageInfo = &imageInfo,
+              .pBufferInfo = nullptr,
+              .pTexelBufferView = nullptr }
+        };
+
+        vkUpdateDescriptorSets(deviceContext.device, (sizeof(descriptorWrites) / sizeof(descriptorWrites[0])), descriptorWrites, 0, nullptr);
+    }
+
+    return result;
+}
 VkResult createSemaphores(VkDevice &device, uint32_t count, VkSemaphore *semaphores) {
     VkSemaphoreCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
@@ -403,17 +511,22 @@ void copyBufferToImage(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImag
     };
     vkCmdCopyBufferToImage(commandBuffer, srcBuffer, dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 }
-void initDeviceContext(DeviceContext &deviceContext, FS::Window &window) {
+void initDeviceContext(DeviceContext &deviceContext,uint32_t entityCount, FS::Window &window) {
     deviceContext.instance = createInstance(deviceContext);
     deviceContext.physicalDevice = getPhysicalDevice(deviceContext);
     deviceContext.device = createDevice(deviceContext);
     deviceContext.graphicsQueue = getQueue(deviceContext, VK_QUEUE_GRAPHICS_BIT);
     deviceContext.surface = createSurface(deviceContext, window);
     deviceContext.commandPool = createCommandPool(deviceContext, VK_QUEUE_GRAPHICS_BIT);
+    deviceContext.descriptorPool = createDescriptorPool(deviceContext,entityCount);
+    deviceContext.descriptorSetLayout = createDescriptorSetLayout(deviceContext);
+    deviceContext.sampler = createTextureSampler(deviceContext);
 }
 void cleanupDeviceContext(DeviceContext &deviceContext) {
     vkDeviceWaitIdle(deviceContext.device);
-
+    vkDestroySampler(deviceContext.device,deviceContext.sampler,nullptr);
+    vkDestroyDescriptorSetLayout(deviceContext.device,deviceContext.descriptorSetLayout,nullptr);
+    vkDestroyDescriptorPool(deviceContext.device, deviceContext.descriptorPool, nullptr);
     vkDestroyCommandPool(deviceContext.device, deviceContext.commandPool, nullptr);
     vkDestroySurfaceKHR(deviceContext.instance, deviceContext.surface, nullptr);
     vkDestroyDevice(deviceContext.device, nullptr);

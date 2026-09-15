@@ -4,6 +4,7 @@
 #include "Vulkan.h" // IWYU pragma: keep
 
 #define SELECTED_DEVICE 0
+constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
 struct DeviceContext {
     VkDebugUtilsMessengerEXT debugMessenger;
@@ -13,7 +14,11 @@ struct DeviceContext {
     VkSurfaceKHR surface;
     VkQueue graphicsQueue;
     VkCommandPool commandPool;
+    VkDescriptorPool descriptorPool;
+    VkDescriptorSetLayout descriptorSetLayout;
+    VkSampler sampler;
 };
+struct Entity;
 // device specific
 VkInstance createInstance(DeviceContext &deviceContext);
 VkPhysicalDevice getPhysicalDevice(DeviceContext &deviceContext);
@@ -27,6 +32,10 @@ VkCommandPool createCommandPool(DeviceContext &deviceContext, VkQueueFlags queue
 VkResult createCommandBuffers(DeviceContext &deviceContext, uint32_t count, VkCommandBuffer *cmdBuffers);
 VkCommandBuffer startOneTimeCommandBuffer(DeviceContext &deviceContext);
 void endOneTimeCommandBuffer(DeviceContext &deviceContext, VkCommandBuffer &commandBuffer);
+// Descriptors
+VkDescriptorSetLayout createDescriptorSetLayout(DeviceContext &deviceContext);
+VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext,uint32_t entityCount);
+VkResult createDescriptorSets(DeviceContext &deviceContext, Entity& entity);
 // synchronization
 VkResult createSemaphores(VkDevice &device, uint32_t count, VkSemaphore *semaphores);
 VkResult createSemaphore(VkDevice &device, VkSemaphore *semaphore);
@@ -36,6 +45,6 @@ VkResult createFence(VkDevice &device, VkFence *fence, VkFenceCreateFlags flags 
 void copyBuffer(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 void copyBufferToImage(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImage dstImage, uint32_t width, uint32_t height);
 // device context
-void initDeviceContext(DeviceContext &deviceContext, FS::Window &window);
+void initDeviceContext(DeviceContext &deviceContext,uint32_t entityCount, FS::Window &window);
 void cleanupDeviceContext(DeviceContext &deviceContext);
 #endif

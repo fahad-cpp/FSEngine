@@ -68,7 +68,12 @@ Matrix4 rotate(const Matrix4 matrix, const float angle, const Vector3 axis) {
     }
     return multMat4Mat4(rotationMatrix,matrix);
 }
-
+Matrix4 rotate(const Matrix4 matrix, Vector3 rotation){
+    Matrix4 res = rotate(matrix,rotation.x,Vector3{1.f,0.f,0.f});
+    res = rotate(res,rotation.y,Vector3{0.f,1.f,0.f});
+    res = rotate(res,rotation.z,Vector3{0.f,0.f,1.f});
+    return res;
+}
 Vector3 rotate(const Vector3 vec, const float angle, const Vector3 axis) {
     float pi = static_cast<float>(std::numbers::pi);
     float clampedAngle = std::fmod(angle,pi * 2.f);
@@ -111,6 +116,15 @@ Vector3 rotate(const Vector3 vec, const Vector3 rotation){
     res = rotate(res,rotation.y,Vector3{0.f,1.f,0.f});
     res = rotate(res,rotation.z,Vector3{0.f,0.f,1.f});
     return res;
+}
+
+Matrix4 modelMatrix(const Vector3 position,const Vector3 rotation,const float scale){
+    Matrix4 result = unitMatrix4(scale);
+    result = rotate(result,rotation);
+    result.values[3][0] = position.x;
+    result.values[3][1] = position.y;
+    result.values[3][2] = position.z;
+    return result;
 }
 //Produces a view matrix for camera
 Matrix4 lookAt(const Vector3 position, const Vector3 lookPoint, const Vector3 up) {

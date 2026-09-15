@@ -18,105 +18,13 @@ VkShaderModule createShaderModule(VkDevice &device, const std::vector<char> &cod
     vkCreateShaderModule(device, &shaderModuleCreateInfo, nullptr, &shaderModule);
     return shaderModule;
 }
-VkResult createDescriptorPool(DeviceContext &deviceContext, GraphicsPipeline &pipeline) {
-    VkDescriptorPoolSize poolSizes[2] = {
-        { .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-          .descriptorCount = MAX_FRAMES_IN_FLIGHT },
-        { .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-          .descriptorCount = MAX_FRAMES_IN_FLIGHT }
-    };
-    VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
-        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-        .maxSets = MAX_FRAMES_IN_FLIGHT,
-        .poolSizeCount = sizeof(poolSizes) / sizeof(poolSizes[0]),
-        .pPoolSizes = poolSizes
-    };
-    return vkCreateDescriptorPool(deviceContext.device, &descriptorPoolCreateInfo, nullptr, &pipeline.descriptorPool);
-}
-VkResult createDescriptorSets(DeviceContext &deviceContext, GraphicsPipeline &pipeline, FrameData *frames, Mesh &mesh) {
-    VkDescriptorSetLayout layouts[MAX_FRAMES_IN_FLIGHT];
-    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-        layouts[i] = pipeline.descriptorSetLayout;
-    }
-    VkDescriptorSetAllocateInfo allocateInfo = {
-        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-        .pNext = nullptr,
-        .descriptorPool = pipeline.descriptorPool,
-        .descriptorSetCount = MAX_FRAMES_IN_FLIGHT,
-        .pSetLayouts = layouts
-    };
-    VkResult result = vkAllocateDescriptorSets(deviceContext.device, &allocateInfo, pipeline.descriptorSets);
-
-    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-        VkDescriptorBufferInfo bufferInfo = {
-            .buffer = frames[i].uniformBuffer.buffer,
-            .offset = 0,
-            .range = sizeof(UniformBufferData)
-        };
-        VkDescriptorImageInfo imageInfo = {
-            .sampler = mesh.texture.sampler,
-            .imageView = mesh.texture.imageView,
-            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-        };
-        VkWriteDescriptorSet descriptorWrites[2] = {
-            { .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-              .pNext = nullptr,
-              .dstSet = pipeline.descriptorSets[i],
-              .dstBinding = 0,
-              .dstArrayElement = 0,
-              .descriptorCount = 1,
-              .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-              .pImageInfo = nullptr,
-              .pBufferInfo = &bufferInfo,
-              .pTexelBufferView = nullptr },
-            { .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-              .pNext = nullptr,
-              .dstSet = pipeline.descriptorSets[i],
-              .dstBinding = 1,
-              .dstArrayElement = 0,
-              .descriptorCount = 1,
-              .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-              .pImageInfo = &imageInfo,
-              .pBufferInfo = nullptr,
-              .pTexelBufferView = nullptr }
-        };
-
-        vkUpdateDescriptorSets(deviceContext.device, (sizeof(descriptorWrites) / sizeof(descriptorWrites[0])), descriptorWrites, 0, nullptr);
-    }
-
-    return result;
-}
-VkResult createDescriptorSetLayout(DeviceContext &deviceContext, GraphicsPipeline &pipeline) {
-    const VkDescriptorSetLayoutBinding descriptorBindings[2] = {
-        { .binding = 0,
-          .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-          .descriptorCount = 1,
-          .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-          .pImmutableSamplers = nullptr },
-        { .binding = 1,
-          .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-          .descriptorCount = 1,
-          .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-          .pImmutableSamplers = nullptr }
-    };
-    VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
-        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .bindingCount = sizeof(descriptorBindings) / sizeof(descriptorBindings[0]),
-        .pBindings = descriptorBindings
-    };
-    return vkCreateDescriptorSetLayout(deviceContext.device, &descriptorSetLayoutInfo, nullptr, &pipeline.descriptorSetLayout);
-}
 VkResult createPipelineLayout(DeviceContext &deviceContext, GraphicsPipeline &pipeline) {
     const VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
         .pNext = nullptr,
         .flags = 0,
         .setLayoutCount = 1,
-        .pSetLayouts = &pipeline.descriptorSetLayout,
+        .pSetLayouts = &deviceContext.descriptorSetLayout,
         .pushConstantRangeCount = 0,
         .pPushConstantRanges = nullptr
     };
@@ -333,27 +241,22 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
     vkDestroyShaderModule(deviceContext.device, module, nullptr);
 }
 
-void updateUniformBuffer(FrameData &frame, SwapchainContext &swapchainContext,Camera& camera) {
-#if 0
-    static auto startTime = std::chrono::high_resolution_clock::now();
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-#else
-    float time = 4.f;
-#endif
+void updateUniformBuffer(SwapchainContext &swapchainContext,Scene& scene) {
+    Camera& camera = scene.camera;
     Vector3 cameraPoint = rotate(Vector3{0.f,0.f,1.f},camera.rotation);
-    //cameraPoint = normalize(cameraPoint);
     Vector3 lookatpos = {camera.position.x + cameraPoint.x,camera.position.y + cameraPoint.y, camera.position.z + cameraPoint.z};
     float aspectRatio = static_cast<float>(swapchainContext.extent.width) / static_cast<float>(swapchainContext.extent.height);
-    UniformBufferData uboData = {};
-    uboData.model = rotate(unitMatrix4(0.1f), time * radians(90), Vector3{ 0.f, 1.f, 0.f });
-    uboData.view = lookAt(camera.position, lookatpos, Vector3{ 0.f, 1.f, 0.f });
-    uboData.projection = perspective(radians(45.f), aspectRatio, 0.1f, 10000.f);
-    uboData.projection.values[1][1] *= -1;
-
-    std::memcpy(frame.uniformBufferMapping, &uboData, sizeof(uboData));
+    for(const Entity& entity : scene.entities){
+        UniformBufferData uboData = {};
+        uboData.model = modelMatrix(entity.position, entity.rotation, entity.scale);
+        uboData.view = lookAt(camera.position, lookatpos, Vector3{ 0.f, 1.f, 0.f });
+        uboData.projection = perspective(radians(45.f), aspectRatio, 0.1f, 10000.f);
+        uboData.projection.values[1][1] *= -1;
+    
+        std::memcpy(entity.uniformBufferMapping, &uboData, sizeof(uboData));
+    }
 }
-void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext, GraphicsPipeline &pipeline, Mesh &mesh, uint32_t imageIndex, uint32_t frameIndex) {
+void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext, GraphicsPipeline &pipeline, Scene& scene, uint32_t imageIndex, uint32_t frameIndex) {
     VkImage image = swapchainContext.images[imageIndex];
     VkImageView imageView = swapchainContext.imageViews[imageIndex];
 
@@ -430,12 +333,6 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
     vkCmdBeginRendering(frameData.commandBuffer, &renderingInfo);
 
     vkCmdBindPipeline(frameData.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline);
-
-    VkDeviceSize vboffset = 0;
-    if (mesh.vertexBuffer.buffer != VK_NULL_HANDLE) {
-        vkCmdBindVertexBuffers(frameData.commandBuffer, 0, 1, &mesh.vertexBuffer.buffer, &vboffset);
-    }
-
     const VkViewport viewport{
         .x = 0,
         .y = 0,
@@ -445,16 +342,23 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
         .maxDepth = 1.f
     };
     vkCmdSetViewport(frameData.commandBuffer, 0, 1, &viewport);
-
     const VkRect2D scissor{
         .offset = { 0, 0 },
         .extent = swapchainContext.extent
     };
     vkCmdSetScissor(frameData.commandBuffer, 0, 1, &scissor);
-    vkCmdBindDescriptorSets(frameData.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipelineLayout, 0, 1, &pipeline.descriptorSets[frameIndex], 0, nullptr);
-    if (mesh.indexBuffer.buffer != VK_NULL_HANDLE) {
-        vkCmdBindIndexBuffer(frameData.commandBuffer, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-        vkCmdDrawIndexed(frameData.commandBuffer, mesh.indexCount, 1, 0, 0, 0);
+
+    for(Entity& entity : scene.entities){
+        VkDeviceSize vboffset = 0;
+        if (entity.mesh.vertexBuffer.buffer != VK_NULL_HANDLE) {
+            vkCmdBindVertexBuffers(frameData.commandBuffer, 0, 1, &entity.mesh.vertexBuffer.buffer, &vboffset);
+        }
+    
+        vkCmdBindDescriptorSets(frameData.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipelineLayout, 0, 1, &entity.descriptorSets[frameIndex], 0, nullptr);
+        if (entity.mesh.indexBuffer.buffer != VK_NULL_HANDLE) {
+            vkCmdBindIndexBuffer(frameData.commandBuffer, entity.mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+            vkCmdDrawIndexed(frameData.commandBuffer, entity.mesh.indexCount, 1, 0, 0, 0);
+        }
     }
 
     // Rendering END
@@ -473,7 +377,7 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
 
     vkEndCommandBuffer(frameData.commandBuffer);
 }
-void drawFrame(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer, Mesh &mesh,Camera& camera) {
+void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer,Scene& scene) {
 
     FS::RenderState &renderState = window.getRenderState();
     bool windowMinimized = (renderState.width <= 0) || (renderState.height <= 0);
@@ -491,7 +395,7 @@ void drawFrame(DeviceContext &deviceContext, SwapchainContext &swapchainContext,
     VkSemaphore renderFinishedSemaphore = renderer.renderFinishedSemaphores[imageIndex];
 
     vkResetFences(deviceContext.device, 1, &drawFence);
-    recordCommandBuffer(renderer.frames[frameIndex], swapchainContext, renderer.pipeline, mesh, imageIndex, frameIndex);
+    recordCommandBuffer(renderer.frames[frameIndex], swapchainContext, renderer.pipeline, scene, imageIndex, frameIndex);
 
     VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
     VkSubmitInfo submitInfo = {
@@ -519,7 +423,7 @@ void drawFrame(DeviceContext &deviceContext, SwapchainContext &swapchainContext,
         .pImageIndices = &imageIndex,
         .pResults = nullptr
     };
-    updateUniformBuffer(renderer.frames[frameIndex], swapchainContext,camera);
+    updateUniformBuffer(swapchainContext,scene);
     VkResult presentResult = vkQueuePresentKHR(graphicsQueue, &presentInfo);
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
         recreateSwapchain(deviceContext, swapchainContext, window);
@@ -528,16 +432,14 @@ void drawFrame(DeviceContext &deviceContext, SwapchainContext &swapchainContext,
 }
 
 void initPipeline(DeviceContext &deviceContext, SwapchainContext &swapchainContext, GraphicsPipeline &pipeline) {
-    createDescriptorSetLayout(deviceContext, pipeline);
     createPipelineLayout(deviceContext, pipeline);
     createGraphicsPipeline(deviceContext, swapchainContext, pipeline, "shaders/slang.spv");
 }
 void cleanupPipeline(DeviceContext &deviceContext, GraphicsPipeline &pipeline) {
-    vkDestroyDescriptorSetLayout(deviceContext.device, pipeline.descriptorSetLayout, nullptr);
     vkDestroyPipeline(deviceContext.device, pipeline.pipeline, nullptr);
     vkDestroyPipelineLayout(deviceContext.device, pipeline.pipelineLayout, nullptr);
 }
-void initVulkanRenderer(DeviceContext &deviceContext, SwapchainContext &swapchainContext, VulkanRenderer &renderer, Mesh &mesh) {
+void initVulkanRenderer(DeviceContext &deviceContext, SwapchainContext &swapchainContext, VulkanRenderer &renderer) {
 
     createSemaphores(deviceContext.device, MAX_SWAPCHAIN_IMAGES, renderer.renderFinishedSemaphores);
 
@@ -548,8 +450,6 @@ void initVulkanRenderer(DeviceContext &deviceContext, SwapchainContext &swapchai
 
         FrameData &frame = renderer.frames[i];
 
-        frame.uniformBuffer = createUniformBuffer(deviceContext, &frame.uniformBufferMapping);
-
         frame.commandBuffer = commandBuffers[i];
 
         createSemaphore(deviceContext.device, &frame.imageAcquireSemaphore);
@@ -557,12 +457,8 @@ void initVulkanRenderer(DeviceContext &deviceContext, SwapchainContext &swapchai
         createFence(deviceContext.device, &frame.drawFence, VK_FENCE_CREATE_SIGNALED_BIT);
     }
     initPipeline(deviceContext, swapchainContext, renderer.pipeline);
-    createDescriptorPool(deviceContext, renderer.pipeline);
-    createDescriptorSets(deviceContext, renderer.pipeline, renderer.frames, mesh);
 }
 void cleanupVulkanRenderer(DeviceContext &deviceContext, VulkanRenderer &renderer) {
-
-    vkDestroyDescriptorPool(deviceContext.device, renderer.pipeline.descriptorPool, nullptr);
     cleanupPipeline(deviceContext, renderer.pipeline);
 
     VkCommandBuffer commandBuffers[MAX_FRAMES_IN_FLIGHT];
@@ -572,9 +468,6 @@ void cleanupVulkanRenderer(DeviceContext &deviceContext, VulkanRenderer &rendere
 
     for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         FrameData &frame = renderer.frames[i];
-        vkUnmapMemory(deviceContext.device, frame.uniformBuffer.memory);
-        frame.uniformBufferMapping = nullptr;
-        cleanupBuffer(deviceContext, frame.uniformBuffer);
         vkDestroyFence(deviceContext.device, frame.drawFence, nullptr);
         vkDestroySemaphore(deviceContext.device, frame.imageAcquireSemaphore, nullptr);
     }
