@@ -2,8 +2,8 @@
 #include "vulkan/Renderer.h"
 #include <numbers>
 void handleInput(FS::Window &window, Scene &scene) {
-    FS::Input &input = window.getInput();
-    Camera& camera = scene.camera;
+    FS::Input &input  = window.getInput();
+    Camera    &camera = scene.camera;
 
     if (isDown(FS::Buttons::BUTTON_ESC)) {
         window.close();
@@ -42,7 +42,7 @@ void handleInput(FS::Window &window, Scene &scene) {
         camera.position.y -= moveSpeed;
     }
 
-    float pi = static_cast<float>(std::numbers::pi);
+    float pi          = static_cast<float>(std::numbers::pi);
     float rotateSpeed = 0.05f;
     if (isDown(FS::Buttons::BUTTON_UP)) {
         camera.rotation.x -= rotateSpeed / pi;
@@ -58,19 +58,18 @@ void handleInput(FS::Window &window, Scene &scene) {
     }
 }
 int main() {
-    OBJModel model = loadOBJ("models/viking_room.obj",true);
-
-    Timer timer;
+    Timer      timer;
+    OBJModel   model = loadOBJ("models/viking_room.obj", true);
     FS::Window window("FSEngine", 720, 720);
 
     DeviceContext deviceContext = {};
-    TIME_FUNC("initDeviceContext", timer, initDeviceContext(deviceContext,MAX_ENTITIES, window));
+    TIME_FUNC("initDeviceContext", timer, initDeviceContext(deviceContext, MAX_ENTITIES, window));
 
     SwapchainContext swapchainContext = {};
     TIME_FUNC("initSwapchainContext", timer, initSwapchainContext(deviceContext, swapchainContext, window));
 
     Mesh mesh = {};
-    TIME_FUNC("createMesh", timer, mesh = createMesh(deviceContext, model,"textures/viking_room.png"));
+    TIME_FUNC("createMesh", timer, mesh = createMesh(deviceContext, model, "textures/viking_room.png"));
 
     VulkanRenderer renderer = {};
     TIME_FUNC("initVulkanRenderer", timer, initVulkanRenderer(deviceContext, swapchainContext, renderer));
@@ -79,30 +78,44 @@ int main() {
     Scene scene{
         .camera{
             .position = { 2.f, 2.f, 2.f },
-            .rotation = { radians(30), radians(-135.f), 0.f } 
-        },
+            .rotation = { radians(30), radians(-135.f), 0.f } },
         .entities{
-            Entity{
-                .mesh = mesh,
-                .position = {0.f,0.f,0.f},
-                .rotation = {0.f,radians(-90.f),0.f},
-                .scale = 1.0f,
-                .uniformBuffer = {},
-                .uniformBufferMapping = nullptr,
-                .descriptorSets = {}
-            },
-            Entity{
-                .mesh = mesh,
-                .position = {2.f,0.f,0.f},
-                .rotation = {0.f,radians(-90.f),0.f},
-                .scale = 0.5f,
-                .uniformBuffer = {},
-                .uniformBufferMapping = nullptr,
-                .descriptorSets = {}
-            }
+            // Entity{
+            //     .mesh = mesh,
+            //     .position = {0.f,0.f,0.f},
+            //     .rotation = {0.f,radians(-90.f),0.f},
+            //     .scale = 1.0f,
+            //     .uniformBuffer = {},
+            //     .uniformBufferMapping = nullptr,
+            //     .descriptorSets = {}
+            // },
+            // Entity{
+            //     .mesh = mesh,
+            //     .position = {2.f,0.f,0.f},
+            //     .rotation = {0.f,radians(-90.f),0.f},
+            //     .scale = 0.5f,
+            //     .uniformBuffer = {},
+            //     .uniformBufferMapping = nullptr,
+            //     .descriptorSets = {}
+            // }
         }
     };
-    TIME_FUNC("initScene", timer, initScene(deviceContext,scene));
+    scene.entities.resize(MAX_ENTITIES);
+    for (uint32_t i = 0; i < MAX_ENTITIES; i++) {
+        const float distance = 5.f;
+        const float x        = static_cast<float>(i % static_cast<uint32_t>(sqrt(MAX_ENTITIES))) * distance;
+        const float z        = static_cast<float>(i / sqrt(MAX_ENTITIES)) * distance;
+        scene.entities[i]    = {
+            .mesh                 = mesh,
+            .position             = { x, 0.f, z },
+            .rotation             = { 0.f, radians(180.f), 0.f },
+            .scale                = 1.f,
+            .uniformBuffer        = {},
+            .uniformBufferMapping = nullptr,
+            .descriptorSets       = {}
+        };
+    }
+    TIME_FUNC("initScene", timer, initScene(deviceContext, scene));
 
     while (window.isOpen()) {
         startTimer(timer);
@@ -114,7 +127,7 @@ int main() {
     }
 
     vkDeviceWaitIdle(deviceContext.device);
-    cleanupScene(deviceContext,scene);
+    cleanupScene(deviceContext, scene);
     cleanupMesh(deviceContext, mesh);
     cleanupVulkanRenderer(deviceContext, renderer);
     cleanupSwapchainContext(deviceContext, swapchainContext);

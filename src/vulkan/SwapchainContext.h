@@ -5,17 +5,17 @@
 
 constexpr uint32_t MAX_SWAPCHAIN_IMAGES = 8;
 struct DepthBuffer {
-    Image image;
+    Image       image;
     VkImageView imageView;
 };
 struct SwapchainContext {
-    VkSwapchainKHR swapchain;
+    VkSwapchainKHR     swapchain;
     VkSurfaceFormatKHR surfaceFormat;
-    VkExtent2D extent;
-    uint32_t imageCount;
-    DepthBuffer depth;
-    VkImage images[MAX_SWAPCHAIN_IMAGES];
-    VkImageView imageViews[MAX_SWAPCHAIN_IMAGES];
+    VkExtent2D         extent;
+    uint32_t           imageCount;
+    DepthBuffer        depth;
+    VkImage            images[MAX_SWAPCHAIN_IMAGES];
+    VkImageView        imageViews[MAX_SWAPCHAIN_IMAGES];
 };
 
 void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window);

@@ -19,10 +19,10 @@ static std::string getDebugMessageTypeString(const VkDebugUtilsMessageTypeFlagsE
 }
 static VKAPI_ATTR VkBool32 VKAPI_CALL
 debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT             messageType,
     const VkDebugUtilsMessengerCallbackDataEXT *callbackData,
-    [[maybe_unused]] void *pUserData) {
+    [[maybe_unused]] void                      *pUserData) {
     const char *severity = "";
     if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
         severity = "VERBOSE";
@@ -59,13 +59,13 @@ VkInstance createInstance(DeviceContext &deviceContext) {
 
     // Application Info
     const VkApplicationInfo applicationInfo = {
-        .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-        .pNext = nullptr,
-        .pApplicationName = "MyApp",
+        .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+        .pNext              = nullptr,
+        .pApplicationName   = "MyApp",
         .applicationVersion = 1,
-        .pEngineName = "FSEngine",
-        .engineVersion = 1,
-        .apiVersion = VK_MAKE_API_VERSION(0, 1, 4, 0)
+        .pEngineName        = "FSEngine",
+        .engineVersion      = 1,
+        .apiVersion         = VK_MAKE_API_VERSION(0, 1, 4, 0)
     };
 
     const VkValidationFeatureEnableEXT features[] = {
@@ -91,37 +91,37 @@ VkInstance createInstance(DeviceContext &deviceContext) {
         VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
 
         .pfnUserCallback = debugCallback,
-        .pUserData = nullptr
+        .pUserData       = nullptr
     };
 
     const VkValidationFeaturesEXT validationFeatures = {
-        .sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
-        .pNext = &debugUtilsMessengerCreateInfo,
-        .enabledValidationFeatureCount = static_cast<uint32_t>(std::size(features)),
-        .pEnabledValidationFeatures = features,
+        .sType                          = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
+        .pNext                          = &debugUtilsMessengerCreateInfo,
+        .enabledValidationFeatureCount  = static_cast<uint32_t>(std::size(features)),
+        .pEnabledValidationFeatures     = features,
         .disabledValidationFeatureCount = 0,
-        .pDisabledValidationFeatures = nullptr
+        .pDisabledValidationFeatures    = nullptr
     };
 
     const VkInstanceCreateInfo instanceCreateInfo = {
-        .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-        .pNext = &validationFeatures,
-        .flags = 0,
+        .sType            = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+        .pNext            = &validationFeatures,
+        .flags            = 0,
         .pApplicationInfo = &applicationInfo,
 #ifdef _DEBUG
-        .enabledLayerCount = sizeof(instanceLayers) / sizeof(instanceLayers[0]),
+        .enabledLayerCount   = sizeof(instanceLayers) / sizeof(instanceLayers[0]),
         .ppEnabledLayerNames = instanceLayers,
 #else
-        .enabledLayerCount = 0,
+        .enabledLayerCount   = 0,
         .ppEnabledLayerNames = nullptr,
 #endif
-        .enabledExtensionCount = sizeof(instanceExtensions) / sizeof(instanceExtensions[0]),
+        .enabledExtensionCount   = sizeof(instanceExtensions) / sizeof(instanceExtensions[0]),
         .ppEnabledExtensionNames = instanceExtensions
     };
 
     // Create the Instance
     VkInstance instance = VK_NULL_HANDLE;
-    VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
+    VkResult   result   = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
     if (result != VK_SUCCESS) {
         LOG_ERROR("Failed to create instance " << result);
         return VK_NULL_HANDLE;
@@ -132,9 +132,9 @@ VkInstance createInstance(DeviceContext &deviceContext) {
 }
 VkPhysicalDevice getPhysicalDevice(DeviceContext &deviceContext) {
     // Enumerate Device
-    uint32_t physicalDeviceCount = 16;
+    uint32_t         physicalDeviceCount = 16;
     VkPhysicalDevice physicalDevices[16];
-    VkResult result = vkEnumeratePhysicalDevices(deviceContext.instance, &physicalDeviceCount, physicalDevices);
+    VkResult         result = vkEnumeratePhysicalDevices(deviceContext.instance, &physicalDeviceCount, physicalDevices);
     if (result != VK_SUCCESS) {
         LOG_ERROR("Failed to select physical device " << result);
         return VK_NULL_HANDLE;
@@ -143,7 +143,7 @@ VkPhysicalDevice getPhysicalDevice(DeviceContext &deviceContext) {
     return physicalDevices[SELECTED_DEVICE];
 }
 uint32_t getQueueFamilyIndex(DeviceContext &deviceContext, VkQueueFlags queueFlags) {
-    uint32_t queueFamilyCount = 0;
+    uint32_t                queueFamilyCount = 0;
     VkQueueFamilyProperties queueFamilyProperties[16];
     vkGetPhysicalDeviceQueueFamilyProperties(deviceContext.physicalDevice, &queueFamilyCount, nullptr);
     assert(queueFamilyCount < 16);
@@ -158,7 +158,7 @@ uint32_t getQueueFamilyIndex(DeviceContext &deviceContext, VkQueueFlags queueFla
     return familyIndex;
 }
 uint32_t getMemoryIndex(VkPhysicalDevice &physicalDevice, VkMemoryRequirements requirements, VkMemoryPropertyFlags requiredFlags) {
-    uint32_t selectedType = ~0u;
+    uint32_t                         selectedType = ~0u;
     VkPhysicalDeviceMemoryProperties memoryProperties;
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
 
@@ -194,43 +194,43 @@ VkDevice createDevice(DeviceContext &deviceContext) {
     // An Example where tesselation shader and geometry shaders are must have
     // and multiDrawIndirect is supported if the device supports it
     VkPhysicalDeviceFeatures requiredFeatures{};
-    requiredFeatures.multiDrawIndirect = supportedFeatures.multiDrawIndirect;
-    requiredFeatures.sparseBinding = supportedFeatures.sparseBinding;
+    requiredFeatures.multiDrawIndirect      = supportedFeatures.multiDrawIndirect;
+    requiredFeatures.sparseBinding          = supportedFeatures.sparseBinding;
     requiredFeatures.sparseResidencyImage2D = supportedFeatures.sparseResidencyImage2D;
-    requiredFeatures.samplerAnisotropy = VK_TRUE;
-    requiredFeatures.tessellationShader = VK_TRUE;
-    requiredFeatures.geometryShader = VK_TRUE;
+    requiredFeatures.samplerAnisotropy      = VK_TRUE;
+    requiredFeatures.tessellationShader     = VK_TRUE;
+    requiredFeatures.geometryShader         = VK_TRUE;
 
     // Dynamic Rendering required
     VkPhysicalDeviceVulkan13Features requiredFeaturesvk13{};
-    requiredFeaturesvk13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    requiredFeaturesvk13.sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
     requiredFeaturesvk13.dynamicRendering = VK_TRUE;
     requiredFeaturesvk13.synchronization2 = VK_TRUE;
 
     uint32_t familyIndex = getQueueFamilyIndex(deviceContext, VK_QUEUE_GRAPHICS_BIT);
     // Queue Create Info
-    float priority = 1.f;
+    float                         priority          = 1.f;
     const VkDeviceQueueCreateInfo queueCreateInfo[] = {
-        { .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-          .pNext = nullptr,
-          .flags = 0,
+        { .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+          .pNext            = nullptr,
+          .flags            = 0,
           .queueFamilyIndex = familyIndex,
-          .queueCount = 1,
+          .queueCount       = 1,
           .pQueuePriorities = &priority },
     };
 
     // Device Create Info
     const VkDeviceCreateInfo deviceCreateInfo = {
-        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-        .pNext = &requiredFeaturesvk13,
-        .flags = 0,
-        .queueCreateInfoCount = 1,
-        .pQueueCreateInfos = queueCreateInfo,
-        .enabledLayerCount = 0,
-        .ppEnabledLayerNames = nullptr,
-        .enabledExtensionCount = sizeof(deviceExtensions) / sizeof(deviceExtensions[0]),
+        .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        .pNext                   = &requiredFeaturesvk13,
+        .flags                   = 0,
+        .queueCreateInfoCount    = 1,
+        .pQueueCreateInfos       = queueCreateInfo,
+        .enabledLayerCount       = 0,
+        .ppEnabledLayerNames     = nullptr,
+        .enabledExtensionCount   = sizeof(deviceExtensions) / sizeof(deviceExtensions[0]),
         .ppEnabledExtensionNames = deviceExtensions,
-        .pEnabledFeatures = &requiredFeatures
+        .pEnabledFeatures        = &requiredFeatures
     };
 
     VkDevice device = VK_NULL_HANDLE;
@@ -241,7 +241,7 @@ VkDevice createDevice(DeviceContext &deviceContext) {
     return device;
 }
 VkQueue getQueue(DeviceContext &deviceContext, VkQueueFlags queueFlags) {
-    VkQueue queue = VK_NULL_HANDLE;
+    VkQueue  queue       = VK_NULL_HANDLE;
     uint32_t familyIndex = getQueueFamilyIndex(deviceContext, queueFlags);
     vkGetDeviceQueue(deviceContext.device, familyIndex, 0, &queue);
     return queue;
@@ -250,19 +250,19 @@ VkSurfaceKHR createSurface(DeviceContext &deviceContext, FS::Window &windowHandl
     VkSurfaceKHR surface = VK_NULL_HANDLE;
 #ifdef _WIN32
     VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {
-        .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
-        .pNext = nullptr,
-        .flags = 0,
+        .sType     = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
+        .pNext     = nullptr,
+        .flags     = 0,
         .hinstance = GetModuleHandleA(nullptr),
-        .hwnd = windowHandle.getNative()
+        .hwnd      = windowHandle.getNative()
     };
     VkResult result = vkCreateWin32SurfaceKHR(deviceContext.instance, &surfaceCreateInfo, nullptr, &surface);
 #elif __linux__
     VkXlibSurfaceCreateInfoKHR surfaceCreateInfo = {
-        .sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR,
-        .pNext = nullptr,
-        .flags = 0,
-        .dpy = XOpenDisplay(0),
+        .sType  = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR,
+        .pNext  = nullptr,
+        .flags  = 0,
+        .dpy    = XOpenDisplay(0),
         .window = windowHandle.getNative()
     };
     VkResult result = vkCreateXlibSurfaceKHR(deviceContext.instance, &surfaceCreateInfo, nullptr, &surface);
@@ -275,12 +275,12 @@ VkSurfaceKHR createSurface(DeviceContext &deviceContext, FS::Window &windowHandl
 }
 
 VkCommandPool createCommandPool(DeviceContext &deviceContext, VkQueueFlags queueFlags) {
-    VkCommandPool commandPool = VK_NULL_HANDLE;
-    uint32_t familyIndex = getQueueFamilyIndex(deviceContext, queueFlags);
+    VkCommandPool           commandPool           = VK_NULL_HANDLE;
+    uint32_t                familyIndex           = getQueueFamilyIndex(deviceContext, queueFlags);
     VkCommandPoolCreateInfo commandPoolCreateInfo = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+        .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .pNext            = nullptr,
+        .flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
         .queueFamilyIndex = familyIndex
     };
 
@@ -293,10 +293,10 @@ VkCommandPool createCommandPool(DeviceContext &deviceContext, VkQueueFlags queue
 }
 VkResult createCommandBuffers(DeviceContext &deviceContext, uint32_t count, VkCommandBuffer *cmdBuffers) {
     VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        .pNext = nullptr,
-        .commandPool = deviceContext.commandPool,
-        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .pNext              = nullptr,
+        .commandPool        = deviceContext.commandPool,
+        .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
         .commandBufferCount = count
     };
 
@@ -307,9 +307,9 @@ VkCommandBuffer startOneTimeCommandBuffer(DeviceContext &deviceContext) {
     createCommandBuffers(deviceContext, 1, &commandBuffer);
 
     VkCommandBufferBeginInfo beginInfo = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        .pNext = nullptr,
-        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+        .sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .pNext            = nullptr,
+        .flags            = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
         .pInheritanceInfo = nullptr
     };
 
@@ -320,15 +320,15 @@ VkCommandBuffer startOneTimeCommandBuffer(DeviceContext &deviceContext) {
 void endOneTimeCommandBuffer(DeviceContext &deviceContext, VkCommandBuffer &commandBuffer) {
     vkEndCommandBuffer(commandBuffer);
     VkSubmitInfo submitInfo = {
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .pNext = nullptr,
-        .waitSemaphoreCount = 0,
-        .pWaitSemaphores = nullptr,
-        .pWaitDstStageMask = nullptr,
-        .commandBufferCount = 1,
-        .pCommandBuffers = &commandBuffer,
+        .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .pNext                = nullptr,
+        .waitSemaphoreCount   = 0,
+        .pWaitSemaphores      = nullptr,
+        .pWaitDstStageMask    = nullptr,
+        .commandBufferCount   = 1,
+        .pCommandBuffers      = &commandBuffer,
         .signalSemaphoreCount = 0,
-        .pSignalSemaphores = nullptr
+        .pSignalSemaphores    = nullptr
     };
     vkQueueSubmit(deviceContext.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
     vkQueueWaitIdle(deviceContext.graphicsQueue);
@@ -336,68 +336,68 @@ void endOneTimeCommandBuffer(DeviceContext &deviceContext, VkCommandBuffer &comm
 }
 VkDescriptorSetLayout createDescriptorSetLayout(DeviceContext &deviceContext) {
     const VkDescriptorSetLayoutBinding descriptorBindings[2] = {
-        { .binding = 0,
-          .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-          .descriptorCount = 1,
-          .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+        { .binding            = 0,
+          .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+          .descriptorCount    = 1,
+          .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
           .pImmutableSamplers = nullptr },
-        { .binding = 1,
-          .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-          .descriptorCount = 1,
-          .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+        { .binding            = 1,
+          .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+          .descriptorCount    = 1,
+          .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
           .pImmutableSamplers = nullptr }
     };
     VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
-        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
+        .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        .pNext        = nullptr,
+        .flags        = 0,
         .bindingCount = sizeof(descriptorBindings) / sizeof(descriptorBindings[0]),
-        .pBindings = descriptorBindings
+        .pBindings    = descriptorBindings
     };
     VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-    VkResult result = vkCreateDescriptorSetLayout(deviceContext.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout);
-    if(result != VK_SUCCESS){
+    VkResult              result              = vkCreateDescriptorSetLayout(deviceContext.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout);
+    if (result != VK_SUCCESS) {
         LOG_ERROR("Failed to create Descriptor Set layout " << result);
     }
     return descriptorSetLayout;
 }
-VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext,uint32_t entityCount) {
+VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext, uint32_t entityCount) {
     VkDescriptorPoolSize poolSizes[2] = {
-        { .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-          .descriptorCount = MAX_FRAMES_IN_FLIGHT * entityCount},
-        { .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-          .descriptorCount = MAX_FRAMES_IN_FLIGHT * entityCount}
+        { .type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+          .descriptorCount = MAX_FRAMES_IN_FLIGHT * entityCount },
+        { .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+          .descriptorCount = MAX_FRAMES_IN_FLIGHT * entityCount }
     };
     VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
-        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-        .maxSets = MAX_FRAMES_IN_FLIGHT * entityCount,
+        .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+        .pNext         = nullptr,
+        .flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+        .maxSets       = MAX_FRAMES_IN_FLIGHT * entityCount,
         .poolSizeCount = sizeof(poolSizes) / sizeof(poolSizes[0]),
-        .pPoolSizes = poolSizes
+        .pPoolSizes    = poolSizes
     };
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-    VkResult result = vkCreateDescriptorPool(deviceContext.device, &descriptorPoolCreateInfo, nullptr, &descriptorPool);
-    if(result != VK_SUCCESS){
+    VkResult         result         = vkCreateDescriptorPool(deviceContext.device, &descriptorPoolCreateInfo, nullptr, &descriptorPool);
+    if (result != VK_SUCCESS) {
         LOG_ERROR("Failed to create descriptor pool " << result);
         return VK_NULL_HANDLE;
     }
     return descriptorPool;
 }
-VkResult createDescriptorSets(DeviceContext &deviceContext, Entity& entity) {
+VkResult createDescriptorSets(DeviceContext &deviceContext, Entity &entity) {
     VkDescriptorSetLayout layouts[MAX_FRAMES_IN_FLIGHT];
     for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         layouts[i] = deviceContext.descriptorSetLayout;
     }
     VkDescriptorSetAllocateInfo allocateInfo = {
-        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-        .pNext = nullptr,
-        .descriptorPool = deviceContext.descriptorPool,
+        .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        .pNext              = nullptr,
+        .descriptorPool     = deviceContext.descriptorPool,
         .descriptorSetCount = MAX_FRAMES_IN_FLIGHT,
-        .pSetLayouts = layouts
+        .pSetLayouts        = layouts
     };
     VkResult result = vkAllocateDescriptorSets(deviceContext.device, &allocateInfo, entity.descriptorSets);
-    if(result != VK_SUCCESS){
+    if (result != VK_SUCCESS) {
         LOG_ERROR("Failed to allocate descriptor sets");
         return result;
     }
@@ -406,33 +406,33 @@ VkResult createDescriptorSets(DeviceContext &deviceContext, Entity& entity) {
         VkDescriptorBufferInfo bufferInfo = {
             .buffer = entity.uniformBuffer.buffer,
             .offset = 0,
-            .range = sizeof(UniformBufferData)
+            .range  = sizeof(UniformBufferData)
         };
         VkDescriptorImageInfo imageInfo = {
-            .sampler = deviceContext.sampler,
-            .imageView = entity.mesh.texture.imageView,
+            .sampler     = deviceContext.sampler,
+            .imageView   = entity.mesh.texture.imageView,
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
         };
         VkWriteDescriptorSet descriptorWrites[2] = {
-            { .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-              .pNext = nullptr,
-              .dstSet = entity.descriptorSets[i],
-              .dstBinding = 0,
-              .dstArrayElement = 0,
-              .descriptorCount = 1,
-              .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-              .pImageInfo = nullptr,
-              .pBufferInfo = &bufferInfo,
+            { .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+              .pNext            = nullptr,
+              .dstSet           = entity.descriptorSets[i],
+              .dstBinding       = 0,
+              .dstArrayElement  = 0,
+              .descriptorCount  = 1,
+              .descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+              .pImageInfo       = nullptr,
+              .pBufferInfo      = &bufferInfo,
               .pTexelBufferView = nullptr },
-            { .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-              .pNext = nullptr,
-              .dstSet = entity.descriptorSets[i],
-              .dstBinding = 1,
-              .dstArrayElement = 0,
-              .descriptorCount = 1,
-              .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-              .pImageInfo = &imageInfo,
-              .pBufferInfo = nullptr,
+            { .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+              .pNext            = nullptr,
+              .dstSet           = entity.descriptorSets[i],
+              .dstBinding       = 1,
+              .dstArrayElement  = 0,
+              .descriptorCount  = 1,
+              .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+              .pImageInfo       = &imageInfo,
+              .pBufferInfo      = nullptr,
               .pTexelBufferView = nullptr }
         };
 
@@ -492,40 +492,40 @@ void copyBuffer(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstB
     VkBufferCopy copyRegion = {
         .srcOffset = 0,
         .dstOffset = 0,
-        .size = size
+        .size      = size
     };
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 }
 void copyBufferToImage(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImage dstImage, uint32_t width, uint32_t height) {
     VkBufferImageCopy copyRegion = {
-        .bufferOffset = 0,
-        .bufferRowLength = 0,
+        .bufferOffset      = 0,
+        .bufferRowLength   = 0,
         .bufferImageHeight = 0,
-        .imageSubresource = {
-            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-            .mipLevel = 0,
+        .imageSubresource  = {
+            .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+            .mipLevel       = 0,
             .baseArrayLayer = 0,
-            .layerCount = 1 },
+            .layerCount     = 1 },
         .imageOffset = { 0, 0, 0 },
         .imageExtent = { width, height, 1 }
     };
     vkCmdCopyBufferToImage(commandBuffer, srcBuffer, dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 }
-void initDeviceContext(DeviceContext &deviceContext,uint32_t entityCount, FS::Window &window) {
-    deviceContext.instance = createInstance(deviceContext);
-    deviceContext.physicalDevice = getPhysicalDevice(deviceContext);
-    deviceContext.device = createDevice(deviceContext);
-    deviceContext.graphicsQueue = getQueue(deviceContext, VK_QUEUE_GRAPHICS_BIT);
-    deviceContext.surface = createSurface(deviceContext, window);
-    deviceContext.commandPool = createCommandPool(deviceContext, VK_QUEUE_GRAPHICS_BIT);
-    deviceContext.descriptorPool = createDescriptorPool(deviceContext,entityCount);
+void initDeviceContext(DeviceContext &deviceContext, uint32_t entityCount, FS::Window &window) {
+    deviceContext.instance            = createInstance(deviceContext);
+    deviceContext.physicalDevice      = getPhysicalDevice(deviceContext);
+    deviceContext.device              = createDevice(deviceContext);
+    deviceContext.graphicsQueue       = getQueue(deviceContext, VK_QUEUE_GRAPHICS_BIT);
+    deviceContext.surface             = createSurface(deviceContext, window);
+    deviceContext.commandPool         = createCommandPool(deviceContext, VK_QUEUE_GRAPHICS_BIT);
+    deviceContext.descriptorPool      = createDescriptorPool(deviceContext, entityCount);
     deviceContext.descriptorSetLayout = createDescriptorSetLayout(deviceContext);
-    deviceContext.sampler = createTextureSampler(deviceContext);
+    deviceContext.sampler             = createTextureSampler(deviceContext);
 }
 void cleanupDeviceContext(DeviceContext &deviceContext) {
     vkDeviceWaitIdle(deviceContext.device);
-    vkDestroySampler(deviceContext.device,deviceContext.sampler,nullptr);
-    vkDestroyDescriptorSetLayout(deviceContext.device,deviceContext.descriptorSetLayout,nullptr);
+    vkDestroySampler(deviceContext.device, deviceContext.sampler, nullptr);
+    vkDestroyDescriptorSetLayout(deviceContext.device, deviceContext.descriptorSetLayout, nullptr);
     vkDestroyDescriptorPool(deviceContext.device, deviceContext.descriptorPool, nullptr);
     vkDestroyCommandPool(deviceContext.device, deviceContext.commandPool, nullptr);
     vkDestroySurfaceKHR(deviceContext.instance, deviceContext.surface, nullptr);

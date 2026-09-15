@@ -9,24 +9,24 @@ namespace std {
 template <>
 struct hash<OBJIndex> {
     size_t operator()(OBJIndex const &index) const {
-        uint64_t hash = index.position;
+        uint64_t hash         = index.position;
         uint64_t hashConstant = 0x9E3779B185EBCA87ULL;
-        hash = hash * hashConstant + index.texture;
-        hash = hash * hashConstant + index.normal;
+        hash                  = hash * hashConstant + index.texture;
+        hash                  = hash * hashConstant + index.normal;
         return hash;
     }
 };
-};
+}; // namespace std
 bool operator==(const OBJIndex &ind1, const OBJIndex &ind2) {
     return ((ind1.position == ind2.position) && (ind1.texture == ind2.texture) && (ind1.normal == ind2.normal));
 }
 OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
     Timer timer;
     startTimer(timer);
-    OBJModel mesh;
-    std::vector<Vector3> positions = {};
-    std::vector<Vector2> texcoords = {};
-    std::vector<Vector3> normals = {};
+    OBJModel              mesh;
+    std::vector<Vector3>  positions  = {};
+    std::vector<Vector2>  texcoords  = {};
+    std::vector<Vector3>  normals    = {};
     std::vector<OBJIndex> objIndices = {};
 
     std::ifstream OBJFile(filename, std::ios::binary | std::ios::ate);
@@ -86,7 +86,7 @@ OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
             }
             normals.push_back(normal);
         } else if (ptr[0] == 'f' && (ptr[1] == ' ' || ptr[1] == '\t')) {
-            std::istringstream stream(line.c_str() + 1);
+            std::istringstream    stream(line.c_str() + 1);
             std::vector<OBJIndex> faceIndices;
             faceIndices.reserve(3);
             std::string vertex;
@@ -128,13 +128,13 @@ OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
 
     // structure obj into unique vertices and indices
     std::unordered_map<OBJIndex, uint32_t> uniqueIndices;
-    
+
     uint32_t uniqueCount = 0;
     for (uint32_t i = 0; i < objIndices.size(); i++) {
         const OBJIndex index = objIndices[i];
-        const auto it = uniqueIndices.find(index);
+        const auto     it    = uniqueIndices.find(index);
         if (it == uniqueIndices.end()) {
-            Vector3 normal = { 0.f, 0.f, 0.f };
+            Vector3 normal   = { 0.f, 0.f, 0.f };
             Vector3 position = { 0.f, 0.f, 0.f };
             Vector2 texcoord = { 0.f, 0.f };
             if (positions.size())
