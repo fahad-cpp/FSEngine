@@ -4,10 +4,12 @@
 #include <cstdint>
 #include <numbers>
 Matrix4 unitMatrix4(float scale) {
-    return { { { scale, 0, 0, 0 },
-               { 0, scale, 0, 0 },
-               { 0, 0, scale, 0 },
-               { 0, 0, 0, 1.f } } };
+    return { {
+        { scale, 0, 0, 0 },
+        { 0, scale, 0, 0 },
+        { 0, 0, scale, 0 },
+        { 0, 0, 0, 1.f },
+    } };
 }
 Matrix4 multMat4Mat4(Matrix4 mat1, Matrix4 mat2) {
     Matrix4 result = {};
@@ -40,20 +42,26 @@ Matrix4 rotate(const Matrix4 matrix, const float angle, const Vector3 axis) {
     float   sintheta       = std::sin(clampedAngle);
     Matrix4 rotationMatrix = {};
     if (axis.x == 0.f && axis.y == 0.f && axis.z >= 1.f) {
-        rotationMatrix = { { { costheta, sintheta, 0, 0 },
-                             { -sintheta, costheta, 0, 0 },
-                             { 0, 0, 1, 0 },
-                             { 0, 0, 0, 1 } } };
+        rotationMatrix = { {
+            { costheta, sintheta, 0, 0 },
+            { -sintheta, costheta, 0, 0 },
+            { 0, 0, 1, 0 },
+            { 0, 0, 0, 1 },
+        } };
     } else if (axis.x == 0.f && axis.y >= 1.f && axis.z == 0.f) {
-        rotationMatrix = { { { costheta, 0, -sintheta, 0 },
-                             { 0, 1, 0, 0 },
-                             { sintheta, 0, costheta, 0 },
-                             { 0, 0, 0, 1 } } };
+        rotationMatrix = { {
+            { costheta, 0, -sintheta, 0 },
+            { 0, 1, 0, 0 },
+            { sintheta, 0, costheta, 0 },
+            { 0, 0, 0, 1 },
+        } };
     } else if (axis.x >= 1.f && axis.y == 0.f && axis.z == 0.f) {
-        rotationMatrix = { { { 1, 0, 0, 0 },
-                             { 0, costheta, sintheta, 0 },
-                             { 0, -sintheta, costheta, 0 },
-                             { 0, 0, 0, 1 } } };
+        rotationMatrix = { {
+            { 1, 0, 0, 0 },
+            { 0, costheta, sintheta, 0 },
+            { 0, -sintheta, costheta, 0 },
+            { 0, 0, 0, 1 },
+        } };
     } else {
         LOG_ERROR("Unhandled axis rotation");
         return matrix;
@@ -76,20 +84,26 @@ Vector3 rotate(const Vector3 vec, const float angle, const Vector3 axis) {
     float   sintheta       = std::sin(clampedAngle);
     Matrix4 rotationMatrix = {};
     if (axis.x == 0.f && axis.y == 0.f && axis.z >= 1.f) {
-        rotationMatrix = { { { costheta, sintheta, 0, 0 },
-                             { -sintheta, costheta, 0, 0 },
-                             { 0, 0, 1, 0 },
-                             { 0, 0, 0, 1 } } };
+        rotationMatrix = { {
+            { costheta, sintheta, 0, 0 },
+            { -sintheta, costheta, 0, 0 },
+            { 0, 0, 1, 0 },
+            { 0, 0, 0, 1 },
+        } };
     } else if (axis.x == 0.f && axis.y >= 1.f && axis.z == 0.f) {
-        rotationMatrix = { { { costheta, 0, -sintheta, 0 },
-                             { 0, 1, 0, 0 },
-                             { sintheta, 0, costheta, 0 },
-                             { 0, 0, 0, 1 } } };
+        rotationMatrix = { {
+            { costheta, 0, -sintheta, 0 },
+            { 0, 1, 0, 0 },
+            { sintheta, 0, costheta, 0 },
+            { 0, 0, 0, 1 },
+        } };
     } else if (axis.x >= 1.f && axis.y == 0.f && axis.z == 0.f) {
-        rotationMatrix = { { { 1, 0, 0, 0 },
-                             { 0, costheta, sintheta, 0 },
-                             { 0, -sintheta, costheta, 0 },
-                             { 0, 0, 0, 1 } } };
+        rotationMatrix = { {
+            { 1, 0, 0, 0 },
+            { 0, costheta, sintheta, 0 },
+            { 0, -sintheta, costheta, 0 },
+            { 0, 0, 0, 1 },
+        } };
     } else {
         LOG_ERROR("Unhandled axis rotation");
         return { vec.x, vec.y, vec.z };
@@ -115,25 +129,29 @@ Matrix4 modelMatrix(const Vector3 position, const Vector3 rotation, const float 
 // Produces a view matrix for camera
 Matrix4 lookAt(const Vector3 position, const Vector3 lookPoint, const Vector3 up) {
     Vector3 cForward = normalize(dist(position, lookPoint));
-    Vector3 cRight   = normalize(cross(up, cForward));
-    Vector3 cUp      = normalize(cross(cForward, cRight));
+    Vector3 cRight   = normalize(cross(cForward, up));
+    Vector3 cUp      = normalize(cross(cRight, cForward));
 
     Vector4 rightdir   = { cRight.x, cRight.y, cRight.z, -dot(cRight, position) };
     Vector4 updir      = { cUp.x, cUp.y, cUp.z, -dot(cUp, position) };
     Vector4 forwarddir = { cForward.x, cForward.y, cForward.z, -dot(cForward, position) };
 
-    Matrix4 result = { { { rightdir.x, updir.x, forwarddir.x, 0 },
-                         { rightdir.y, updir.y, forwarddir.y, 0 },
-                         { rightdir.z, updir.z, forwarddir.z, 0 },
-                         { rightdir.w, updir.w, forwarddir.w, 1 } } };
+    Matrix4 result = { {
+        { rightdir.x, updir.x, forwarddir.x, 0 },
+        { rightdir.y, updir.y, forwarddir.y, 0 },
+        { rightdir.z, updir.z, forwarddir.z, 0 },
+        { rightdir.w, updir.w, forwarddir.w, 1 },
+    } };
     return result;
 }
 Matrix4 perspective(const float fov, const float aspectRatio, const float nearPlane, const float farPlane) {
     float S = 1 / std::tan(fov / 2);
-    return { { { S / aspectRatio, 0, 0, 0 },
-               { 0, S, 0, 0 },
-               { 0, 0, farPlane / (farPlane - nearPlane), 1 },
-               { 0, 0, -(farPlane * nearPlane / (farPlane - nearPlane)), 0 } } };
+    return { {
+        { S / aspectRatio, 0, 0, 0 },
+        { 0, S, 0, 0 },
+        { 0, 0, farPlane / (farPlane - nearPlane), 1 },
+        { 0, 0, -(farPlane * nearPlane / (farPlane - nearPlane)), 0 },
+    } };
 }
 
 float radians(float degree) {

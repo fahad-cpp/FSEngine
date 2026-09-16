@@ -133,7 +133,7 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
         .rasterizerDiscardEnable = VK_FALSE,
         .polygonMode             = VK_POLYGON_MODE_FILL,
         .cullMode                = VK_CULL_MODE_BACK_BIT,
-        .frontFace               = VK_FRONT_FACE_CLOCKWISE,
+        .frontFace               = VK_FRONT_FACE_COUNTER_CLOCKWISE,
         .depthBiasEnable         = VK_FALSE,
         .depthBiasConstantFactor = 0.f,
         .depthBiasClamp          = 0.f,
@@ -242,7 +242,7 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
 
 void updateUniformBuffer(SwapchainContext &swapchainContext, Scene &scene) {
     Camera &camera      = scene.camera;
-    Vector3 cameraPoint = rotate(Vector3{ 0.f, 0.f, 1.f }, camera.rotation);
+    Vector3 cameraPoint = rotate(Vector3{ 0.f, 0.f, -1.f }, camera.rotation);
     Vector3 lookatpos   = { camera.position.x + cameraPoint.x, camera.position.y + cameraPoint.y, camera.position.z + cameraPoint.z };
     float   aspectRatio = static_cast<float>(swapchainContext.extent.width) / static_cast<float>(swapchainContext.extent.height);
     for (const Entity &entity : scene.entities) {
@@ -383,7 +383,7 @@ void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContex
     uint32_t         frameIndex            = renderer.frameIndex;
     VkFence          drawFence             = renderer.frames[frameIndex].drawFence;
     VkSemaphore      imageAcquireSemaphore = renderer.frames[frameIndex].imageAcquireSemaphore;
-    
+
     vkWaitForFences(deviceContext.device, 1, &drawFence, VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex    = 0;
@@ -447,13 +447,9 @@ void initVulkanRenderer(DeviceContext &deviceContext, SwapchainContext &swapchai
     createCommandBuffers(deviceContext, MAX_FRAMES_IN_FLIGHT, commandBuffers);
 
     for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-
-        FrameData &frame = renderer.frames[i];
-
+        FrameData &frame    = renderer.frames[i];
         frame.commandBuffer = commandBuffers[i];
-
         createSemaphore(deviceContext.device, &frame.imageAcquireSemaphore);
-
         createFence(deviceContext.device, &frame.drawFence, VK_FENCE_CREATE_SIGNALED_BIT);
     }
     initPipeline(deviceContext, swapchainContext, renderer.pipeline);

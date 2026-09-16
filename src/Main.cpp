@@ -10,14 +10,17 @@ void handleInput(FS::Window &window, Scene &scene) {
     }
 
     float moveSpeed = 0.1f;
+    if (isDown(FS::Buttons::BUTTON_SHIFT)) {
+        moveSpeed *= 2.f;
+    }
     if (isDown(FS::Buttons::BUTTON_W)) {
-        Vector3 rotated = rotate(Vector3{ 0.f, 0.f, moveSpeed }, camera.rotation.y, Vector3{ 0.f, 1.f, 0.f });
+        Vector3 rotated = rotate(Vector3{ 0.f, 0.f, -moveSpeed }, camera.rotation.y, Vector3{ 0.f, 1.f, 0.f });
         camera.position.x += rotated.x;
         camera.position.y += rotated.y;
         camera.position.z += rotated.z;
     }
     if (isDown(FS::Buttons::BUTTON_S)) {
-        Vector3 rotated = rotate(Vector3{ 0.f, 0.f, -moveSpeed }, camera.rotation.y, Vector3{ 0.f, 1.f, 0.f });
+        Vector3 rotated = rotate(Vector3{ 0.f, 0.f, moveSpeed }, camera.rotation.y, Vector3{ 0.f, 1.f, 0.f });
         camera.position.x += rotated.x;
         camera.position.y += rotated.y;
         camera.position.z += rotated.z;
@@ -45,21 +48,21 @@ void handleInput(FS::Window &window, Scene &scene) {
     float pi          = static_cast<float>(std::numbers::pi);
     float rotateSpeed = 0.05f;
     if (isDown(FS::Buttons::BUTTON_UP)) {
-        camera.rotation.x -= rotateSpeed / pi;
-    }
-    if (isDown(FS::Buttons::BUTTON_DOWN)) {
         camera.rotation.x += rotateSpeed / pi;
     }
+    if (isDown(FS::Buttons::BUTTON_DOWN)) {
+        camera.rotation.x -= rotateSpeed / pi;
+    }
     if (isDown(FS::Buttons::BUTTON_LEFT)) {
-        camera.rotation.y -= rotateSpeed / pi;
+        camera.rotation.y += rotateSpeed / pi;
     }
     if (isDown(FS::Buttons::BUTTON_RIGHT)) {
-        camera.rotation.y += rotateSpeed / pi;
+        camera.rotation.y -= rotateSpeed / pi;
     }
 }
 int main() {
     Timer      timer;
-    OBJModel   model = loadOBJ("models/viking_room.obj", true);
+    OBJModel   model = loadOBJ("models/viking_room.obj",true);
     FS::Window window("FSEngine", 720, 720);
 
     DeviceContext deviceContext = {};
@@ -77,44 +80,21 @@ int main() {
 
     Scene scene{
         .camera{
-            .position = { 2.f, 2.f, 2.f },
-            .rotation = { radians(30), radians(-135.f), 0.f } },
+            .position = { 0.f, 0.f, 0.f },
+            .rotation = { 0.f, radians(-45), 0.f },
+        },
         .entities{
-            // Entity{
-            //     .mesh = mesh,
-            //     .position = {0.f,0.f,0.f},
-            //     .rotation = {0.f,radians(-90.f),0.f},
-            //     .scale = 1.0f,
-            //     .uniformBuffer = {},
-            //     .uniformBufferMapping = nullptr,
-            //     .descriptorSets = {}
-            // },
-            // Entity{
-            //     .mesh = mesh,
-            //     .position = {2.f,0.f,0.f},
-            //     .rotation = {0.f,radians(-90.f),0.f},
-            //     .scale = 0.5f,
-            //     .uniformBuffer = {},
-            //     .uniformBufferMapping = nullptr,
-            //     .descriptorSets = {}
-            // }
+            Entity{
+                .mesh                 = mesh,
+                .position             = { 4.f, 0.f, -4.f },
+                .rotation             = { 0.f, radians(180), 0.f },
+                .scale                = 1.f,
+                .uniformBuffer        = {},
+                .uniformBufferMapping = nullptr,
+                .descriptorSets       = {},
+            },
         }
     };
-    scene.entities.resize(MAX_ENTITIES);
-    for (uint32_t i = 0; i < MAX_ENTITIES; i++) {
-        const float distance = 5.f;
-        const float x        = static_cast<float>(i % static_cast<uint32_t>(sqrt(MAX_ENTITIES))) * distance;
-        const float z        = static_cast<float>(i / sqrt(MAX_ENTITIES)) * distance;
-        scene.entities[i]    = {
-            .mesh                 = mesh,
-            .position             = { x, 0.f, z },
-            .rotation             = { 0.f, radians(180.f), 0.f },
-            .scale                = 1.f,
-            .uniformBuffer        = {},
-            .uniformBufferMapping = nullptr,
-            .descriptorSets       = {}
-        };
-    }
     TIME_FUNC("initScene", timer, initScene(deviceContext, scene));
 
     while (window.isOpen()) {

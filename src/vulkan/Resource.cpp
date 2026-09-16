@@ -147,7 +147,8 @@ VkImageView createImageView(DeviceContext &deviceContext, VkImage image, const V
             .baseMipLevel   = 0,
             .levelCount     = mipLevels,
             .baseArrayLayer = 0,
-            .layerCount     = 1 }
+            .layerCount     = 1,
+        }
     };
     VkImageView imageView = VK_NULL_HANDLE;
     vkCreateImageView(deviceContext.device, &createInfo, nullptr, &imageView);
@@ -239,7 +240,8 @@ void generateMipMaps(VkCommandBuffer commandBuffer, VkImage image, int32_t texWi
             VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             image,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            1, &blit,
+            1,
+            &blit,
             VK_FILTER_LINEAR);
 
         barrier.oldLayout     = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
@@ -293,7 +295,8 @@ Texture createTexture(DeviceContext &deviceContext, const std::string &filepath)
         static_cast<uint32_t>(texHeight),
         mipLevels,
         VK_FORMAT_R8G8B8A8_SRGB,
-        VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     VkCommandBuffer commandBuffer = startOneTimeCommandBuffer(deviceContext);
@@ -306,7 +309,8 @@ Texture createTexture(DeviceContext &deviceContext, const std::string &filepath)
         VK_PIPELINE_STAGE_2_TRANSFER_BIT,
         VK_ACCESS_2_NONE,
         VK_ACCESS_2_TRANSFER_WRITE_BIT,
-        VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+        VK_IMAGE_ASPECT_COLOR_BIT,
+        mipLevels);
 
     copyBufferToImage(commandBuffer, stagingBuffer.buffer, texture.image.image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 

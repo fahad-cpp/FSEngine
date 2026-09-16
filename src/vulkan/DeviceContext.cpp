@@ -237,6 +237,7 @@ VkDevice createDevice(DeviceContext &deviceContext) {
     VkResult result = vkCreateDevice(deviceContext.physicalDevice, &deviceCreateInfo, nullptr, &device);
     if (result != VK_SUCCESS) {
         LOG_ERROR("Failed to create device " << result);
+        return VK_NULL_HANDLE;
     }
     return device;
 }
@@ -336,16 +337,20 @@ void endOneTimeCommandBuffer(DeviceContext &deviceContext, VkCommandBuffer &comm
 }
 VkDescriptorSetLayout createDescriptorSetLayout(DeviceContext &deviceContext) {
     const VkDescriptorSetLayoutBinding descriptorBindings[2] = {
-        { .binding            = 0,
-          .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-          .descriptorCount    = 1,
-          .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
-          .pImmutableSamplers = nullptr },
-        { .binding            = 1,
-          .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-          .descriptorCount    = 1,
-          .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
-          .pImmutableSamplers = nullptr }
+        {
+            .binding            = 0,
+            .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount    = 1,
+            .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
+            .pImmutableSamplers = nullptr,
+        },
+        {
+            .binding            = 1,
+            .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .descriptorCount    = 1,
+            .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
+            .pImmutableSamplers = nullptr,
+        }
     };
     VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
         .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -363,10 +368,14 @@ VkDescriptorSetLayout createDescriptorSetLayout(DeviceContext &deviceContext) {
 }
 VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext, uint32_t entityCount) {
     VkDescriptorPoolSize poolSizes[2] = {
-        { .type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-          .descriptorCount = MAX_FRAMES_IN_FLIGHT * entityCount },
-        { .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-          .descriptorCount = MAX_FRAMES_IN_FLIGHT * entityCount }
+        {
+            .type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = MAX_FRAMES_IN_FLIGHT * entityCount,
+        },
+        {
+            .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .descriptorCount = MAX_FRAMES_IN_FLIGHT * entityCount,
+        }
     };
     VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
         .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
@@ -414,26 +423,30 @@ VkResult createDescriptorSets(DeviceContext &deviceContext, Entity &entity) {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
         };
         VkWriteDescriptorSet descriptorWrites[2] = {
-            { .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-              .pNext            = nullptr,
-              .dstSet           = entity.descriptorSets[i],
-              .dstBinding       = 0,
-              .dstArrayElement  = 0,
-              .descriptorCount  = 1,
-              .descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-              .pImageInfo       = nullptr,
-              .pBufferInfo      = &bufferInfo,
-              .pTexelBufferView = nullptr },
-            { .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-              .pNext            = nullptr,
-              .dstSet           = entity.descriptorSets[i],
-              .dstBinding       = 1,
-              .dstArrayElement  = 0,
-              .descriptorCount  = 1,
-              .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-              .pImageInfo       = &imageInfo,
-              .pBufferInfo      = nullptr,
-              .pTexelBufferView = nullptr }
+            {
+                .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .pNext            = nullptr,
+                .dstSet           = entity.descriptorSets[i],
+                .dstBinding       = 0,
+                .dstArrayElement  = 0,
+                .descriptorCount  = 1,
+                .descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                .pImageInfo       = nullptr,
+                .pBufferInfo      = &bufferInfo,
+                .pTexelBufferView = nullptr,
+            },
+            {
+                .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .pNext            = nullptr,
+                .dstSet           = entity.descriptorSets[i],
+                .dstBinding       = 1,
+                .dstArrayElement  = 0,
+                .descriptorCount  = 1,
+                .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .pImageInfo       = &imageInfo,
+                .pBufferInfo      = nullptr,
+                .pTexelBufferView = nullptr,
+            }
         };
 
         vkUpdateDescriptorSets(deviceContext.device, (sizeof(descriptorWrites) / sizeof(descriptorWrites[0])), descriptorWrites, 0, nullptr);
@@ -505,7 +518,8 @@ void copyBufferToImage(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImag
             .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
             .mipLevel       = 0,
             .baseArrayLayer = 0,
-            .layerCount     = 1 },
+            .layerCount     = 1,
+        },
         .imageOffset = { 0, 0, 0 },
         .imageExtent = { width, height, 1 }
     };

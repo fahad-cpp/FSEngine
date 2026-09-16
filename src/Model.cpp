@@ -23,12 +23,7 @@ bool operator==(const OBJIndex &ind1, const OBJIndex &ind2) {
 OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
     Timer timer;
     startTimer(timer);
-    OBJModel              mesh;
-    std::vector<Vector3>  positions  = {};
-    std::vector<Vector2>  texcoords  = {};
-    std::vector<Vector3>  normals    = {};
-    std::vector<OBJIndex> objIndices = {};
-
+    OBJModel      mesh;
     std::ifstream OBJFile(filename, std::ios::binary | std::ios::ate);
     if (!OBJFile) {
         LOG_ERROR("Cannot open file " << filename);
@@ -45,10 +40,54 @@ OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
 
     const char *ptr = buffer.data();
     std::string line;
+
+    uint32_t positionsCount = 0;
+    uint32_t normalsCount   = 0;
+    uint32_t texCoordCount  = 0;
+    uint32_t indicesCount   = 0;
+    while (*ptr != '\0') {
+        if (ptr[0] == 'v') {
+            if (ptr[1] == ' ' || ptr[1] == '\t') {
+                ++positionsCount;
+            } else if (ptr[1] == 't' && (ptr[2] == ' ' || ptr[2] == '\t')) {
+                ++texCoordCount;
+            } else if (ptr[1] == 'n' && (ptr[2] == ' ' || ptr[2] == '\t')) {
+                ++normalsCount;
+            }
+        } else if (ptr[0] == 'f') {
+            uint32_t faceVerticesCount = 0;
+            while (*ptr != '\n') {
+                if (*ptr == ' ' || *ptr == '\t') {
+                    ++faceVerticesCount;
+                    // skip whitespace between face vertices
+                    while (*ptr == ' ' || *ptr == '\t') {
+                        ptr++;
+                    }
+                }
+                ptr++;
+            }
+            indicesCount += (faceVerticesCount - 2) * 3;
+        } else {
+            ptr++;
+            continue;
+        }
+        while ((*ptr != '\0') && *ptr != '\n')
+            ptr++;
+        if (*ptr == '\n')
+            ptr++;
+    }
+    ptr = buffer.data();
+    std::vector<Vector3>  positions(positionsCount);
+    std::vector<Vector3>  normals(normalsCount);
+    std::vector<Vector2>  texcoords(texCoordCount);
+    std::vector<OBJIndex> objIndices;
+    objIndices.reserve(indicesCount);
+    uint32_t vi = 0, ni = 0, ti = 0;
     while (*ptr != '\0') {
         const char *end = ptr;
-        while ((*end != '\0') && *end != '\n')
+        while ((*end != '\0') && *end != '\n') {
             end++;
+        }
         line = std::string(ptr, static_cast<std::size_t>(end - ptr));
 
         if (ptr[0] == 'v' && (ptr[1] == ' ' || ptr[1] == '\t')) {
@@ -63,15 +102,15 @@ OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
             } else {
                 position = { x, y, z };
             }
-            positions.push_back(position);
+            positions[vi++] = position;
         } else if (ptr[0] == 'v' && ptr[1] == 't' && (ptr[2] == ' ' || ptr[2] == '\t')) {
             float u = 0.f, v = 0.f, w = 0.f;
             if (std::sscanf(line.c_str(), "vt %f %f %f", &u, &v, &w) != 2) {
                 LOG_ERROR("Unhandled textures");
                 return {};
             }
-            Vector2 tex = { u, 1.f - v };
-            texcoords.push_back(tex);
+            Vector2 tex     = { u, 1.f - v };
+            texcoords[ti++] = tex;
         } else if (ptr[0] == 'v' && ptr[1] == 'n' && (ptr[2] == ' ' || ptr[2] == '\t')) {
             float x = 0.f, y = 0.f, z = 0.f;
             if (std::sscanf(line.c_str(), "vn %f %f %f", &x, &y, &z) != 3) {
@@ -84,9 +123,9 @@ OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
             } else {
                 normal = { x, y, z };
             }
-            normals.push_back(normal);
+            normals[ni++] = normal;
         } else if (ptr[0] == 'f' && (ptr[1] == ' ' || ptr[1] == '\t')) {
-            std::istringstream    stream(line.c_str() + 1);
+            std::istringstream    stream(line.c_str() + 2);
             std::vector<OBJIndex> faceIndices;
             faceIndices.reserve(3);
             std::string vertex;
@@ -130,6 +169,8 @@ OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
     std::unordered_map<OBJIndex, uint32_t> uniqueIndices;
 
     uint32_t uniqueCount = 0;
+    mesh.indices.reserve(indicesCount);
+    mesh.vertices.reserve(positionsCount);
     for (uint32_t i = 0; i < objIndices.size(); i++) {
         const OBJIndex index = objIndices[i];
         const auto     it    = uniqueIndices.find(index);
@@ -137,19 +178,22 @@ OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
             Vector3 normal   = { 0.f, 0.f, 0.f };
             Vector3 position = { 0.f, 0.f, 0.f };
             Vector2 texcoord = { 0.f, 0.f };
-            if (positions.size())
+            if (positions.size()) {
                 position = positions[index.position];
-            if (texcoords.size())
+            }
+            if (texcoords.size()) {
                 texcoord = texcoords[index.texture];
-            if (normals.size())
+            }
+            if (normals.size()) {
                 normal = normals[index.normal];
+            }
             mesh.vertices.emplace_back(position, normal, texcoord);
+            mesh.indices.emplace_back(uniqueCount);
             uniqueIndices[index] = uniqueCount;
-            mesh.indices.push_back(uniqueCount);
             uniqueCount++;
         } else {
             uint32_t foundIndex = uniqueIndices[index];
-            mesh.indices.push_back(foundIndex);
+            mesh.indices.emplace_back(foundIndex);
         }
     }
     endTimer(timer);

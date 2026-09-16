@@ -27,7 +27,8 @@ void transitionImageLayout(
             .baseMipLevel   = 0,
             .levelCount     = mipLevels,
             .baseArrayLayer = 0,
-            .layerCount     = 1 }
+            .layerCount     = 1,
+        }
     };
 
     const VkDependencyInfo dependencyInfo = {
