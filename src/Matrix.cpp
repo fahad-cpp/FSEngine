@@ -91,6 +91,8 @@ Vector3 rotate(const Vector3 vec, const float angle, const Vector3 axis) {
             { 0, 0, 0, 1 },
         } };
     } else if (axis.x == 0.f && axis.y >= 1.f && axis.z == 0.f) {
+        costheta = std::cos(-clampedAngle);
+        sintheta = std::sin(-clampedAngle);
         rotationMatrix = { {
             { costheta, 0, -sintheta, 0 },
             { 0, 1, 0, 0 },

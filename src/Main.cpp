@@ -1,6 +1,7 @@
 #include "Timer.h"
 #include "vulkan/Renderer.h"
 #include <numbers>
+#include <algorithm>
 void handleInput(FS::Window &window, Scene &scene) {
     FS::Input &input  = window.getInput();
     Camera    &camera = scene.camera;
@@ -49,20 +50,22 @@ void handleInput(FS::Window &window, Scene &scene) {
     float rotateSpeed = 0.05f;
     if (isDown(FS::Buttons::BUTTON_UP)) {
         camera.rotation.x += rotateSpeed / pi;
+        camera.rotation.x = std::clamp(camera.rotation.x,radians(-89.f),radians(89.f));
     }
     if (isDown(FS::Buttons::BUTTON_DOWN)) {
         camera.rotation.x -= rotateSpeed / pi;
+        camera.rotation.x = std::clamp(camera.rotation.x,radians(-89.f),radians(89.f));
     }
     if (isDown(FS::Buttons::BUTTON_LEFT)) {
-        camera.rotation.y += rotateSpeed / pi;
+        camera.rotation.y -= rotateSpeed / pi;
     }
     if (isDown(FS::Buttons::BUTTON_RIGHT)) {
-        camera.rotation.y -= rotateSpeed / pi;
+        camera.rotation.y += rotateSpeed / pi;
     }
 }
 int main() {
     Timer      timer;
-    OBJModel   model = loadOBJ("models/viking_room.obj",true);
+    OBJModel   model = loadOBJ("models/sponza.obj");
     FS::Window window("FSEngine", 720, 720);
 
     DeviceContext deviceContext = {};
@@ -72,7 +75,7 @@ int main() {
     TIME_FUNC("initSwapchainContext", timer, initSwapchainContext(deviceContext, swapchainContext, window));
 
     Mesh mesh = {};
-    TIME_FUNC("createMesh", timer, mesh = createMesh(deviceContext, model, "textures/viking_room.png"));
+    TIME_FUNC("createMesh", timer, mesh = createMesh(deviceContext, model, "textures/white.png"));
 
     VulkanRenderer renderer = {};
     TIME_FUNC("initVulkanRenderer", timer, initVulkanRenderer(deviceContext, swapchainContext, renderer));
@@ -80,15 +83,15 @@ int main() {
 
     Scene scene{
         .camera{
-            .position = { 0.f, 0.f, 0.f },
-            .rotation = { 0.f, radians(-45), 0.f },
+            .position = { 1.f, 1.f, 1.f },
+            .rotation = { 0.f, radians(-90), 0.f },
         },
         .entities{
             Entity{
                 .mesh                 = mesh,
-                .position             = { 4.f, 0.f, -4.f },
-                .rotation             = { 0.f, radians(180), 0.f },
-                .scale                = 1.f,
+                .position             = { 0.f, 0.f, 0.f },
+                .rotation             = { 0.f, 0.f, 0.f },
+                .scale                = 0.1f,
                 .uniformBuffer        = {},
                 .uniformBufferMapping = nullptr,
                 .descriptorSets       = {},

@@ -19,7 +19,7 @@ struct VSOutput {
 VSOutput vertMain(VSInput vertIn) {
     VSOutput output;
     output.pos          = mul(ubo.projection, mul(ubo.view, mul(ubo.model, float4(vertIn.pos, 1.0))));
-    output.normal       = vertIn.normal;
+    output.normal       = mul(ubo.model, float4(vertIn.normal, 0.0)).xyz;
     output.fragTexCoord = vertIn.inTexCoord;
     return output;
 }
@@ -29,15 +29,17 @@ struct Light {
     float  intensity;
 };
 static Light directionalLight = {
-    { 2.f, -2.f, -2.f },
+    { -1.f, -1.f, 1.f },
     0.6f
 };
-static float ambient = 0.2f;
+static float ambient = 0.3f;
 [shader("fragment")]
 float4 fragMain(VSOutput fragIn) : SV_TARGET {
-    float3 lightDir = directionalLight.direction / abs(length(directionalLight.direction));
-    float2 texCoord = fragIn.fragTexCoord;
-    float  nDotL    = dot(fragIn.normal, normalize(-1.f * lightDir)) * directionalLight.intensity;
-    float  light    = nDotL + ambient;
-    return float4(texture.Sample(texCoord).xyz * light, 1.f);
+    float3 N       = normalize(fragIn.normal);
+    float3 L       = normalize(-directionalLight.direction);
+    float  nDotL   = dot(N, L);
+    float  diffuse = nDotL * directionalLight.intensity;
+    float  light   = diffuse + ambient;
+
+    return float4(texture.Sample(fragIn.fragTexCoord).xyz * light, 1.f);
 }
