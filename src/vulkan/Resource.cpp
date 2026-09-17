@@ -278,6 +278,8 @@ Texture createTexture(DeviceContext &deviceContext, const std::string &filepath)
 
     if (!pixels) {
         LOG_ERROR("Failed to load texture: " << filepath);
+        pixels    = stbi_load("textures/invalid.png", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * 4);
     }
 
     Buffer stagingBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, imageSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);

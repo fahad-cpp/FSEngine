@@ -65,7 +65,7 @@ void handleInput(FS::Window &window, Scene &scene) {
 }
 int main() {
     Timer      timer;
-    OBJModel   model = loadOBJ("models/sponza.obj");
+    OBJModel   model = loadOBJ("models/Zenith.obj",true);
     FS::Window window("FSEngine", 720, 720);
 
     DeviceContext deviceContext = {};
@@ -75,7 +75,7 @@ int main() {
     TIME_FUNC("initSwapchainContext", timer, initSwapchainContext(deviceContext, swapchainContext, window));
 
     Mesh mesh = {};
-    TIME_FUNC("createMesh", timer, mesh = createMesh(deviceContext, model, "textures/white.png"));
+    TIME_FUNC("createMesh", timer, mesh = createMesh(deviceContext, model, "textures/Zeni.png"));
 
     VulkanRenderer renderer = {};
     TIME_FUNC("initVulkanRenderer", timer, initVulkanRenderer(deviceContext, swapchainContext, renderer));
@@ -83,15 +83,15 @@ int main() {
 
     Scene scene{
         .camera{
-            .position = { 1.f, 1.f, 1.f },
-            .rotation = { 0.f, radians(-90), 0.f },
+            .position = { 0.f, 3.f, 15.f },
+            .rotation = { 0.f, 0.f, 0.f },
         },
         .entities{
             Entity{
                 .mesh                 = mesh,
                 .position             = { 0.f, 0.f, 0.f },
                 .rotation             = { 0.f, 0.f, 0.f },
-                .scale                = 0.1f,
+                .scale                = 1.f,
                 .uniformBuffer        = {},
                 .uniformBufferMapping = nullptr,
                 .descriptorSets       = {},
@@ -106,6 +106,7 @@ int main() {
         handleInput(window, scene);
         window.processMessages();
         endTimer(timer);
+        scene.entities[0].rotation.y += 1.f * (timer.diff / 1000000.f);
         LOG_LIVE("FPS: " << microsecToFPS(timer.diff));
     }
 
