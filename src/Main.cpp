@@ -75,7 +75,7 @@ int main() {
     TIME_FUNC("initSwapchainContext", timer, initSwapchainContext(deviceContext, swapchainContext, window));
 
     Mesh mesh = {};
-    TIME_FUNC("createMesh", timer, mesh = createMesh(deviceContext, model, "textures/Zeni.png"));
+    TIME_FUNC("createMesh", timer, mesh = createMesh(deviceContext, model, "textures/Zenith.png"));
 
     VulkanRenderer renderer = {};
     TIME_FUNC("initVulkanRenderer", timer, initVulkanRenderer(deviceContext, swapchainContext, renderer));
@@ -106,7 +106,7 @@ int main() {
         handleInput(window, scene);
         window.processMessages();
         endTimer(timer);
-        scene.entities[0].rotation.y += 1.f * (timer.diff / 1000000.f);
+        scene.entities[0].rotation.y += radians(90) * (timer.diff / 1000000.f);
         LOG_LIVE("FPS: " << microsecToFPS(timer.diff));
     }
 

@@ -19,7 +19,7 @@ target_include_directories(VulkanApp SYSTEM PRIVATE ${VULKAN_INCLUDE} vendor/stb
 target_compile_options(
     VulkanApp PRIVATE -Wall -Wextra -Weffc++ -Wconversion -Wsign-conversion -Werror -pedantic-errors
     $<$<CONFIG:Debug>:-ggdb>
-    $<$<CONFIG:Release>:-O2>
+    $<$<CONFIG:Release>:-O3 -ffast-math>
 )
 
 target_link_libraries(VulkanApp Vulkan::Vulkan FSWindow)
