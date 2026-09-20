@@ -1,7 +1,8 @@
 #include "Timer.h"
 #include "vulkan/Renderer.h"
-#include <numbers>
 #include <algorithm>
+#include <numbers>
+
 void handleInput(FS::Window &window, Scene &scene) {
     FS::Input &input  = window.getInput();
     Camera    &camera = scene.camera;
@@ -50,11 +51,11 @@ void handleInput(FS::Window &window, Scene &scene) {
     float rotateSpeed = 0.05f;
     if (isDown(FS::Buttons::BUTTON_UP)) {
         camera.rotation.x += rotateSpeed / pi;
-        camera.rotation.x = std::clamp(camera.rotation.x,radians(-89.f),radians(89.f));
+        camera.rotation.x = std::clamp(camera.rotation.x, radians(-89.f), radians(89.f));
     }
     if (isDown(FS::Buttons::BUTTON_DOWN)) {
         camera.rotation.x -= rotateSpeed / pi;
-        camera.rotation.x = std::clamp(camera.rotation.x,radians(-89.f),radians(89.f));
+        camera.rotation.x = std::clamp(camera.rotation.x, radians(-89.f), radians(89.f));
     }
     if (isDown(FS::Buttons::BUTTON_LEFT)) {
         camera.rotation.y -= rotateSpeed / pi;
@@ -65,7 +66,7 @@ void handleInput(FS::Window &window, Scene &scene) {
 }
 int main() {
     Timer      timer;
-    OBJModel   model = loadOBJ("models/Zenith.obj",true);
+    OBJModel   model = loadOBJ("models/Zenith.obj", true);
     FS::Window window("FSEngine", 720, 720);
 
     DeviceContext deviceContext = {};
