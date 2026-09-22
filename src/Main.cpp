@@ -3,6 +3,12 @@
 #include <algorithm>
 #include <numbers>
 
+
+/*
+    TODO:
+        -Find out why demonskull model has weird vertices
+*/
+
 void handleInput(FS::Window &window, Scene &scene) {
     FS::Input &input  = window.getInput();
     Camera    &camera = scene.camera;
@@ -66,7 +72,9 @@ void handleInput(FS::Window &window, Scene &scene) {
 }
 int main() {
     Timer      timer;
-    OBJModel   model = loadOBJ("models/Zenith.obj", true);
+    OBJModel   zenith = loadOBJ("models/Zenith.obj", true);
+    OBJModel   bed = loadOBJ("models/Bed.obj");
+    OBJModel   demonSkull = loadOBJ("models/DemonSkull.obj");
     FS::Window window("FSEngine", 720, 720);
 
     DeviceContext deviceContext = {};
@@ -75,8 +83,14 @@ int main() {
     SwapchainContext swapchainContext = {};
     TIME_FUNC("initSwapchainContext", timer, initSwapchainContext(deviceContext, swapchainContext, window));
 
-    Mesh mesh = {};
-    TIME_FUNC("createMesh", timer, mesh = createMesh(deviceContext, model, "textures/Zenith.png"));
+    Mesh zenithMesh = {};
+    TIME_FUNC("createMesh", timer, zenithMesh = createMesh(deviceContext, zenith, "textures/Zenith.png"));
+
+    Mesh bedMesh = {};
+    TIME_FUNC("createMesh", timer, bedMesh = createMesh(deviceContext, bed, "textures/white.png"));
+
+    Mesh demonSkullMesh = {};
+    TIME_FUNC("createMesh", timer, demonSkullMesh = createMesh(deviceContext, demonSkull, "textures/white.png"));
 
     VulkanRenderer renderer = {};
     TIME_FUNC("initVulkanRenderer", timer, initVulkanRenderer(deviceContext, swapchainContext, renderer));
@@ -88,8 +102,26 @@ int main() {
             .rotation = { 0.f, 0.f, 0.f },
         },
         .entities{
+            // Entity{
+            //     .mesh                 = zenithMesh,
+            //     .position             = { 0.f, 0.f, 0.f },
+            //     .rotation             = { 0.f, 0.f, 0.f },
+            //     .scale                = 1.f,
+            //     .uniformBuffer        = {},
+            //     .uniformBufferMapping = nullptr,
+            //     .descriptorSets       = {},
+            // },
+            // Entity{
+            //     .mesh                 = bedMesh,
+            //     .position             = { 0.f, 0.f, 0.f },
+            //     .rotation             = { 0.f, 0.f, 0.f },
+            //     .scale                = 1.f,
+            //     .uniformBuffer        = {},
+            //     .uniformBufferMapping = nullptr,
+            //     .descriptorSets       = {},
+            // },
             Entity{
-                .mesh                 = mesh,
+                .mesh                 = demonSkullMesh,
                 .position             = { 0.f, 0.f, 0.f },
                 .rotation             = { 0.f, 0.f, 0.f },
                 .scale                = 1.f,
@@ -107,13 +139,15 @@ int main() {
         handleInput(window, scene);
         window.processMessages();
         endTimer(timer);
-        scene.entities[0].rotation.y += radians(90) * (timer.diff / 1000000.f);
+        //scene.entities[0].rotation.y += radians(90) * (timer.diff / 1000000.f);
         LOG_LIVE("FPS: " << microsecToFPS(timer.diff));
     }
 
     vkDeviceWaitIdle(deviceContext.device);
     cleanupScene(deviceContext, scene);
-    cleanupMesh(deviceContext, mesh);
+    cleanupMesh(deviceContext, zenithMesh);
+    cleanupMesh(deviceContext, bedMesh);
+    cleanupMesh(deviceContext, demonSkullMesh);
     cleanupVulkanRenderer(deviceContext, renderer);
     cleanupSwapchainContext(deviceContext, swapchainContext);
     cleanupDeviceContext(deviceContext);

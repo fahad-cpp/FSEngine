@@ -31,7 +31,10 @@ inline static char *getfloat(char *ptr, float *value) {
     while (isNumeric(*end) || (*end == '.') || (*end == '-')) {
         end++;
     }
-    std::from_chars(ptr, end, *value);
+    std::from_chars_result result = std::from_chars(ptr, end, *value);
+    if (result.ec == std::errc::invalid_argument || result.ec == std::errc::result_out_of_range) {
+        LOG_ERROR("something wrong happened\n");
+    }
     return end;
 }
 inline static char *getuint(char *ptr, uint32_t *value) {
@@ -46,11 +49,11 @@ inline static char *getuint(char *ptr, uint32_t *value) {
     return end;
 }
 // get floats seperated by space
-inline static Vector3 get3floats(char *ptr) {
+inline static Vector3 get3floats([[maybe_unused]] char *ptr) {
     Vector3 res;
     ptr = getfloat(ptr, &res.x);
-    ptr = getfloat(ptr + 1, &res.y);
-    ptr = getfloat(ptr + 1, &res.z);
+    ptr = getfloat(ptr, &res.y);
+    ptr = getfloat(ptr, &res.z);
     return res;
 }
 inline static Vector2 get2floats(char *ptr) {
@@ -214,7 +217,7 @@ OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
         const auto     it    = uniqueIndices.find(index);
         if (it == uniqueIndices.end()) {
             Vector3 normal   = { 0.f, 0.f, 0.f };
-            Vector3 position = { 0.f, 0.f, 0.f };
+            Vector3 position = { 0.f, 1000.f, 0.f };
             Vector2 texcoord = { 0.f, 0.f };
             if (positions.size()) {
                 position = positions[index.position];
