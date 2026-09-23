@@ -28,13 +28,10 @@ inline static char *getfloat(char *ptr, float *value) {
         ptr++;
     }
     char *end = ptr;
-    while (isNumeric(*end) || (*end == '.') || (*end == '-')) {
+    while (isNumeric(*end) || (*end == '.') || (*end == '-') || (*end == 'E') || (*end == 'e')) {
         end++;
     }
-    std::from_chars_result result = std::from_chars(ptr, end, *value);
-    if (result.ec == std::errc::invalid_argument || result.ec == std::errc::result_out_of_range) {
-        LOG_ERROR("something wrong happened\n");
-    }
+    std::from_chars(ptr, end, *value);
     return end;
 }
 inline static char *getuint(char *ptr, uint32_t *value) {
@@ -49,7 +46,7 @@ inline static char *getuint(char *ptr, uint32_t *value) {
     return end;
 }
 // get floats seperated by space
-inline static Vector3 get3floats([[maybe_unused]] char *ptr) {
+inline static Vector3 get3floats(char *ptr) {
     Vector3 res;
     ptr = getfloat(ptr, &res.x);
     ptr = getfloat(ptr, &res.y);

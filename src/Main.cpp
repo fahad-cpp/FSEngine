@@ -3,20 +3,16 @@
 #include <algorithm>
 #include <numbers>
 
-
 /*
     TODO:
-        -Find out why demonskull model has weird vertices
+    -Make gizmos
+    -object ray selection
+    -glTF/glb support
+    -specular lighting
+    -proper light handling (send light array from CPU to GPU)
 */
 
-void handleInput(FS::Window &window, Scene &scene) {
-    FS::Input &input  = window.getInput();
-    Camera    &camera = scene.camera;
-
-    if (isDown(FS::Buttons::BUTTON_ESC)) {
-        window.close();
-    }
-
+void cameraMovementSystem(Camera& camera,FS::Input& input){
     float moveSpeed = 0.1f;
     if (isDown(FS::Buttons::BUTTON_SHIFT)) {
         moveSpeed *= 2.f;
@@ -70,6 +66,15 @@ void handleInput(FS::Window &window, Scene &scene) {
         camera.rotation.y += rotateSpeed / pi;
     }
 }
+void handleInput(FS::Window &window, Scene &scene) {
+    FS::Input &input  = window.getInput();
+    Camera    &camera = scene.camera;
+
+    if (isDown(FS::Buttons::BUTTON_ESC)) {
+        window.close();
+    }
+    cameraMovementSystem(camera, input);
+}
 int main() {
     Timer      timer;
     OBJModel   zenith = loadOBJ("models/Zenith.obj", true);
@@ -102,29 +107,29 @@ int main() {
             .rotation = { 0.f, 0.f, 0.f },
         },
         .entities{
-            // Entity{
-            //     .mesh                 = zenithMesh,
-            //     .position             = { 0.f, 0.f, 0.f },
-            //     .rotation             = { 0.f, 0.f, 0.f },
-            //     .scale                = 1.f,
-            //     .uniformBuffer        = {},
-            //     .uniformBufferMapping = nullptr,
-            //     .descriptorSets       = {},
-            // },
-            // Entity{
-            //     .mesh                 = bedMesh,
-            //     .position             = { 0.f, 0.f, 0.f },
-            //     .rotation             = { 0.f, 0.f, 0.f },
-            //     .scale                = 1.f,
-            //     .uniformBuffer        = {},
-            //     .uniformBufferMapping = nullptr,
-            //     .descriptorSets       = {},
-            // },
             Entity{
-                .mesh                 = demonSkullMesh,
-                .position             = { 0.f, 0.f, 0.f },
+                .mesh                 = zenithMesh,
+                .position             = { 10.f, 0.f, 0.f },
                 .rotation             = { 0.f, 0.f, 0.f },
                 .scale                = 1.f,
+                .uniformBuffer        = {},
+                .uniformBufferMapping = nullptr,
+                .descriptorSets       = {},
+            },
+            Entity{
+                .mesh                 = bedMesh,
+                .position             = { -10.f, 0.f, 0.f },
+                .rotation             = { 0.f, 0.f, 0.f },
+                .scale                = 1.f,
+                .uniformBuffer        = {},
+                .uniformBufferMapping = nullptr,
+                .descriptorSets       = {},
+            },
+            Entity{
+                .mesh                 = demonSkullMesh,
+                .position             = { 0.f, -200.f * 0.3f, 0.f },
+                .rotation             = { 0.f, 0.f, 0.f },
+                .scale                = 0.3f,
                 .uniformBuffer        = {},
                 .uniformBufferMapping = nullptr,
                 .descriptorSets       = {},
