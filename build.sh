@@ -1,4 +1,4 @@
-EXENAME=VulkanApp
+EXENAME=FSEngine
 PRESET="clang-debug"
 
 mkdir -p build

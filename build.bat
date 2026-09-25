@@ -1,6 +1,6 @@
 @echo off
 setlocal
-set "EXENAME=VulkanApp.exe"
+set "EXENAME=FSEngine.exe"
 set "PRESET=clang-debug"
 
 if not exist build mkdir build >nul 2>nul
