@@ -79,10 +79,10 @@ inline static void getIndices(char *ptr, uint32_t &v, uint32_t &t, uint32_t &n) 
     ptr++;
     ptr = getuint(ptr, &n);
 }
-OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
+Model loadOBJ(const std::string &filename, bool flipYZ) {
     Timer timer;
     startTimer(timer);
-    OBJModel      mesh;
+    Model      mesh;
     std::ifstream OBJFile(filename, std::ios::binary | std::ios::ate);
     if (!OBJFile) {
         LOG_ERROR("Cannot open file " << filename);
@@ -195,15 +195,13 @@ OBJModel loadOBJ(const std::string &filename, bool flipYZ) {
             }
         }
 
-        // skip until EOF or newline
         while ((*ptr != '\0') && *ptr != '\n')
             ptr++;
-        // skip newline
+
         if (*ptr == '\n')
             ptr++;
     }
 
-    // structure obj into unique vertices and indices
     std::unordered_map<OBJIndex, uint32_t> uniqueIndices;
 
     uint32_t uniqueCount = 0;

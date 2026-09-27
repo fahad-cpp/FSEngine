@@ -16,10 +16,10 @@ struct OBJIndex {
     uint32_t normal;
 };
 
-struct OBJModel {
+struct Model {
     std::vector<Vertex>   vertices;
     std::vector<uint32_t> indices;
 };
 
-OBJModel loadOBJ(const std::string &filepath, bool flipYZ = false);
+Model loadOBJ(const std::string &filepath, bool flipYZ = false);
 #endif

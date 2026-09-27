@@ -75,7 +75,6 @@ void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainCo
     };
     vkCreateSwapchainKHR(deviceContext.device, &swapchainCreateInfo, nullptr, &swapchainContext.swapchain);
 
-    // Swapchain Images
     uint32_t swapchainImageCount = MAX_SWAPCHAIN_IMAGES;
     std::fill_n(swapchainContext.images, MAX_SWAPCHAIN_IMAGES, VK_NULL_HANDLE);
     vkGetSwapchainImagesKHR(deviceContext.device, swapchainContext.swapchain, &swapchainImageCount, swapchainContext.images);

@@ -57,7 +57,6 @@ VkInstance createInstance(DeviceContext &deviceContext) {
         VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
     };
 
-    // Application Info
     const VkApplicationInfo applicationInfo = {
         .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
         .pNext              = nullptr,
@@ -119,7 +118,6 @@ VkInstance createInstance(DeviceContext &deviceContext) {
         .ppEnabledExtensionNames = instanceExtensions
     };
 
-    // Create the Instance
     VkInstance instance = VK_NULL_HANDLE;
     VkResult   result   = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
     if (result != VK_SUCCESS) {
@@ -131,7 +129,6 @@ VkInstance createInstance(DeviceContext &deviceContext) {
     return instance;
 }
 VkPhysicalDevice getPhysicalDevice(DeviceContext &deviceContext) {
-    // Enumerate Device
     uint32_t         physicalDeviceCount = 16;
     VkPhysicalDevice physicalDevices[16];
     VkResult         result = vkEnumeratePhysicalDevices(deviceContext.instance, &physicalDeviceCount, physicalDevices);
@@ -190,9 +187,6 @@ VkDevice createDevice(DeviceContext &deviceContext) {
     supportedFeatures2.pNext = &v13features;
     vkGetPhysicalDeviceFeatures2(deviceContext.physicalDevice, &supportedFeatures2);
 
-    // Specify required Features
-    // An Example where tesselation shader and geometry shaders are must have
-    // and multiDrawIndirect is supported if the device supports it
     VkPhysicalDeviceFeatures requiredFeatures{};
     requiredFeatures.multiDrawIndirect      = supportedFeatures.multiDrawIndirect;
     requiredFeatures.sparseBinding          = supportedFeatures.sparseBinding;
@@ -201,14 +195,12 @@ VkDevice createDevice(DeviceContext &deviceContext) {
     requiredFeatures.tessellationShader     = VK_TRUE;
     requiredFeatures.geometryShader         = VK_TRUE;
 
-    // Dynamic Rendering required
     VkPhysicalDeviceVulkan13Features requiredFeaturesvk13{};
     requiredFeaturesvk13.sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
     requiredFeaturesvk13.dynamicRendering = VK_TRUE;
     requiredFeaturesvk13.synchronization2 = VK_TRUE;
 
     uint32_t familyIndex = getQueueFamilyIndex(deviceContext, VK_QUEUE_GRAPHICS_BIT);
-    // Queue Create Info
     float                         priority          = 1.f;
     const VkDeviceQueueCreateInfo queueCreateInfo[] = {
         { .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
@@ -219,7 +211,6 @@ VkDevice createDevice(DeviceContext &deviceContext) {
           .pQueuePriorities = &priority },
     };
 
-    // Device Create Info
     const VkDeviceCreateInfo deviceCreateInfo = {
         .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         .pNext                   = &requiredFeaturesvk13,

@@ -329,7 +329,7 @@ void cleanupTexture(DeviceContext &deviceContext, Texture &texture) {
     cleanupImage(deviceContext, texture.image);
     vkDestroyImageView(deviceContext.device, texture.imageView, nullptr);
 }
-Mesh createMesh(DeviceContext &deviceContext, OBJModel &model, const std::string &texturePath) {
+Mesh createMesh(DeviceContext &deviceContext, Model &model, const std::string &texturePath) {
     Mesh mesh         = {};
     mesh.vertexCount  = static_cast<uint32_t>(model.vertices.size());
     mesh.indexCount   = static_cast<uint32_t>(model.indices.size());

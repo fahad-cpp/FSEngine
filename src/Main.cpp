@@ -1,7 +1,9 @@
+#include "AssetManager.h"
 #include "Timer.h"
 #include "vulkan/Renderer.h"
 #include <algorithm>
 #include <numbers>
+
 
 /*
     TODO:
@@ -12,7 +14,7 @@
     -proper light handling (send light array from CPU to GPU)
 */
 
-void cameraMovementSystem(Camera& camera,FS::Input& input){
+void cameraMovementSystem(Camera &camera, FS::Input &input) {
     float moveSpeed = 0.1f;
     if (isDown(FS::Buttons::BUTTON_SHIFT)) {
         moveSpeed *= 2.f;
@@ -77,9 +79,10 @@ void handleInput(FS::Window &window, Scene &scene) {
 }
 int main() {
     Timer      timer;
-    OBJModel   zenith = loadOBJ("models/Zenith.obj", true);
-    OBJModel   bed = loadOBJ("models/Bed.obj");
-    OBJModel   demonSkull = loadOBJ("models/DemonSkull.obj");
+    Model      zenith     = AssetManager::loadModel("models/Zenith.obj", true);
+    Model      bed        = AssetManager::loadModel("models/Bed.obj");
+    Model      demonSkull = AssetManager::loadModel("models/DemonSkull.obj");
+    Model      sponza = AssetManager::loadModel("models/sponza.obj");
     FS::Window window("FSEngine", 720, 720);
 
     DeviceContext deviceContext = {};
@@ -144,8 +147,8 @@ int main() {
         handleInput(window, scene);
         window.processMessages();
         endTimer(timer);
-        //scene.entities[0].rotation.y += radians(90) * (timer.diff / 1000000.f);
-        LOG_LIVE("FPS: " << microsecToFPS(timer.diff));
+        // scene.entities[0].rotation.y += radians(90) * (timer.diff / 1000000.f);
+        LOG_LIVE("FPS: " << microsecToFPS(timer.diff) << " Frame:" << microsecToms(timer.diff) << " ms");
     }
 
     vkDeviceWaitIdle(deviceContext.device);

@@ -1,14 +1,14 @@
 @echo off
 setlocal
 set "EXENAME=FSEngine.exe"
-set "PRESET=clang-debug"
+set "PRESET=clang-release"
 
 if not exist build mkdir build >nul 2>nul
 if not exist CMakeCache.txt set "CLEANBUILD=YES"
 if exist bin\%EXENAME% del bin\%EXENAME%
 if "%1" == "clean" set "CLEANBUILD=YES"
 
-start "" /b compileShader.bat
+call compileShader.bat
 
 if "%CLEANBUILD%" == "YES" (
     rmdir /S /Q build
@@ -31,5 +31,5 @@ if errorlevel 1 (
 )
 
 copy build\%PRESET%\compile_commands.json build\ >nul
-"bin\%EXENAME%"
+bin\%EXENAME%
 endlocal

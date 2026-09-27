@@ -16,4 +16,5 @@ struct Timer {
 void  startTimer(Timer &timer);
 void  endTimer(Timer &timer);
 float microsecToFPS(float microSeconds);
+float microsecToms(float microSeconds);
 #endif

@@ -45,6 +45,6 @@ void        generateMipMaps(VkCommandBuffer commandBuffer, VkImage image, int32_
 Texture     createTexture(DeviceContext &deviceContext, const std::string &filepath);
 void        cleanupTexture(DeviceContext &deviceContext, Texture &texture);
 // mesh
-Mesh createMesh(DeviceContext &deviceContext, OBJModel &model, const std::string &texturePath);
+Mesh createMesh(DeviceContext &deviceContext, Model &model, const std::string &texturePath);
 void cleanupMesh(DeviceContext &deviceContext, Mesh &mesh);
 #endif

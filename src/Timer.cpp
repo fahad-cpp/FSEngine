@@ -9,3 +9,6 @@ void endTimer(Timer &timer) {
 float microsecToFPS(float microSeconds) {
     return (1000000.f / microSeconds);
 }
+float microsecToms(float microSeconds){
+    return (microSeconds / 1000.f);
+}
