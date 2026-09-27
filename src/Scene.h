@@ -2,11 +2,11 @@
 #define SCENE_H
 #include "Vector.h"
 #include "vulkan/Resource.h"
-#define MAX_ENTITIES 512
+#define MAX_ENTITIES 1024
 struct Camera {
     Vector3 position;
     Vector3 rotation;
-};
+};  
 struct Entity {
     Mesh            mesh;
     Vector3         position;

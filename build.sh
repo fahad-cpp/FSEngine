@@ -3,6 +3,8 @@ PRESET="clang-debug"
 
 mkdir -p build
 
+bash compileShader.sh
+
 if ! command -v cmake >/dev/null 2>/dev/null ; then
     echo CMake not found.
     exit 1

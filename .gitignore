@@ -2,4 +2,5 @@
 .zed
 build
 bin
+cache
 .vscode
