@@ -4,7 +4,6 @@
 #include <fstream>
 #include <unordered_set>
 
-
 namespace AssetManager {
 std::unordered_set<uint64_t> modelCache;
 bool                         cacheInitialized = false;
@@ -62,8 +61,6 @@ static Model loadCachedModel(uint64_t hash) {
     return model;
 }
 Model loadModel(const std::string &filepath, bool flipYZ) {
-    Timer cacheTimer;
-    startTimer(cacheTimer);
     Timer timer;
     startTimer(timer);
     if (!cacheInitialized) {
@@ -78,9 +75,7 @@ Model loadModel(const std::string &filepath, bool flipYZ) {
         LOG_INFO("Loaded cached model " << hash << ".fsmodel" << " : " << microsecToms(timer.diff) << " ms");
         return loadCachedModel(hash);
     }
-    endTimer(cacheTimer);
-    LOG_INFO("Cache lookup: " << microsecToms(cacheTimer.diff) << " ms");
-    
+
     Model model = loadOBJ(filepath, flipYZ);
     exportModel(model, hash);
     endTimer(timer);

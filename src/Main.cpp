@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <numbers>
 
-
 /*
     TODO:
     -Make gizmos
@@ -80,9 +79,9 @@ void handleInput(FS::Window &window, Scene &scene) {
 int main() {
     Timer      timer;
     Model      zenith     = AssetManager::loadModel("models/Zenith.obj", true);
-    //Model      bed        = AssetManager::loadModel("models/Bed.obj");
-    //Model      demonSkull = AssetManager::loadModel("models/DemonSkull.obj");
-    //Model      sponza = AssetManager::loadModel("models/sponza.obj");
+    Model      bed        = AssetManager::loadModel("models/Bed.obj");
+    Model      demonSkull = AssetManager::loadModel("models/DemonSkull.obj");
+    Model      sponza     = AssetManager::loadModel("models/sponza.obj");
     FS::Window window("FSEngine", 720, 720);
 
     DeviceContext deviceContext = {};
@@ -94,11 +93,11 @@ int main() {
     Mesh zenithMesh = {};
     TIME_FUNC("createMesh", timer, zenithMesh = createMesh(deviceContext, zenith, "textures/Zenith.png"));
 
-    //Mesh bedMesh = {};
-    //TIME_FUNC("createMesh", timer, bedMesh = createMesh(deviceContext, bed, "textures/white.png"));
+    Mesh bedMesh = {};
+    TIME_FUNC("createMesh", timer, bedMesh = createMesh(deviceContext, bed, "textures/white.png"));
 
-    //Mesh demonSkullMesh = {};
-    //TIME_FUNC("createMesh", timer, demonSkullMesh = createMesh(deviceContext, demonSkull, "textures/white.png"));
+    Mesh demonSkullMesh = {};
+    TIME_FUNC("createMesh", timer, demonSkullMesh = createMesh(deviceContext, demonSkull, "textures/white.png"));
 
     VulkanRenderer renderer = {};
     TIME_FUNC("initVulkanRenderer", timer, initVulkanRenderer(deviceContext, swapchainContext, renderer));
@@ -110,51 +109,51 @@ int main() {
             .rotation = { 0.f, 0.f, 0.f },
         },
         .entities{
-            // Entity{
-            //     .mesh                 = zenithMesh,
-            //     .position             = { 10.f, 0.f, 0.f },
-            //     .rotation             = { 0.f, 0.f, 0.f },
-            //     .scale                = 1.f,
-            //     .uniformBuffer        = {},
-            //     .uniformBufferMapping = nullptr,
-            //     .descriptorSets       = {},
-            // },
-            // Entity{
-            //     .mesh                 = bedMesh,
-            //     .position             = { -10.f, 0.f, 0.f },
-            //     .rotation             = { 0.f, 0.f, 0.f },
-            //     .scale                = 1.f,
-            //     .uniformBuffer        = {},
-            //     .uniformBufferMapping = nullptr,
-            //     .descriptorSets       = {},
-            // },
-            // Entity{
-            //     .mesh                 = demonSkullMesh,
-            //     .position             = { 0.f, -200.f * 0.3f, 0.f },
-            //     .rotation             = { 0.f, 0.f, 0.f },
-            //     .scale                = 0.3f,
-            //     .uniformBuffer        = {},
-            //     .uniformBufferMapping = nullptr,
-            //     .descriptorSets       = {},
-            // },
+            Entity{
+                .mesh                 = zenithMesh,
+                .position             = { 10.f, 0.f, 0.f },
+                .rotation             = { 0.f, 0.f, 0.f },
+                .scale                = 1.f,
+                .uniformBuffer        = {},
+                .uniformBufferMapping = nullptr,
+                .descriptorSets       = {},
+            },
+            Entity{
+                .mesh                 = bedMesh,
+                .position             = { -10.f, 0.f, 0.f },
+                .rotation             = { 0.f, 0.f, 0.f },
+                .scale                = 1.f,
+                .uniformBuffer        = {},
+                .uniformBufferMapping = nullptr,
+                .descriptorSets       = {},
+            },
+            Entity{
+                .mesh                 = demonSkullMesh,
+                .position             = { 0.f, -200.f * 0.3f, 0.f },
+                .rotation             = { 0.f, 0.f, 0.f },
+                .scale                = 0.3f,
+                .uniformBuffer        = {},
+                .uniformBufferMapping = nullptr,
+                .descriptorSets       = {},
+            },
         }
     };
 
-    scene.entities.resize(MAX_ENTITIES);
-    for(uint32_t i=0;i<MAX_ENTITIES;++i){
-        const float distance = 10.f;
-        const float x        = static_cast<float>(i % static_cast<uint32_t>(sqrt(MAX_ENTITIES))) * distance;
-        const float z        = static_cast<float>(i / sqrt(MAX_ENTITIES)) * distance;
-        scene.entities[i] = {
-            .mesh = zenithMesh,
-            .position = {x,0.f,z},
-            .rotation = {0.f,0.f,0.f},
-            .scale = 1.f,
-            .uniformBuffer = {},
-            .uniformBufferMapping = nullptr,
-            .descriptorSets = {}
-        };
-    }   
+    // scene.entities.resize(MAX_ENTITIES);
+    // for(uint32_t i=0;i<MAX_ENTITIES;++i){
+    //     const float distance = 10.f;
+    //     const float x        = static_cast<float>(i % static_cast<uint32_t>(sqrt(MAX_ENTITIES))) * distance;
+    //     const float z        = static_cast<float>(i / sqrt(MAX_ENTITIES)) * distance;
+    //     scene.entities[i] = {
+    //         .mesh = zenithMesh,
+    //         .position = {x,0.f,z},
+    //         .rotation = {0.f,0.f,0.f},
+    //         .scale = 1.f,
+    //         .uniformBuffer = {},
+    //         .uniformBufferMapping = nullptr,
+    //         .descriptorSets = {}
+    //     };
+    // }
     TIME_FUNC("initScene", timer, initScene(deviceContext, scene));
 
     while (window.isOpen()) {
@@ -170,8 +169,8 @@ int main() {
     vkDeviceWaitIdle(deviceContext.device);
     cleanupScene(deviceContext, scene);
     cleanupMesh(deviceContext, zenithMesh);
-    //cleanupMesh(deviceContext, bedMesh);
-    //cleanupMesh(deviceContext, demonSkullMesh);
+    cleanupMesh(deviceContext, bedMesh);
+    cleanupMesh(deviceContext, demonSkullMesh);
     cleanupVulkanRenderer(deviceContext, renderer);
     cleanupSwapchainContext(deviceContext, swapchainContext);
     cleanupDeviceContext(deviceContext);

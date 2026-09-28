@@ -1,10 +1,12 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "Model.h"
-#include "Timer.h"
+#include "Logging.h"
+#include <charconv>
 #include <cstdio>
 #include <fstream>
 #include <sstream>
 #include <unordered_map>
+
 namespace std {
 template <>
 struct hash<OBJIndex> {
@@ -80,9 +82,7 @@ inline static void getIndices(char *ptr, uint32_t &v, uint32_t &t, uint32_t &n) 
     ptr = getuint(ptr, &n);
 }
 Model loadOBJ(const std::string &filename, bool flipYZ) {
-    Timer timer;
-    startTimer(timer);
-    Model      mesh;
+    Model         mesh;
     std::ifstream OBJFile(filename, std::ios::binary | std::ios::ate);
     if (!OBJFile) {
         LOG_ERROR("Cannot open file " << filename);
@@ -232,7 +232,5 @@ Model loadOBJ(const std::string &filename, bool flipYZ) {
             mesh.indices.emplace_back(foundIndex);
         }
     }
-    endTimer(timer);
-    LOG_INFO("Succesfully loaded model:" << filename << " : " << timer.diff / 1000.f << " ms");
     return mesh;
 }
