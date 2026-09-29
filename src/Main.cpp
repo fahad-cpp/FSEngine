@@ -77,11 +77,13 @@ void handleInput(FS::Window &window, Scene &scene) {
     cameraMovementSystem(camera, input);
 }
 int main() {
-    Timer      timer;
-    Model      zenith     = AssetManager::loadModel("models/Zenith.obj", true);
-    Model      bed        = AssetManager::loadModel("models/Bed.obj");
-    Model      demonSkull = AssetManager::loadModel("models/DemonSkull.obj");
-    Model      sponza     = AssetManager::loadModel("models/sponza.obj");
+    Timer timer;
+    Model zenith     = AssetManager::loadModel("models/Zenith.obj", true);
+    Model bed        = AssetManager::loadModel("models/Bed.obj");
+    Model demonSkull = AssetManager::loadModel("models/DemonSkull.obj");
+    Model sponza     = AssetManager::loadModel("models/sponza.obj");
+    Model cube       = AssetManager::loadModel("models/cube.obj");
+
     FS::Window window("FSEngine", 720, 720);
 
     DeviceContext deviceContext = {};
@@ -96,8 +98,14 @@ int main() {
     Mesh bedMesh = {};
     TIME_FUNC("createMesh", timer, bedMesh = createMesh(deviceContext, bed, "textures/white.png"));
 
+    Mesh sponzaMesh = {};
+    TIME_FUNC("createMesh", timer, sponzaMesh = createMesh(deviceContext, sponza, "textures/white.png"));
+
     Mesh demonSkullMesh = {};
     TIME_FUNC("createMesh", timer, demonSkullMesh = createMesh(deviceContext, demonSkull, "textures/white.png"));
+
+    Mesh cubeMesh = {};
+    TIME_FUNC("createMesh", timer, cubeMesh = createMesh(deviceContext, cube, "textures/invalid.png"));
 
     VulkanRenderer renderer = {};
     TIME_FUNC("initVulkanRenderer", timer, initVulkanRenderer(deviceContext, swapchainContext, renderer));
@@ -109,6 +117,15 @@ int main() {
             .rotation = { 0.f, 0.f, 0.f },
         },
         .entities{
+            Entity{
+                .mesh                 = cubeMesh,
+                .position             = { -20.f, 0.f, 0.f },
+                .rotation             = { 0.f, 0.f, 0.f },
+                .scale                = 5.f,
+                .uniformBuffer        = {},
+                .uniformBufferMapping = nullptr,
+                .descriptorSets       = {},
+            },
             Entity{
                 .mesh                 = zenithMesh,
                 .position             = { 10.f, 0.f, 0.f },
@@ -132,6 +149,15 @@ int main() {
                 .position             = { 0.f, -200.f * 0.3f, 0.f },
                 .rotation             = { 0.f, 0.f, 0.f },
                 .scale                = 0.3f,
+                .uniformBuffer        = {},
+                .uniformBufferMapping = nullptr,
+                .descriptorSets       = {},
+            },
+            Entity{
+                .mesh                 = sponzaMesh,
+                .position             = { 0.f, 0.f, 0.f },
+                .rotation             = { 0.f, 0.f, 0.f },
+                .scale                = 0.1f,
                 .uniformBuffer        = {},
                 .uniformBufferMapping = nullptr,
                 .descriptorSets       = {},
@@ -162,7 +188,7 @@ int main() {
         handleInput(window, scene);
         window.processMessages();
         endTimer(timer);
-        // scene.entities[0].rotation.y += radians(90) * (timer.diff / 1000000.f);
+        scene.entities[0].rotation.y += radians(90) * (timer.diff / 1000000.f);
         LOG_LIVE("FPS: " << microsecToFPS(timer.diff) << " Frame:" << microsecToms(timer.diff) << " ms");
     }
 
@@ -170,7 +196,9 @@ int main() {
     cleanupScene(deviceContext, scene);
     cleanupMesh(deviceContext, zenithMesh);
     cleanupMesh(deviceContext, bedMesh);
+    cleanupMesh(deviceContext, sponzaMesh);
     cleanupMesh(deviceContext, demonSkullMesh);
+    cleanupMesh(deviceContext, cubeMesh);
     cleanupVulkanRenderer(deviceContext, renderer);
     cleanupSwapchainContext(deviceContext, swapchainContext);
     cleanupDeviceContext(deviceContext);
