@@ -4,12 +4,11 @@ set "EXENAME=FSEngine.exe"
 set "PRESET=clang-debug"
 
 if not exist build mkdir build >nul 2>nul
-if not exist CMakeCache.txt set "CLEANBUILD=YES"
+if not exist build/%PRESET%/CMakeCache.txt set "CLEANBUILD=YES"
 if exist bin\%EXENAME% del bin\%EXENAME%
 if "%1" == "clean" set "CLEANBUILD=YES"
 
 call compileShader.bat
-
 if "%CLEANBUILD%" == "YES" (
     rmdir /S /Q build
     rmdir /S /Q bin

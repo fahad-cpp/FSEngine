@@ -12,6 +12,7 @@ static void initCache() {
     if (!std::filesystem::exists("cache")) {
         return;
     }
+    modelCache.clear();
     for (const auto &entry : std::filesystem::directory_iterator("cache")) {
         if (entry.path().extension() != ".fsmodel") {
             continue;
@@ -20,11 +21,10 @@ static void initCache() {
         const std::string filename = entry.path().stem().string();
         uint64_t          hash     = 0;
         std::from_chars(filename.c_str(), filename.c_str() + filename.length(), hash);
-
         modelCache.insert(hash);
     }
 }
-static void exportModel(const Model &model, uint64_t hash) {
+static void cacheModel(const Model &model, uint64_t hash) {
     std::filesystem::create_directory("cache");
     const std::string filepath = "cache/" + std::to_string(hash) + ".fsmodel";
     std::ofstream     ofs(filepath, std::ios::binary);
@@ -77,7 +77,7 @@ Model loadModel(const std::string &filepath, bool flipYZ) {
     }
 
     Model model = loadOBJ(filepath, flipYZ);
-    exportModel(model, hash);
+    cacheModel(model, hash);
     endTimer(timer);
     LOG_INFO("Loaded new model " << filepath << " : " << microsecToms(timer.diff) << " ms");
     return model;

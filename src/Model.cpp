@@ -144,12 +144,12 @@ Model loadOBJ(const std::string &filename, bool flipYZ) {
     uint32_t vi = 0, ni = 0, ti = 0;
     while (*ptr != '\0') {
         const char *end = ptr;
-        while ((*end != '\0') && *end != '\n') {
+        while ((*end != '\0') && (*end != '\n')) {
             end++;
         }
         line = std::string(ptr, static_cast<std::size_t>(end - ptr));
 
-        if (ptr[0] == 'v' && (ptr[1] == ' ' || ptr[1] == '\t')) {
+        if ((ptr[0] == 'v') && (ptr[1] == ' ' || ptr[1] == '\t')) {
             Vector3 vec      = get3floats(line.data() + 2);
             Vector3 position = {};
             if (flipYZ) {
@@ -158,11 +158,11 @@ Model loadOBJ(const std::string &filename, bool flipYZ) {
                 position = { vec.x, vec.y, vec.z };
             }
             positions[vi++] = position;
-        } else if (ptr[0] == 'v' && ptr[1] == 't' && (ptr[2] == ' ' || ptr[2] == '\t')) {
+        } else if ((ptr[0] == 'v' && ptr[1] == 't') && (ptr[2] == ' ' || ptr[2] == '\t')) {
             Vector2 vec     = get2floats(line.data() + 3);
             Vector2 tex     = { vec.x, 1.f - vec.y };
             texcoords[ti++] = tex;
-        } else if (ptr[0] == 'v' && ptr[1] == 'n' && (ptr[2] == ' ' || ptr[2] == '\t')) {
+        } else if ((ptr[0] == 'v' && ptr[1] == 'n') && (ptr[2] == ' ' || ptr[2] == '\t')) {
             Vector3 vec    = get3floats(line.data() + 3);
             Vector3 normal = {};
             if (flipYZ) {
@@ -171,7 +171,7 @@ Model loadOBJ(const std::string &filename, bool flipYZ) {
                 normal = { vec.x, vec.y, vec.z };
             }
             normals[ni++] = normal;
-        } else if (ptr[0] == 'f' && (ptr[1] == ' ' || ptr[1] == '\t')) {
+        } else if ((ptr[0] == 'f') && (ptr[1] == ' ' || ptr[1] == '\t')) {
             std::istringstream    stream(line.c_str() + 2);
             std::vector<OBJIndex> faceIndices;
             faceIndices.reserve(3);
@@ -195,7 +195,7 @@ Model loadOBJ(const std::string &filename, bool flipYZ) {
             }
         }
 
-        while ((*ptr != '\0') && *ptr != '\n')
+        while ((*ptr != '\0') && (*ptr != '\n'))
             ptr++;
 
         if (*ptr == '\n')
