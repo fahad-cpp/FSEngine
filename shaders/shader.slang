@@ -1,3 +1,4 @@
+
 struct VSInput {
     float3 pos;
     float3 normal;
@@ -11,6 +12,7 @@ struct UniformBuffer {
 ConstantBuffer<UniformBuffer> ubo;
 struct VSOutput {
     float4 pos : SV_Position;
+    float3 wpos;
     float3 normal;
     float2 fragTexCoord;
 };
@@ -19,27 +21,75 @@ struct VSOutput {
 VSOutput vertMain(VSInput vertIn) {
     VSOutput output;
     output.pos          = mul(ubo.projection, mul(ubo.view, mul(ubo.model, float4(vertIn.pos, 1.0))));
+    output.wpos         = mul(ubo.model, float4(vertIn.pos, 1.0)).xyz;
     output.normal       = mul(ubo.model, float4(vertIn.normal, 0.0)).xyz;
     output.fragTexCoord = vertIn.inTexCoord;
     return output;
 }
 Sampler2D texture;
-struct Light {
+struct DirectionalLight {
     float3 direction;
     float  intensity;
 };
-static Light directionalLight = {
-    { -1.f, -1.f, 1.f },
-    0.6f
+struct PointLight {
+    float3 position;
+    float  radius;
+    float  intensity;
 };
-static float ambient = 0.3f;
+static DirectionalLight directionalLight = {
+    { -1.f, -1.f, 1.f },
+    0.5f
+};
+
+static PointLight pointLight = {
+    { 0.f, 1.f, 0.f },
+    40.f,
+    0.4f
+};
+static float ambient    = 0.2f;
+static float glossyness = 64.f;
+float        getPointIllum(float3 normal, float3 point, PointLight pLight) {
+    float3 N        = normalize(normal);
+    float3 V        = -normalize(point);
+    float3 lightPos = pLight.position;
+    float3 L        = normalize(lightPos - point);
+    float  distance = length(lightPos - point);
+    float  diffuse  = 0.f;
+    if (distance < pLight.radius) {
+        float nDotL = dot(N, L);
+        diffuse = clamp(nDotL, 0.f, 1.f);
+    }
+#if 1
+    // Blinn-Phong
+    float3 H        = normalize(L + V);
+    float  specular = pow(max(dot(N, H), 0.f), glossyness);
+#else
+    // Phong
+    float  specular = 0.f;
+    float3 R        = normalize(reflect(-L, N));
+    float  vDotR    = max(dot(V, R), 0.f);
+    specular        = clamp(pow(vDotR, glossyness), 0.f, 1.f);
+#endif
+
+    float attinuation = clamp(1 - (distance / pLight.radius), 0.f, 1.f);
+    float illum       = (specular + diffuse) * pLight.intensity * attinuation;
+    return illum;
+}
+float getLight(float3 normal, float3 point, DirectionalLight dLight, PointLight pLight) {
+
+    float  pointIllum       = getPointIllum(normal, point, pLight);
+    float  dirIllum         = 0.f;
+    float3 N                = normalize(normal);
+    float  nDotL            = max(dot(N, normalize(-dLight.direction)), 0.f);
+    float  directionDiffuse = nDotL * dLight.intensity;
+    dirIllum                = directionDiffuse;
+
+    return (pointIllum + dirIllum + ambient);
+}
 [shader("fragment")]
 float4 fragMain(VSOutput fragIn) : SV_TARGET {
-    float3 N       = normalize(fragIn.normal);
-    float3 L       = normalize(-directionalLight.direction);
-    float  nDotL   = dot(N, L);
-    float  diffuse = nDotL * directionalLight.intensity;
-    float  light   = diffuse + ambient;
+    float light = getLight(fragIn.normal, fragIn.wpos, directionalLight, pointLight);
 
     return float4(texture.Sample(fragIn.fragTexCoord).xyz * light, 1.f);
+    // return float4(fragIn.wpos, 1.f);
 }

@@ -7,6 +7,9 @@
 /*
     TODO:
     -Make gizmos
+    -MSAA
+    -Multi Draw Indirect
+    -Push Constants
     -object ray selection
     -glTF/glb support
     -specular lighting
@@ -65,6 +68,11 @@ void cameraMovementSystem(Camera &camera, FS::Input &input) {
     }
     if (isDown(FS::Buttons::BUTTON_RIGHT)) {
         camera.rotation.y += rotateSpeed / pi;
+    }
+
+    if(isDown(FS::Buttons::BUTTON_Q)){
+        camera.position = {0.f,0.f,0.f};
+        camera.rotation = {0.f,0.f,0.f};
     }
 }
 void handleInput(FS::Window &window, Scene &scene) {
@@ -137,7 +145,7 @@ int main() {
             },
             Entity{
                 .mesh                 = bedMesh,
-                .position             = { -10.f, 0.f, 0.f },
+                .position             = { -30.f, 0.f, 0.f },
                 .rotation             = { 0.f, 0.f, 0.f },
                 .scale                = 1.f,
                 .uniformBuffer        = {},
@@ -146,7 +154,7 @@ int main() {
             },
             Entity{
                 .mesh                 = demonSkullMesh,
-                .position             = { 0.f, -200.f * 0.3f, 0.f },
+                .position             = { 20.f, -200.f * 0.3f, 0.f },
                 .rotation             = { 0.f, 0.f, 0.f },
                 .scale                = 0.3f,
                 .uniformBuffer        = {},
