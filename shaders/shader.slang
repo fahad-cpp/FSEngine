@@ -21,8 +21,8 @@ struct VSOutput {
 VSOutput vertMain(VSInput vertIn) {
     VSOutput output;
     output.pos          = mul(ubo.projection, mul(ubo.view, mul(ubo.model, float4(vertIn.pos, 1.0))));
-    output.wpos         = mul(ubo.model, float4(vertIn.pos, 1.0)).xyz;
-    output.normal       = mul(ubo.model, float4(vertIn.normal, 0.0)).xyz;
+    output.wpos         = mul(ubo.view, mul(ubo.model, float4(vertIn.pos, 1.0))).xyz;
+    output.normal       = mul(ubo.view, mul(ubo.model, float4(vertIn.normal, 0.0))).xyz;
     output.fragTexCoord = vertIn.inTexCoord;
     return output;
 }
@@ -38,7 +38,7 @@ struct PointLight {
 };
 static DirectionalLight directionalLight = {
     { -1.f, -1.f, 1.f },
-    0.5f
+    0.f
 };
 
 static PointLight pointLight = {
@@ -46,33 +46,35 @@ static PointLight pointLight = {
     40.f,
     0.4f
 };
-static float ambient    = 0.2f;
-static float glossyness = 64.f;
+static float ambient    = 0.f;
+static float glossiness = 64.f;
 float        getPointIllum(float3 normal, float3 point, PointLight pLight) {
+    float3 lightPos = mul(ubo.view, float4(pLight.position, 1.0)).xyz;
     float3 N        = normalize(normal);
-    float3 V        = -normalize(point);
-    float3 lightPos = pLight.position;
+    float3 V        = normalize(-point);
     float3 L        = normalize(lightPos - point);
     float  distance = length(lightPos - point);
     float  diffuse  = 0.f;
     if (distance < pLight.radius) {
         float nDotL = dot(N, L);
-        diffuse = clamp(nDotL, 0.f, 1.f);
+        diffuse     = clamp(nDotL, 0.f, 1.f);
     }
 #if 1
     // Blinn-Phong
     float3 H        = normalize(L + V);
-    float  specular = pow(max(dot(N, H), 0.f), glossyness);
+    float  nDotH    = max(dot(N, H), 0.0);
+    float  specular = clamp(pow(nDotH, glossiness), 0.f, 1.f);
 #else
     // Phong
     float  specular = 0.f;
-    float3 R        = normalize(reflect(-L, N));
-    float  vDotR    = max(dot(V, R), 0.f);
-    specular        = clamp(pow(vDotR, glossyness), 0.f, 1.f);
+    float3 R        = normalize(reflect(L, N));
+    float  vDotR    = max(dot(-V, R), 0.f);
+    specular        = clamp(pow(vDotR, glossiness), 0.f, 1.f);
 #endif
 
-    float attinuation = clamp(1 - (distance / pLight.radius), 0.f, 1.f);
+    float attinuation = clamp(1 - distance / pLight.radius, 0.f, 1.f);
     float illum       = (specular + diffuse) * pLight.intensity * attinuation;
+    illum             = clamp(illum, 0.f, 1.f);
     return illum;
 }
 float getLight(float3 normal, float3 point, DirectionalLight dLight, PointLight pLight) {
