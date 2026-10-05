@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdint>
 #include <numbers>
+#include "Scene.h"
 Matrix4 unitMatrix4(float scale) {
     return { {
         { scale, 0, 0, 0 },
@@ -120,12 +121,12 @@ Vector3 rotate(const Vector3 vec, const Vector3 rotation) {
     return res;
 }
 
-Matrix4 modelMatrix(const Vector3 position, const Vector3 rotation, const float scale) {
-    Matrix4 result      = unitMatrix4(scale);
-    result              = rotate(result, rotation);
-    result.values[3][0] = position.x;
-    result.values[3][1] = position.y;
-    result.values[3][2] = position.z;
+Matrix4 modelMatrix(const Transform transform) {
+    Matrix4 result      = unitMatrix4(transform.scale);
+    result              = rotate(result, transform.rotation);
+    result.values[3][0] = transform.position.x;
+    result.values[3][1] = transform.position.y;
+    result.values[3][2] = transform.position.z;
     return result;
 }
 // Produces a view matrix for camera

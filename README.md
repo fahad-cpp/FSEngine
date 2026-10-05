@@ -3,7 +3,10 @@ Vulkan based game engine made in C++
 
 # current status
 
+![Specular Lighting](showcase/specular.png)
+
 - full vulkan graphics pipeline
+- specular and diffuse lighting
 - using stb_image for texture loading
 - using my own maths utilities
 - using my own windowing library (windows + linux (x11) only)

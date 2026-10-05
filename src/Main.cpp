@@ -70,9 +70,9 @@ void cameraMovementSystem(Camera &camera, FS::Input &input) {
         camera.rotation.y += rotateSpeed / pi;
     }
 
-    if(isDown(FS::Buttons::BUTTON_Q)){
-        camera.position = {0.f,0.f,0.f};
-        camera.rotation = {0.f,0.f,0.f};
+    if (isDown(FS::Buttons::BUTTON_Q)) {
+        camera.position = { 0.f, 0.f, 0.f };
+        camera.rotation = { 0.f, 0.f, 0.f };
     }
 }
 void handleInput(FS::Window &window, Scene &scene) {
@@ -126,46 +126,56 @@ int main() {
         },
         .entities{
             Entity{
-                .mesh                 = cubeMesh,
-                .position             = { -20.f, 0.f, 0.f },
-                .rotation             = { 0.f, 0.f, 0.f },
-                .scale                = 5.f,
+                .mesh      = cubeMesh,
+                .transform = {
+                    .position = { 20.f, 0.f, -10.f },
+                    .rotation = { 0.f, 0.f, 0.f },
+                    .scale    = 3.f,
+                },
                 .uniformBuffer        = {},
                 .uniformBufferMapping = nullptr,
                 .descriptorSets       = {},
             },
             Entity{
-                .mesh                 = zenithMesh,
-                .position             = { 10.f, 0.f, 0.f },
-                .rotation             = { 0.f, 0.f, 0.f },
-                .scale                = 1.f,
+                .mesh      = zenithMesh,
+                .transform = {
+                    .position = { 20.f, 2.f, 0.f },
+                    .rotation = { 0.f, 0.f, 0.f },
+                    .scale    = 1.f,
+                },
                 .uniformBuffer        = {},
                 .uniformBufferMapping = nullptr,
                 .descriptorSets       = {},
             },
             Entity{
-                .mesh                 = bedMesh,
-                .position             = { -30.f, 0.f, 0.f },
-                .rotation             = { 0.f, 0.f, 0.f },
-                .scale                = 1.f,
+                .mesh      = bedMesh,
+                .transform = {
+                    .position = { 30.f, 2.f, 0.f },
+                    .rotation = { 0.f, radians(90.f), 0.f },
+                    .scale    = 1.f,
+                },
                 .uniformBuffer        = {},
                 .uniformBufferMapping = nullptr,
                 .descriptorSets       = {},
             },
             Entity{
-                .mesh                 = demonSkullMesh,
-                .position             = { 20.f, -200.f * 0.3f, 0.f },
-                .rotation             = { 0.f, 0.f, 0.f },
-                .scale                = 0.3f,
+                .mesh      = demonSkullMesh,
+                .transform = {
+                    .position = { 20.f, -200.f * 0.3f + 4.f, 10.f },
+                    .rotation = { 0.f, radians(-90.f), 0.f },
+                    .scale    = 0.3f,
+                },
                 .uniformBuffer        = {},
                 .uniformBufferMapping = nullptr,
                 .descriptorSets       = {},
             },
             Entity{
-                .mesh                 = sponzaMesh,
-                .position             = { 0.f, 0.f, 0.f },
-                .rotation             = { 0.f, 0.f, 0.f },
-                .scale                = 0.1f,
+                .mesh      = sponzaMesh,
+                .transform = {
+                    .position = { 0.f, 0.f, 0.f },
+                    .rotation = { 0.f, 0.f, 0.f },
+                    .scale    = 0.1f,
+                },
                 .uniformBuffer        = {},
                 .uniformBufferMapping = nullptr,
                 .descriptorSets       = {},
@@ -196,7 +206,7 @@ int main() {
         handleInput(window, scene);
         window.processMessages();
         endTimer(timer);
-        scene.entities[0].rotation.y += radians(90) * (timer.diff / 1000000.f);
+        //scene.entities[0].transform.rotation.y += radians(90) * (timer.diff / 1000000.f);
         LOG_LIVE("FPS: " << microsecToFPS(timer.diff) << " Frame:" << microsecToms(timer.diff) << " ms");
     }
 

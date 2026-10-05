@@ -38,7 +38,7 @@ struct PointLight {
 };
 static DirectionalLight directionalLight = {
     { -1.f, -1.f, 1.f },
-    0.f
+    0.3f
 };
 
 static PointLight pointLight = {
@@ -46,7 +46,7 @@ static PointLight pointLight = {
     40.f,
     0.4f
 };
-static float ambient    = 0.f;
+static float ambient    = 0.1f;
 static float glossiness = 64.f;
 float        getPointIllum(float3 normal, float3 point, PointLight pLight) {
     float3 lightPos = mul(ubo.view, float4(pLight.position, 1.0)).xyz;
@@ -82,7 +82,8 @@ float getLight(float3 normal, float3 point, DirectionalLight dLight, PointLight 
     float  pointIllum       = getPointIllum(normal, point, pLight);
     float  dirIllum         = 0.f;
     float3 N                = normalize(normal);
-    float  nDotL            = max(dot(N, normalize(-dLight.direction)), 0.f);
+    float3 lightDir         = normalize(mul(ubo.view, float4(dLight.direction,0.0)).xyz);
+    float  nDotL            = max(dot(N, lightDir), 0.f);
     float  directionDiffuse = nDotL * dLight.intensity;
     dirIllum                = directionDiffuse;
 

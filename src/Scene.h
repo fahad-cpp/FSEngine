@@ -2,16 +2,19 @@
 #define SCENE_H
 #include "Vector.h"
 #include "vulkan/Resource.h"
-#define MAX_ENTITIES 1024
+#define MAX_ENTITIES 256
+struct Transform {
+    Vector3 position;
+    Vector3 rotation;
+    float   scale;
+};
 struct Camera {
     Vector3 position;
     Vector3 rotation;
-};  
+};
 struct Entity {
     Mesh            mesh;
-    Vector3         position;
-    Vector3         rotation;
-    float           scale;
+    Transform       transform;
     Buffer          uniformBuffer;
     void           *uniformBufferMapping;
     VkDescriptorSet descriptorSets[MAX_FRAMES_IN_FLIGHT];

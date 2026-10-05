@@ -247,7 +247,7 @@ void updateUniformBuffer(SwapchainContext &swapchainContext, Scene &scene) {
     float   aspectRatio = static_cast<float>(swapchainContext.extent.width) / static_cast<float>(swapchainContext.extent.height);
     for (const Entity &entity : scene.entities) {
         UniformBufferData uboData = {};
-        uboData.model             = modelMatrix(entity.position, entity.rotation, entity.scale);
+        uboData.model             = modelMatrix(entity.transform);
         uboData.view              = lookAt(camera.position, lookatpos, Vector3{ 0.f, 1.f, 0.f });
         uboData.projection        = perspective(radians(60.f), aspectRatio, 0.1f, 10000.f);
         uboData.projection.values[1][1] *= -1;
