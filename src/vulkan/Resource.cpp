@@ -1,9 +1,8 @@
 #define NOMINMAX
-#define STB_IMAGE_IMPLEMENTATION
 #include "Resource.h"
 #include "../Logging.h"
 #include "VulkanUtils.h"
-#include "stb_image.h"
+#include "../AssetManager.h"
 #include <algorithm>
 #include <cstring>
 
@@ -19,7 +18,11 @@ Buffer createBuffer(DeviceContext &deviceContext, VkBufferUsageFlags usage, VkDe
         .queueFamilyIndexCount = 0,
         .pQueueFamilyIndices   = nullptr
     };
-    vkCreateBuffer(deviceContext.device, &createInfo, nullptr, &buffer.buffer);
+    VkResult res = vkCreateBuffer(deviceContext.device, &createInfo, nullptr, &buffer.buffer);
+    if(res != VK_SUCCESS){
+        LOG_ERROR("Failed to create Buffer : " << res);
+        return {};
+    }
 
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(deviceContext.device, buffer.buffer, &memRequirements);
@@ -273,12 +276,12 @@ void generateMipMaps(VkCommandBuffer commandBuffer, VkImage image, int32_t texWi
 Texture createTexture(DeviceContext &deviceContext, const std::string &filepath) {
     Texture      texture = {};
     int          texWidth, texHeight, texChannels;
-    stbi_uc     *pixels    = stbi_load(filepath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    uint8_t     *pixels    = AssetManager::loadTexture(filepath, &texWidth, &texHeight, &texChannels);
     VkDeviceSize imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * 4);
 
     if (!pixels) {
         LOG_ERROR("Failed to load texture: " << filepath);
-        pixels    = stbi_load("textures/invalid.png", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        pixels    = AssetManager::loadTexture("textures/invalid.png", &texWidth, &texHeight, &texChannels);
         imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * 4);
     }
 
@@ -288,7 +291,7 @@ Texture createTexture(DeviceContext &deviceContext, const std::string &filepath)
     std::memcpy(data, pixels, imageSize);
     vkUnmapMemory(deviceContext.device, stagingBuffer.memory);
 
-    stbi_image_free(pixels);
+    AssetManager::unloadTexture(pixels);
 
     uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
     texture.image      = createImage(

@@ -46,7 +46,7 @@ static PointLight pointLight = {
     40.f,
     0.4f
 };
-static float ambient    = 0.1f;
+static float ambient    = 0.01f;
 static float glossiness = 64.f;
 float        getPointIllum(float3 normal, float3 point, PointLight pLight) {
     float3 lightPos = mul(ubo.view, float4(pLight.position, 1.0)).xyz;
