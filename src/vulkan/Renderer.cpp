@@ -133,7 +133,7 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
         .rasterizerDiscardEnable = VK_FALSE,
         .polygonMode             = VK_POLYGON_MODE_FILL,
         .cullMode                = VK_CULL_MODE_BACK_BIT,
-        .frontFace               = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+        .frontFace               = VK_FRONT_FACE_CLOCKWISE,
         .depthBiasEnable         = VK_FALSE,
         .depthBiasConstantFactor = 0.f,
         .depthBiasClamp          = 0.f,
@@ -242,7 +242,7 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
 
 void updateUniformBuffer(SwapchainContext &swapchainContext, Scene &scene) {
     Camera &camera      = scene.camera;
-    Vector3 cameraPoint = rotate(Vector3{ 0.f, 0.f, -1.f }, camera.rotation);
+    Vector3 cameraPoint = rotate(Vector3{ 0.f, 0.f, 1.f }, camera.rotation);
     Vector3 lookatpos   = { camera.position.x + cameraPoint.x, camera.position.y + cameraPoint.y, camera.position.z + cameraPoint.z };
     float   aspectRatio = static_cast<float>(swapchainContext.extent.width) / static_cast<float>(swapchainContext.extent.height);
     for (const Entity &entity : scene.entities) {

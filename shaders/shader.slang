@@ -55,7 +55,7 @@ float        getPointIllum(float3 normal, float3 point, PointLight pLight) {
     float3 L        = normalize(lightPos - point);
     float  distance = length(lightPos - point);
     float  diffuse  = 0.f;
-    if (distance < pLight.radius) {
+    if (distance <= pLight.radius) {
         float nDotL = dot(N, L);
         diffuse     = clamp(nDotL, 0.f, 1.f);
     }
@@ -82,7 +82,7 @@ float getLight(float3 normal, float3 point, DirectionalLight dLight, PointLight 
     float  pointIllum       = getPointIllum(normal, point, pLight);
     float  dirIllum         = 0.f;
     float3 N                = normalize(normal);
-    float3 lightDir         = normalize(mul(ubo.view, float4(dLight.direction,0.0)).xyz);
+    float3 lightDir         = normalize(mul(ubo.view, float4(-dLight.direction,0.0)).xyz);
     float  nDotL            = max(dot(N, lightDir), 0.f);
     float  directionDiffuse = nDotL * dLight.intensity;
     dirIllum                = directionDiffuse;
