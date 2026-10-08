@@ -1,0 +1,29 @@
+# Architecture planning
+
+- Vulkan Specific code
+    - DeviceManager
+        - handle initial vulkan objects like:
+        - instance,physical device,logical device,queues,queue families etc..
+    - ResourceManager
+        - create vulkan buffers and upload data to them
+        - create vulkan images/textures and upload data to them
+    - DescriptorManager
+        - handle descriptor pools
+        - handle cpu->gpu data passing stuff
+        - update descriptors and hold mappings to them 
+        - handle SSBO's Uniform Buffers
+    - PipelineManager
+        - handle layouts and states of the pipeline
+        - for example handle descriptor layout and pipeline layout
+        - Handle multiple pipelines maybe
+    - Swapchain Manager
+        - handle swapchain images/image views 
+        - handle window extents and surface
+    - Renderer
+        - Acquire swapchain images,
+        - Render the Scene
+- Engine code
+    - Asset Manager
+        - handle fast loading of custom asset formats
+    - Scene Manager
+        - Entity System

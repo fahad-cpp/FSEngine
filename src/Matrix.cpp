@@ -1,9 +1,10 @@
 #include "Matrix.h"
 #include "Logging.h"
+#include "Scene.h"
 #include <cmath>
 #include <cstdint>
 #include <numbers>
-#include "Scene.h"
+
 Matrix4 unitMatrix4(float scale) {
     return { {
         { scale, 0, 0, 0 },
@@ -132,7 +133,7 @@ Matrix4 modelMatrix(const Transform transform) {
 // Produces a view matrix for camera
 Matrix4 lookAt(const Vector3 position, const Vector3 lookPoint, const Vector3 up) {
     Vector3 cForward = normalize(dist(position, lookPoint));
-    Vector3 cRight   = normalize(cross(up,cForward));
+    Vector3 cRight   = normalize(cross(up, cForward));
     Vector3 cUp      = normalize(cross(cForward, cRight));
 
     Vector4 rightdir   = { cRight.x, cRight.y, cRight.z, -dot(cRight, position) };

@@ -200,7 +200,7 @@ VkDevice createDevice(DeviceContext &deviceContext) {
     requiredFeaturesvk13.dynamicRendering = VK_TRUE;
     requiredFeaturesvk13.synchronization2 = VK_TRUE;
 
-    uint32_t familyIndex = getQueueFamilyIndex(deviceContext, VK_QUEUE_GRAPHICS_BIT);
+    uint32_t                      familyIndex       = getQueueFamilyIndex(deviceContext, VK_QUEUE_GRAPHICS_BIT);
     float                         priority          = 1.f;
     const VkDeviceQueueCreateInfo queueCreateInfo[] = {
         { .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,

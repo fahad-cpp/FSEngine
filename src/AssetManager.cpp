@@ -6,7 +6,6 @@
 #include <stb_image.h>
 #include <unordered_set>
 
-
 namespace AssetManager {
 std::unordered_set<uint64_t> modelCache;
 std::unordered_set<uint64_t> textureCache;

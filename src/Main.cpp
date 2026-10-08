@@ -12,7 +12,6 @@
     -Push Constants
     -object ray selection
     -glTF/glb support
-    -specular lighting
     -proper light handling (send light array from CPU to GPU)
 */
 static Vector2 getMouseDiff(FS::Window &window) {
@@ -25,16 +24,16 @@ static Vector2 getMouseDiff(FS::Window &window) {
     FS::Vector2             centerPos   = { (windowPos.x + static_cast<float>(renderState.width) / 2.f), (windowPos.y + static_cast<float>(renderState.height) / 2.f) };
     FS::Vector2             diff        = mousePos - centerPos;
     window.setCursorPos(static_cast<uint32_t>(centerPos.x), static_cast<uint32_t>(centerPos.y));
-    return {diff.x,diff.y};
+    return { diff.x, diff.y };
 }
 void cameraMovementSystem(Camera &camera, FS::Window &window) {
-    float moveSpeed = 0.1f;
-    FS::Input& input = window.getInput();
-    Vector2 mouseDiff = getMouseDiff(window);
+    float      moveSpeed = 0.1f;
+    FS::Input &input     = window.getInput();
+    Vector2    mouseDiff = getMouseDiff(window);
 
     camera.rotation.x += mouseDiff.y * 0.001f;
-    camera.rotation.x = std::clamp(camera.rotation.x,radians(-89.f),radians(89.f));
-    
+    camera.rotation.x = std::clamp(camera.rotation.x, radians(-89.f), radians(89.f));
+
     camera.rotation.y -= mouseDiff.x * 0.001f;
 
     if (isDown(FS::Buttons::BUTTON_SHIFT)) {
@@ -212,9 +211,11 @@ int main() {
     //     const float z        = static_cast<float>(i / sqrt(MAX_ENTITIES)) * distance;
     //     scene.entities[i] = {
     //         .mesh = zenithMesh,
-    //         .position = {x,0.f,z},
-    //         .rotation = {0.f,0.f,0.f},
-    //         .scale = 1.f,
+    //         .transform = {
+    //             .position = {x,0.f,z},
+    //             .rotation = {0.f,0.f,0.f},
+    //             .scale = 1.f,
+    //         },
     //         .uniformBuffer = {},
     //         .uniformBufferMapping = nullptr,
     //         .descriptorSets = {}
@@ -230,7 +231,7 @@ int main() {
         renderScene(deviceContext, swapchainContext, window, renderer, scene);
         handleInput(window, scene);
         endTimer(timer);
-        //scene.entities[0].transform.rotation.y += radians(90) * (timer.diff / 1000000.f);
+        // scene.entities[0].transform.rotation.y += radians(90) * (timer.diff / 1000000.f);
         LOG_LIVE("FPS: " << microsecToFPS(timer.diff) << " Frame:" << microsecToms(timer.diff) << " ms");
         window.processMessages();
     }

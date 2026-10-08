@@ -1,10 +1,11 @@
 #define NOMINMAX
 #include "Resource.h"
+#include "../AssetManager.h"
 #include "../Logging.h"
 #include "VulkanUtils.h"
-#include "../AssetManager.h"
 #include <algorithm>
 #include <cstring>
+
 
 Buffer createBuffer(DeviceContext &deviceContext, VkBufferUsageFlags usage, VkDeviceSize size, VkMemoryPropertyFlags memoryProperty) {
     Buffer             buffer     = {};
@@ -19,7 +20,7 @@ Buffer createBuffer(DeviceContext &deviceContext, VkBufferUsageFlags usage, VkDe
         .pQueueFamilyIndices   = nullptr
     };
     VkResult res = vkCreateBuffer(deviceContext.device, &createInfo, nullptr, &buffer.buffer);
-    if(res != VK_SUCCESS){
+    if (res != VK_SUCCESS) {
         LOG_ERROR("Failed to create Buffer : " << res);
         return {};
     }
