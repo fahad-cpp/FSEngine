@@ -6,13 +6,14 @@
 
 /*
     TODO:
-    -Make gizmos
+    -Restructure code according to Design.md
     -MSAA
+    -proper light handling (send light array from CPU to GPU)
     -Multi Draw Indirect
     -Push Constants
-    -object ray selection
-    -glTF/glb support
-    -proper light handling (send light array from CPU to GPU)
+    -Editor
+    -glTF/glb support and PBR
+    -GPU-Driven Rendering
 */
 static Vector2 getMouseDiff(FS::Window &window) {
     if (!window.isFocused()) {
