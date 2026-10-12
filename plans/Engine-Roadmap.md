@@ -6,7 +6,7 @@
 
 - Image-based lighting (IBL)
 
--  Normal mapping and tangent-space handling
+- Normal mapping and tangent-space handling
 
 - HDR rendering and tone mapping
 

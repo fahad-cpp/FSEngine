@@ -1,9 +1,11 @@
+#define NOMINMAX
 #include "SwapchainContext.h"
 #include "../Logging.h"
 #include <algorithm>
 #include <assert.h>
 #include <climits>
 #include <thread>
+
 
 void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window) {
     VkSurfaceCapabilitiesKHR surfaceCaps;
@@ -53,12 +55,14 @@ void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainCo
     uint32_t windowWidth                         = std::clamp<uint32_t>(renderState.width, surfaceCaps.minImageExtent.width, surfaceCaps.maxImageExtent.width);
     uint32_t windowHeight                        = std::clamp<uint32_t>(renderState.height, surfaceCaps.minImageExtent.height, surfaceCaps.maxImageExtent.height);
     swapchainContext.extent                      = (surfaceCaps.currentExtent.width != UINT_MAX) ? surfaceCaps.currentExtent : VkExtent2D{ windowWidth, windowHeight };
+    assert(MAX_SWAPCHAIN_IMAGES >= surfaceCaps.minImageCount);
+    uint32_t                 minImageCount       = std::max(surfaceCaps.minImageCount, MAX_SWAPCHAIN_IMAGES);
     VkSwapchainCreateInfoKHR swapchainCreateInfo = {
         .sType                 = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
         .pNext                 = nullptr,
         .flags                 = 0,
         .surface               = deviceContext.surface,
-        .minImageCount         = surfaceCaps.minImageCount + 1,
+        .minImageCount         = minImageCount,
         .imageFormat           = swapchainContext.surfaceFormat.format,
         .imageColorSpace       = swapchainContext.surfaceFormat.colorSpace,
         .imageExtent           = swapchainContext.extent,
