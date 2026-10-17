@@ -6,14 +6,13 @@
 #include <climits>
 #include <thread>
 
-
 void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window) {
     VkSurfaceCapabilitiesKHR surfaceCaps;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(deviceContext.physicalDevice, deviceContext.surface, &surfaceCaps);
 
     // Find correct format
     constexpr uint32_t MAX_SURFACE_FORMATS = 64;
-    uint32_t           formatCount         = 0;
+    uint32_t formatCount                   = 0;
     VkSurfaceFormatKHR availableFormats[MAX_SURFACE_FORMATS];
     vkGetPhysicalDeviceSurfaceFormatsKHR(deviceContext.physicalDevice, deviceContext.surface, &formatCount, nullptr);
     assert(formatCount < MAX_SURFACE_FORMATS);
@@ -31,8 +30,8 @@ void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainCo
 
     // Find correct present mode
     constexpr uint32_t MAX_PRESENT_MODES = 16;
-    uint32_t           presentModeCount  = MAX_PRESENT_MODES;
-    VkPresentModeKHR   presentModes[MAX_PRESENT_MODES];
+    uint32_t presentModeCount            = MAX_PRESENT_MODES;
+    VkPresentModeKHR presentModes[MAX_PRESENT_MODES];
     vkGetPhysicalDeviceSurfacePresentModesKHR(deviceContext.physicalDevice, deviceContext.surface, &presentModeCount, presentModes);
 
     VkPresentModeKHR selectedMode = VK_PRESENT_MODE_FIFO_KHR;
@@ -52,11 +51,11 @@ void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainCo
         window.processMessages();
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(deviceContext.physicalDevice, deviceContext.surface, &surfaceCaps);
     }
-    uint32_t windowWidth                         = std::clamp<uint32_t>(renderState.width, surfaceCaps.minImageExtent.width, surfaceCaps.maxImageExtent.width);
-    uint32_t windowHeight                        = std::clamp<uint32_t>(renderState.height, surfaceCaps.minImageExtent.height, surfaceCaps.maxImageExtent.height);
-    swapchainContext.extent                      = (surfaceCaps.currentExtent.width != UINT_MAX) ? surfaceCaps.currentExtent : VkExtent2D{ windowWidth, windowHeight };
+    uint32_t windowWidth    = std::clamp<uint32_t>(renderState.width, surfaceCaps.minImageExtent.width, surfaceCaps.maxImageExtent.width);
+    uint32_t windowHeight   = std::clamp<uint32_t>(renderState.height, surfaceCaps.minImageExtent.height, surfaceCaps.maxImageExtent.height);
+    swapchainContext.extent = (surfaceCaps.currentExtent.width != UINT_MAX) ? surfaceCaps.currentExtent : VkExtent2D{ windowWidth, windowHeight };
     assert(MAX_SWAPCHAIN_IMAGES >= surfaceCaps.minImageCount);
-    uint32_t                 minImageCount       = std::max(surfaceCaps.minImageCount, MAX_SWAPCHAIN_IMAGES);
+    uint32_t minImageCount                       = std::max(surfaceCaps.minImageCount, MAX_SWAPCHAIN_IMAGES);
     VkSwapchainCreateInfoKHR swapchainCreateInfo = {
         .sType                 = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
         .pNext                 = nullptr,

@@ -1,15 +1,15 @@
 #include "VulkanUtils.h"
 void transitionImageLayout(
-    VkImage              &image,
-    VkCommandBuffer      &commandBuffer,
-    VkImageLayout         oldLayout,
-    VkImageLayout         newLayout,
+    VkImage &image,
+    VkCommandBuffer &commandBuffer,
+    VkImageLayout oldLayout,
+    VkImageLayout newLayout,
     VkPipelineStageFlags2 srcStageMask,
     VkPipelineStageFlags2 dstStageMask,
-    VkAccessFlags2        srcAccessMask,
-    VkAccessFlags2        dstAccessMask,
-    VkImageAspectFlags    aspectFlags,
-    uint32_t              mipLevels) {
+    VkAccessFlags2 srcAccessMask,
+    VkAccessFlags2 dstAccessMask,
+    VkImageAspectFlags aspectFlags,
+    uint32_t mipLevels) {
     const VkImageMemoryBarrier2 imageMemoryBarrier = {
         .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
         .pNext               = nullptr,

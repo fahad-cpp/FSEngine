@@ -8,7 +8,7 @@
     "configurePresets": [
         {
             "name": "clang-debug",
-            "displayName": "ClangNinjaDebug",
+            "displayName": "clang++ with Ninja (Debug)",
             "description": "clang++ with Ninja (Debug)",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
@@ -21,7 +21,7 @@
         },
         {
             "name": "clang-release",
-            "displayName": "ClangNinjaRelease",
+            "displayName": "clang++ with Ninja (Release)",
             "description": "clang++ with Ninja (Release)",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
@@ -34,7 +34,7 @@
         },
         {
             "name": "gcc-debug",
-            "displayName": "GCCNinjaDebug",
+            "displayName": "g++ with Ninja (Debug)",
             "description": "g++ with Ninja (Debug)",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
@@ -47,7 +47,7 @@
         },
         {
             "name": "gcc-release",
-            "displayName": "GCCNinjaRelease",
+            "displayName": "g++ with Ninja (Release)",
             "description": "g++ with Ninja (Release)",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
@@ -60,7 +60,7 @@
         },
         {
             "name": "vs-debug",
-            "displayName": "VSDebug",
+            "displayName": "Visual Studio (Debug)",
             "description": "Visual Studio (Debug)",
             "generator": "Visual Studio 18 2026",
             "binaryDir": "${sourceDir}/build/${presetName}",
@@ -70,7 +70,7 @@
         },
         {
             "name": "vs-release",
-            "displayName": "VSRelease",
+            "displayName": "Visual Studio (Release)",
             "description": "Visual Studio (Release)",
             "generator": "Visual Studio 18 2026",
             "binaryDir": "${sourceDir}/build/${presetName}",

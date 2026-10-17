@@ -6,21 +6,21 @@
 struct Transform {
     Vector3 position;
     Vector3 rotation;
-    float   scale;
+    float scale;
 };
 struct Camera {
     Vector3 position;
     Vector3 rotation;
 };
 struct Entity {
-    Mesh            mesh;
-    Transform       transform;
-    Buffer          uniformBuffer;
-    void           *uniformBufferMapping;
+    Mesh mesh;
+    Transform transform;
+    Buffer uniformBuffer;
+    void *uniformBufferMapping;
     VkDescriptorSet descriptorSets[MAX_FRAMES_IN_FLIGHT];
 };
 struct Scene {
-    Camera              camera;
+    Camera camera;
     std::vector<Entity> entities;
 };
 

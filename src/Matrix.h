@@ -15,6 +15,6 @@ Vector3 rotate(const Vector3 vec, const Vector3 rotation);
 Matrix4 modelMatrix(const Transform transform);
 Matrix4 lookAt(const Vector3 eye, const Vector3 center, const Vector3 up);
 Matrix4 perspective(const float fov, const float aspectRatio, const float nearPlane, const float farPlane);
-float   radians(float degree);
-float   degree(float radians);
+float radians(float degree);
+float degree(float radians);
 #endif

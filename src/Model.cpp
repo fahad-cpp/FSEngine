@@ -82,7 +82,7 @@ inline static void getIndices(char *ptr, uint32_t &v, uint32_t &t, uint32_t &n) 
     ptr = getuint(ptr, &n);
 }
 Model loadOBJ(const std::string &filename, bool flipYZ) {
-    Model         mesh;
+    Model mesh;
     std::ifstream OBJFile(filename, std::ios::binary | std::ios::ate);
     if (!OBJFile) {
         LOG_ERROR("Cannot open file " << filename);
@@ -136,9 +136,9 @@ Model loadOBJ(const std::string &filename, bool flipYZ) {
             ptr++;
     }
     ptr = buffer.data();
-    std::vector<Vector3>  positions(positionsCount);
-    std::vector<Vector3>  normals(normalsCount);
-    std::vector<Vector2>  texcoords(texCoordCount);
+    std::vector<Vector3> positions(positionsCount);
+    std::vector<Vector3> normals(normalsCount);
+    std::vector<Vector2> texcoords(texCoordCount);
     std::vector<OBJIndex> objIndices;
     objIndices.reserve(indicesCount);
     uint32_t vi = 0, ni = 0, ti = 0;
@@ -172,7 +172,7 @@ Model loadOBJ(const std::string &filename, bool flipYZ) {
             }
             normals[ni++] = normal;
         } else if ((ptr[0] == 'f') && (ptr[1] == ' ' || ptr[1] == '\t')) {
-            std::istringstream    stream(line.c_str() + 2);
+            std::istringstream stream(line.c_str() + 2);
             std::vector<OBJIndex> faceIndices;
             faceIndices.reserve(3);
             std::string vertex;
@@ -209,7 +209,7 @@ Model loadOBJ(const std::string &filename, bool flipYZ) {
     mesh.vertices.reserve(positionsCount);
     for (uint32_t i = 0; i < objIndices.size(); i++) {
         const OBJIndex index = objIndices[i];
-        const auto     it    = uniqueIndices.find(index);
+        const auto it        = uniqueIndices.find(index);
         if (it == uniqueIndices.end()) {
             Vector3 normal   = { 0.f, 0.f, 0.f };
             Vector3 position = { 0.f, 1000.f, 0.f };

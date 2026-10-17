@@ -20,17 +20,17 @@ static Vector2 getMouseDiff(FS::Window &window) {
         return { 0.f, 0.f };
     }
     static FS::RenderState &renderState = window.getRenderState();
-    FS::Vector2             windowPos   = window.getWindowPos();
-    FS::Vector2             mousePos    = window.getCursorPos();
-    FS::Vector2             centerPos   = { (windowPos.x + static_cast<float>(renderState.width) / 2.f), (windowPos.y + static_cast<float>(renderState.height) / 2.f) };
-    FS::Vector2             diff        = mousePos - centerPos;
+    FS::Vector2 windowPos               = window.getWindowPos();
+    FS::Vector2 mousePos                = window.getCursorPos();
+    FS::Vector2 centerPos               = { (windowPos.x + static_cast<float>(renderState.width) / 2.f), (windowPos.y + static_cast<float>(renderState.height) / 2.f) };
+    FS::Vector2 diff                    = mousePos - centerPos;
     window.setCursorPos(static_cast<uint32_t>(centerPos.x), static_cast<uint32_t>(centerPos.y));
     return { diff.x, diff.y };
 }
 void cameraMovementSystem(Camera &camera, FS::Window &window) {
-    float      moveSpeed = 0.1f;
-    FS::Input &input     = window.getInput();
-    Vector2    mouseDiff = getMouseDiff(window);
+    float moveSpeed   = 0.1f;
+    FS::Input &input  = window.getInput();
+    Vector2 mouseDiff = getMouseDiff(window);
 
     camera.rotation.x += mouseDiff.y * 0.001f;
     camera.rotation.x = std::clamp(camera.rotation.x, radians(-89.f), radians(89.f));
@@ -95,8 +95,8 @@ void cameraMovementSystem(Camera &camera, FS::Window &window) {
     }
 }
 void handleInput(FS::Window &window, Scene &scene) {
-    FS::Input &input  = window.getInput();
-    Camera    &camera = scene.camera;
+    FS::Input &input = window.getInput();
+    Camera &camera   = scene.camera;
 
     if (isDown(FS::Buttons::BUTTON_ESC)) {
         window.close();

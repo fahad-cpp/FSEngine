@@ -1,6 +1,4 @@
 BasedOnStyle: LLVM
-AlignConsecutiveDeclarations:
-    Enabled: true
 AlignConsecutiveAssignments:
     Enabled: true
 TabWidth: 4

@@ -40,8 +40,8 @@ Matrix4 rotate(const Matrix4 matrix, const float angle, const Vector3 axis) {
     if (clampedAngle < 0.f) {
         clampedAngle += 2.f * pi;
     }
-    float   costheta       = std::cos(clampedAngle);
-    float   sintheta       = std::sin(clampedAngle);
+    float costheta         = std::cos(clampedAngle);
+    float sintheta         = std::sin(clampedAngle);
     Matrix4 rotationMatrix = {};
     if (axis.x == 0.f && axis.y == 0.f && axis.z >= 1.f) {
         rotationMatrix = { {
@@ -82,8 +82,8 @@ Vector3 rotate(const Vector3 vec, const float angle, const Vector3 axis) {
     if (clampedAngle < 0.f) {
         clampedAngle += 2.f * pi;
     }
-    float   costheta       = std::cos(clampedAngle);
-    float   sintheta       = std::sin(clampedAngle);
+    float costheta         = std::cos(clampedAngle);
+    float sintheta         = std::sin(clampedAngle);
     Matrix4 rotationMatrix = {};
     if (axis.x == 0.f && axis.y == 0.f && axis.z >= 1.f) {
         rotationMatrix = { {

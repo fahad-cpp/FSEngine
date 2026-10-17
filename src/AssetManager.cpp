@@ -9,8 +9,8 @@
 namespace AssetManager {
 std::unordered_set<uint64_t> modelCache;
 std::unordered_set<uint64_t> textureCache;
-bool                         cacheInitialized = false;
-std::hash<std::string>       stringHasher;
+bool cacheInitialized = false;
+std::hash<std::string> stringHasher;
 
 static void initCache() {
     if (!std::filesystem::exists("cache")) {
@@ -24,7 +24,7 @@ static void initCache() {
         }
 
         const std::string filename = entry.path().stem().string();
-        uint64_t          hash     = 0;
+        uint64_t hash              = 0;
         std::from_chars(filename.c_str(), filename.c_str() + filename.length(), hash);
         if (entry.path().extension() == ".fsmodel") {
             modelCache.insert(hash);
@@ -36,7 +36,7 @@ static void initCache() {
 static void cacheModel(const Model &model, uint64_t hash) {
     std::filesystem::create_directory("cache");
     const std::string filepath = "cache/" + std::to_string(hash) + ".fsmodel";
-    std::ofstream     ofs(filepath, std::ios::binary);
+    std::ofstream ofs(filepath, std::ios::binary);
 
     uint32_t vertexCount = static_cast<uint32_t>(model.vertices.size());
     ofs.write(reinterpret_cast<const char *>(&vertexCount), sizeof(uint32_t));
@@ -49,10 +49,10 @@ static void cacheModel(const Model &model, uint64_t hash) {
     ofs.close();
 }
 static Model loadCachedModel(uint64_t hash) {
-    std::string   filepath = "cache/" + std::to_string(hash) + ".fsmodel";
+    std::string filepath = "cache/" + std::to_string(hash) + ".fsmodel";
     std::ifstream ifs(filepath, std::ios::binary);
-    uint32_t      verticesCount = 0;
-    uint32_t      indicesCount  = 0;
+    uint32_t verticesCount = 0;
+    uint32_t indicesCount  = 0;
 
     ifs.read(reinterpret_cast<char *>(&verticesCount), sizeof(uint32_t));
     std::vector<Vertex> vertices(verticesCount);
@@ -71,7 +71,7 @@ static Model loadCachedModel(uint64_t hash) {
 }
 static void cacheTexture(uint8_t *texture, const int width, const int height, const int channelSize, const uint64_t hash) {
     const std::string filepath = "cache/" + std::to_string(hash) + ".fstex";
-    std::ofstream     ofs(filepath, std::ios::binary);
+    std::ofstream ofs(filepath, std::ios::binary);
     ofs.write(reinterpret_cast<const char *>(&width), sizeof(int));
     ofs.write(reinterpret_cast<const char *>(&height), sizeof(int));
     ofs.write(reinterpret_cast<const char *>(&channelSize), sizeof(int));
@@ -80,7 +80,7 @@ static void cacheTexture(uint8_t *texture, const int width, const int height, co
 }
 static uint8_t *loadCachedTexture(uint64_t hash, int *width, int *height, int *channelSize) {
     const std::string filepath = "cache/" + std::to_string(hash) + ".fstex";
-    std::ifstream     ifs(filepath, std::ios::binary);
+    std::ifstream ifs(filepath, std::ios::binary);
     ifs.read(reinterpret_cast<char *>(width), sizeof(int));
     ifs.read(reinterpret_cast<char *>(height), sizeof(int));
     ifs.read(reinterpret_cast<char *>(channelSize), sizeof(int));

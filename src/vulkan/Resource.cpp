@@ -6,9 +6,8 @@
 #include <algorithm>
 #include <cstring>
 
-
 Buffer createBuffer(DeviceContext &deviceContext, VkBufferUsageFlags usage, VkDeviceSize size, VkMemoryPropertyFlags memoryProperty) {
-    Buffer             buffer     = {};
+    Buffer buffer                 = {};
     VkBufferCreateInfo createInfo = {
         .sType                 = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
         .pNext                 = nullptr,
@@ -28,7 +27,7 @@ Buffer createBuffer(DeviceContext &deviceContext, VkBufferUsageFlags usage, VkDe
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(deviceContext.device, buffer.buffer, &memRequirements);
 
-    uint32_t             memoryIndex        = getMemoryIndex(deviceContext.physicalDevice, memRequirements, memoryProperty);
+    uint32_t memoryIndex                    = getMemoryIndex(deviceContext.physicalDevice, memRequirements, memoryProperty);
     VkMemoryAllocateInfo memoryAllocateInfo = {
         .sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
         .pNext           = nullptr,
@@ -49,8 +48,8 @@ Buffer createVertexBuffer(DeviceContext &deviceContext, const Vertex *vertices, 
     if (vertexCount == 0) {
         return {};
     }
-    std::size_t bufferSize    = sizeof(vertices[0]) * vertexCount;
-    Buffer      stagingBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, bufferSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    std::size_t bufferSize = sizeof(vertices[0]) * vertexCount;
+    Buffer stagingBuffer   = createBuffer(deviceContext, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, bufferSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
     void *data = nullptr;
     vkMapMemory(deviceContext.device, stagingBuffer.memory, 0, bufferSize, 0, &data);
@@ -71,8 +70,8 @@ Buffer createIndexBuffer(DeviceContext &deviceContext, const uint32_t *indices, 
     if (indexCount == 0) {
         return {};
     }
-    std::size_t bufferSize    = sizeof(indices[0]) * indexCount;
-    Buffer      stagingBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, bufferSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    std::size_t bufferSize = sizeof(indices[0]) * indexCount;
+    Buffer stagingBuffer   = createBuffer(deviceContext, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, bufferSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
     void *data = nullptr;
     vkMapMemory(deviceContext.device, stagingBuffer.memory, 0, bufferSize, 0, &data);
@@ -89,8 +88,8 @@ Buffer createIndexBuffer(DeviceContext &deviceContext, const uint32_t *indices, 
     return indexBuffer;
 }
 Buffer createUniformBuffer(DeviceContext &deviceContext, void **pMapped) {
-    Buffer      uniformBuffer = {};
-    std::size_t bufferSize    = sizeof(UniformBufferData);
+    Buffer uniformBuffer   = {};
+    std::size_t bufferSize = sizeof(UniformBufferData);
 
     uniformBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, bufferSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
     *pMapped      = nullptr;
@@ -98,7 +97,7 @@ Buffer createUniformBuffer(DeviceContext &deviceContext, void **pMapped) {
     return uniformBuffer;
 }
 Image createImage(DeviceContext &deviceContext, uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags memoryFlags) {
-    Image             image     = {};
+    Image image                 = {};
     VkImageCreateInfo imageInfo = {
         .sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
         .pNext                 = nullptr,
@@ -120,7 +119,7 @@ Image createImage(DeviceContext &deviceContext, uint32_t width, uint32_t height,
     vkCreateImage(deviceContext.device, &imageInfo, nullptr, &image.image);
     VkMemoryRequirements memRequirements;
     vkGetImageMemoryRequirements(deviceContext.device, image.image, &memRequirements);
-    uint32_t             memoryIndex  = getMemoryIndex(deviceContext.physicalDevice, memRequirements, memoryFlags);
+    uint32_t memoryIndex              = getMemoryIndex(deviceContext.physicalDevice, memRequirements, memoryFlags);
     VkMemoryAllocateInfo allocateInfo = {
         .sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
         .pNext           = nullptr,
@@ -275,9 +274,9 @@ void generateMipMaps(VkCommandBuffer commandBuffer, VkImage image, int32_t texWi
     vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
 }
 Texture createTexture(DeviceContext &deviceContext, const std::string &filepath) {
-    Texture      texture = {};
-    int          texWidth, texHeight, texChannels;
-    uint8_t     *pixels    = AssetManager::loadTexture(filepath, &texWidth, &texHeight, &texChannels);
+    Texture texture = {};
+    int texWidth, texHeight, texChannels;
+    uint8_t *pixels        = AssetManager::loadTexture(filepath, &texWidth, &texHeight, &texChannels);
     VkDeviceSize imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * 4);
 
     if (!pixels) {
@@ -287,7 +286,7 @@ Texture createTexture(DeviceContext &deviceContext, const std::string &filepath)
     }
 
     Buffer stagingBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, imageSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-    void  *data          = nullptr;
+    void *data           = nullptr;
     vkMapMemory(deviceContext.device, stagingBuffer.memory, 0, imageSize, 0, &data);
     std::memcpy(data, pixels, imageSize);
     vkUnmapMemory(deviceContext.device, stagingBuffer.memory);

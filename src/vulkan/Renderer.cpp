@@ -59,8 +59,8 @@ std::array<VkVertexInputAttributeDescription, 3> getAttributeDescription() {
 void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swapchainContext, GraphicsPipeline &pipeline, const std::string &shaderPath) {
     VkSurfaceCapabilitiesKHR surfaceCaps;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(deviceContext.physicalDevice, deviceContext.surface, &surfaceCaps);
-    const std::vector<char>         code                = readFile(shaderPath);
-    VkShaderModule                  module              = createShaderModule(deviceContext.device, code);
+    const std::vector<char> code                        = readFile(shaderPath);
+    VkShaderModule module                               = createShaderModule(deviceContext.device, code);
     VkPipelineShaderStageCreateInfo vertShaderStageInfo = {
         .sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
         .pNext               = nullptr,
@@ -82,9 +82,9 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
 
     VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
-    VkVertexInputBindingDescription                  bindingDescription    = getBindingDescription();
+    VkVertexInputBindingDescription bindingDescription                     = getBindingDescription();
     std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = getAttributeDescription();
-    VkPipelineVertexInputStateCreateInfo             vertexInputState      = {
+    VkPipelineVertexInputStateCreateInfo vertexInputState                  = {
         .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         .pNext                           = nullptr,
         .flags                           = 0,
@@ -244,7 +244,7 @@ void updateUniformBuffer(SwapchainContext &swapchainContext, Scene &scene) {
     Camera &camera      = scene.camera;
     Vector3 cameraPoint = rotate(Vector3{ 0.f, 0.f, 1.f }, camera.rotation);
     Vector3 lookatpos   = { camera.position.x + cameraPoint.x, camera.position.y + cameraPoint.y, camera.position.z + cameraPoint.z };
-    float   aspectRatio = static_cast<float>(swapchainContext.extent.width) / static_cast<float>(swapchainContext.extent.height);
+    float aspectRatio   = static_cast<float>(swapchainContext.extent.width) / static_cast<float>(swapchainContext.extent.height);
     for (const Entity &entity : scene.entities) {
         UniformBufferData uboData = {};
         uboData.model             = modelMatrix(entity.transform);
@@ -256,7 +256,7 @@ void updateUniformBuffer(SwapchainContext &swapchainContext, Scene &scene) {
     }
 }
 void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext, GraphicsPipeline &pipeline, Scene &scene, uint32_t imageIndex, uint32_t frameIndex) {
-    VkImage     image     = swapchainContext.images[imageIndex];
+    VkImage image         = swapchainContext.images[imageIndex];
     VkImageView imageView = swapchainContext.imageViews[imageIndex];
 
     static const VkCommandBufferBeginInfo beginInfo = {
@@ -378,11 +378,11 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
 }
 void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer, Scene &scene) {
 
-    FS::RenderState &renderState           = window.getRenderState();
-    bool             windowMinimized       = (renderState.width <= 0) || (renderState.height <= 0);
-    uint32_t         frameIndex            = renderer.frameIndex;
-    VkFence          drawFence             = renderer.frames[frameIndex].drawFence;
-    VkSemaphore      imageAcquireSemaphore = renderer.frames[frameIndex].imageAcquireSemaphore;
+    FS::RenderState &renderState      = window.getRenderState();
+    bool windowMinimized              = (renderState.width <= 0) || (renderState.height <= 0);
+    uint32_t frameIndex               = renderer.frameIndex;
+    VkFence drawFence                 = renderer.frames[frameIndex].drawFence;
+    VkSemaphore imageAcquireSemaphore = renderer.frames[frameIndex].imageAcquireSemaphore;
 
     vkWaitForFences(deviceContext.device, 1, &drawFence, VK_TRUE, UINT64_MAX);
 
@@ -399,7 +399,7 @@ void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContex
     recordCommandBuffer(renderer.frames[frameIndex], swapchainContext, renderer.pipeline, scene, imageIndex, frameIndex);
 
     VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-    VkSubmitInfo         submitInfo       = {
+    VkSubmitInfo submitInfo               = {
         .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
         .pNext                = nullptr,
         .waitSemaphoreCount   = 1,

@@ -19,10 +19,10 @@ static std::string getDebugMessageTypeString(const VkDebugUtilsMessageTypeFlagsE
 }
 static VKAPI_ATTR VkBool32 VKAPI_CALL
 debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT             messageType,
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
     const VkDebugUtilsMessengerCallbackDataEXT *callbackData,
-    [[maybe_unused]] void                      *pUserData) {
+    [[maybe_unused]] void *pUserData) {
     const char *severity = "";
     if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
         severity = "VERBOSE";
@@ -119,7 +119,7 @@ VkInstance createInstance(DeviceContext &deviceContext) {
     };
 
     VkInstance instance = VK_NULL_HANDLE;
-    VkResult   result   = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
+    VkResult result     = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
     if (result != VK_SUCCESS) {
         LOG_ERROR("Failed to create instance " << result);
         return VK_NULL_HANDLE;
@@ -129,9 +129,9 @@ VkInstance createInstance(DeviceContext &deviceContext) {
     return instance;
 }
 VkPhysicalDevice getPhysicalDevice(DeviceContext &deviceContext) {
-    uint32_t         physicalDeviceCount = 16;
+    uint32_t physicalDeviceCount = 16;
     VkPhysicalDevice physicalDevices[16];
-    VkResult         result = vkEnumeratePhysicalDevices(deviceContext.instance, &physicalDeviceCount, physicalDevices);
+    VkResult result = vkEnumeratePhysicalDevices(deviceContext.instance, &physicalDeviceCount, physicalDevices);
     if (result != VK_SUCCESS) {
         LOG_ERROR("Failed to select physical device " << result);
         return VK_NULL_HANDLE;
@@ -140,7 +140,7 @@ VkPhysicalDevice getPhysicalDevice(DeviceContext &deviceContext) {
     return physicalDevices[SELECTED_DEVICE];
 }
 uint32_t getQueueFamilyIndex(DeviceContext &deviceContext, VkQueueFlags queueFlags) {
-    uint32_t                queueFamilyCount = 0;
+    uint32_t queueFamilyCount = 0;
     VkQueueFamilyProperties queueFamilyProperties[16];
     vkGetPhysicalDeviceQueueFamilyProperties(deviceContext.physicalDevice, &queueFamilyCount, nullptr);
     assert(queueFamilyCount < 16);
@@ -155,7 +155,7 @@ uint32_t getQueueFamilyIndex(DeviceContext &deviceContext, VkQueueFlags queueFla
     return familyIndex;
 }
 uint32_t getMemoryIndex(VkPhysicalDevice &physicalDevice, VkMemoryRequirements requirements, VkMemoryPropertyFlags requiredFlags) {
-    uint32_t                         selectedType = ~0u;
+    uint32_t selectedType = ~0u;
     VkPhysicalDeviceMemoryProperties memoryProperties;
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
 
@@ -200,8 +200,8 @@ VkDevice createDevice(DeviceContext &deviceContext) {
     requiredFeaturesvk13.dynamicRendering = VK_TRUE;
     requiredFeaturesvk13.synchronization2 = VK_TRUE;
 
-    uint32_t                      familyIndex       = getQueueFamilyIndex(deviceContext, VK_QUEUE_GRAPHICS_BIT);
-    float                         priority          = 1.f;
+    uint32_t familyIndex                            = getQueueFamilyIndex(deviceContext, VK_QUEUE_GRAPHICS_BIT);
+    float priority                                  = 1.f;
     const VkDeviceQueueCreateInfo queueCreateInfo[] = {
         { .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
           .pNext            = nullptr,
@@ -233,7 +233,7 @@ VkDevice createDevice(DeviceContext &deviceContext) {
     return device;
 }
 VkQueue getQueue(DeviceContext &deviceContext, VkQueueFlags queueFlags) {
-    VkQueue  queue       = VK_NULL_HANDLE;
+    VkQueue queue        = VK_NULL_HANDLE;
     uint32_t familyIndex = getQueueFamilyIndex(deviceContext, queueFlags);
     vkGetDeviceQueue(deviceContext.device, familyIndex, 0, &queue);
     return queue;
@@ -267,8 +267,8 @@ VkSurfaceKHR createSurface(DeviceContext &deviceContext, FS::Window &windowHandl
 }
 
 VkCommandPool createCommandPool(DeviceContext &deviceContext, VkQueueFlags queueFlags) {
-    VkCommandPool           commandPool           = VK_NULL_HANDLE;
-    uint32_t                familyIndex           = getQueueFamilyIndex(deviceContext, queueFlags);
+    VkCommandPool commandPool                     = VK_NULL_HANDLE;
+    uint32_t familyIndex                          = getQueueFamilyIndex(deviceContext, queueFlags);
     VkCommandPoolCreateInfo commandPoolCreateInfo = {
         .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
         .pNext            = nullptr,
@@ -351,7 +351,7 @@ VkDescriptorSetLayout createDescriptorSetLayout(DeviceContext &deviceContext) {
         .pBindings    = descriptorBindings
     };
     VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-    VkResult              result              = vkCreateDescriptorSetLayout(deviceContext.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout);
+    VkResult result                           = vkCreateDescriptorSetLayout(deviceContext.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout);
     if (result != VK_SUCCESS) {
         LOG_ERROR("Failed to create Descriptor Set layout " << result);
     }
@@ -377,7 +377,7 @@ VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext, uint32_t ent
         .pPoolSizes    = poolSizes
     };
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-    VkResult         result         = vkCreateDescriptorPool(deviceContext.device, &descriptorPoolCreateInfo, nullptr, &descriptorPool);
+    VkResult result                 = vkCreateDescriptorPool(deviceContext.device, &descriptorPoolCreateInfo, nullptr, &descriptorPool);
     if (result != VK_SUCCESS) {
         LOG_ERROR("Failed to create descriptor pool " << result);
         return VK_NULL_HANDLE;
