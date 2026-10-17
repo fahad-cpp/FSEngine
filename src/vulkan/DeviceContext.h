@@ -3,8 +3,8 @@
 #include "FSWindow.h"
 #include "Vulkan.h" // IWYU pragma: keep
 
-#define SELECTED_DEVICE 1
-constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+#define SELECTED_DEVICE 0
+constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 3;
 
 struct DeviceContext {
     VkDebugUtilsMessengerEXT debugMessenger;
@@ -35,7 +35,6 @@ void endOneTimeCommandBuffer(DeviceContext &deviceContext, VkCommandBuffer &comm
 // Descriptors
 VkDescriptorSetLayout createDescriptorSetLayout(DeviceContext &deviceContext);
 VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext, uint32_t entityCount);
-VkResult createDescriptorSets(DeviceContext &deviceContext, Entity &entity);
 // synchronization
 VkResult createSemaphores(VkDevice &device, uint32_t count, VkSemaphore *semaphores);
 VkResult createSemaphore(VkDevice &device, VkSemaphore *semaphore);

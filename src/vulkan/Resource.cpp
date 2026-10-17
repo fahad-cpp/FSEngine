@@ -6,7 +6,28 @@
 #include <algorithm>
 #include <cstring>
 
+std::string bufferUsageString(VkBufferUsageFlags usage){
+    std::vector<std::pair<VkBufferUsageFlags, std::string>> map{
+        {VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,"Vertex Buffer"},
+        {VK_BUFFER_USAGE_INDEX_BUFFER_BIT,"Index Buffer"},
+        {VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,"Uniform Buffer"},
+        {VK_BUFFER_USAGE_TRANSFER_SRC_BIT,"Transfer Source"}
+    };
+    std::string result = "";
+    for(std::pair<VkBufferUsageFlags, std::string> pair : map){
+        if(usage & pair.first){
+            result += pair.second + " ";
+        }
+    }
+    if(result.length()){
+        return result;
+    }
+    return "Unhandled";
+}
 Buffer createBuffer(DeviceContext &deviceContext, VkBufferUsageFlags usage, VkDeviceSize size, VkMemoryPropertyFlags memoryProperty) {
+    // static int bufferCount = 0;
+    // bufferCount++;
+    // std::cout << "Buffer created: " << bufferCount << " : " << bufferUsageString(usage) << "\n";
     Buffer buffer                 = {};
     VkBufferCreateInfo createInfo = {
         .sType                 = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -40,6 +61,9 @@ Buffer createBuffer(DeviceContext &deviceContext, VkBufferUsageFlags usage, VkDe
     return buffer;
 }
 void cleanupBuffer(DeviceContext &deviceContext, Buffer &buffer) {
+    // static int bufferCount = 0;
+    // bufferCount++;
+    // std::cout << "Buffer Destroyed: " << bufferCount << "\n";
     vkDestroyBuffer(deviceContext.device, buffer.buffer, nullptr);
     vkFreeMemory(deviceContext.device, buffer.memory, nullptr);
 }
@@ -93,7 +117,7 @@ Buffer createUniformBuffer(DeviceContext &deviceContext, void **pMapped) {
 
     uniformBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, bufferSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
     *pMapped      = nullptr;
-    vkMapMemory(deviceContext.device, uniformBuffer.memory, 0, bufferSize, 0, &*pMapped);
+    vkMapMemory(deviceContext.device, uniformBuffer.memory, 0, bufferSize, 0, pMapped);
     return uniformBuffer;
 }
 Image createImage(DeviceContext &deviceContext, uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags memoryFlags) {
@@ -332,8 +356,8 @@ void cleanupTexture(DeviceContext &deviceContext, Texture &texture) {
     cleanupImage(deviceContext, texture.image);
     vkDestroyImageView(deviceContext.device, texture.imageView, nullptr);
 }
-Mesh createMesh(DeviceContext &deviceContext, Model &model, const std::string &texturePath) {
-    Mesh mesh         = {};
+VulkanMesh createMesh(DeviceContext &deviceContext, Model &model, const std::string &texturePath) {
+    VulkanMesh mesh         = {};
     mesh.vertexCount  = static_cast<uint32_t>(model.vertices.size());
     mesh.indexCount   = static_cast<uint32_t>(model.indices.size());
     mesh.vertexBuffer = createVertexBuffer(deviceContext, model.vertices.data(), mesh.vertexCount);
@@ -341,7 +365,7 @@ Mesh createMesh(DeviceContext &deviceContext, Model &model, const std::string &t
     mesh.texture      = createTexture(deviceContext, texturePath);
     return mesh;
 }
-void cleanupMesh(DeviceContext &deviceContext, Mesh &mesh) {
+void cleanupMesh(DeviceContext &deviceContext, VulkanMesh &mesh) {
     cleanupTexture(deviceContext, mesh.texture);
 
     if (mesh.vertexBuffer.buffer != VK_NULL_HANDLE) {

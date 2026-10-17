@@ -14,7 +14,7 @@ Vulkan based game engine made in C++
 - hardcoded lights
 - BLOB Entity
 - Uniform buffers to send entity orientation
-- Vulkan is tightly coupled with the engine end the entity
+- Vulkan is tightly coupled with the engine
 
 # todo
 

@@ -3,7 +3,7 @@
 #include "DeviceContext.h"
 #include "Resource.h"
 
-constexpr uint32_t MAX_SWAPCHAIN_IMAGES = 6;
+constexpr uint32_t MAX_SWAPCHAIN_IMAGES = 3;
 struct DepthBuffer {
     Image image;
     VkImageView imageView;

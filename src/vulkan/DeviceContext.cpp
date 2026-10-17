@@ -1,6 +1,6 @@
 #include "DeviceContext.h"
 #include "../Logging.h"
-#include "../Scene.h"
+#include "Resource.h"
 #include <array>
 #include <assert.h>
 #include <string>
@@ -366,7 +366,7 @@ VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext, uint32_t ent
         {
             .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
             .descriptorCount = MAX_FRAMES_IN_FLIGHT * entityCount,
-        }
+        },
     };
     VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
         .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
@@ -384,67 +384,7 @@ VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext, uint32_t ent
     }
     return descriptorPool;
 }
-VkResult createDescriptorSets(DeviceContext &deviceContext, Entity &entity) {
-    VkDescriptorSetLayout layouts[MAX_FRAMES_IN_FLIGHT];
-    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-        layouts[i] = deviceContext.descriptorSetLayout;
-    }
-    VkDescriptorSetAllocateInfo allocateInfo = {
-        .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-        .pNext              = nullptr,
-        .descriptorPool     = deviceContext.descriptorPool,
-        .descriptorSetCount = MAX_FRAMES_IN_FLIGHT,
-        .pSetLayouts        = layouts
-    };
-    VkResult result = vkAllocateDescriptorSets(deviceContext.device, &allocateInfo, entity.descriptorSets);
-    if (result != VK_SUCCESS) {
-        LOG_ERROR("Failed to allocate descriptor sets");
-        return result;
-    }
 
-    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-        VkDescriptorBufferInfo bufferInfo = {
-            .buffer = entity.uniformBuffer.buffer,
-            .offset = 0,
-            .range  = sizeof(UniformBufferData)
-        };
-        VkDescriptorImageInfo imageInfo = {
-            .sampler     = deviceContext.sampler,
-            .imageView   = entity.mesh.texture.imageView,
-            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-        };
-        VkWriteDescriptorSet descriptorWrites[2] = {
-            {
-                .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .pNext            = nullptr,
-                .dstSet           = entity.descriptorSets[i],
-                .dstBinding       = 0,
-                .dstArrayElement  = 0,
-                .descriptorCount  = 1,
-                .descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                .pImageInfo       = nullptr,
-                .pBufferInfo      = &bufferInfo,
-                .pTexelBufferView = nullptr,
-            },
-            {
-                .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .pNext            = nullptr,
-                .dstSet           = entity.descriptorSets[i],
-                .dstBinding       = 1,
-                .dstArrayElement  = 0,
-                .descriptorCount  = 1,
-                .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .pImageInfo       = &imageInfo,
-                .pBufferInfo      = nullptr,
-                .pTexelBufferView = nullptr,
-            }
-        };
-
-        vkUpdateDescriptorSets(deviceContext.device, (sizeof(descriptorWrites) / sizeof(descriptorWrites[0])), descriptorWrites, 0, nullptr);
-    }
-
-    return result;
-}
 VkResult createSemaphores(VkDevice &device, uint32_t count, VkSemaphore *semaphores) {
     VkSemaphoreCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,

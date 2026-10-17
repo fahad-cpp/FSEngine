@@ -27,8 +27,8 @@ static Vector2 getMouseDiff(FS::Window &window) {
     window.setCursorPos(static_cast<uint32_t>(centerPos.x), static_cast<uint32_t>(centerPos.y));
     return { diff.x, diff.y };
 }
-void cameraMovementSystem(Camera &camera, FS::Window &window) {
-    float moveSpeed   = 0.1f;
+void cameraMovementSystem(Camera &camera, FS::Window &window,float dt) {
+    float moveSpeed   = 0.01f * dt;
     FS::Input &input  = window.getInput();
     Vector2 mouseDiff = getMouseDiff(window);
 
@@ -94,24 +94,24 @@ void cameraMovementSystem(Camera &camera, FS::Window &window) {
         camera.rotation = { 0.f, 0.f, 0.f };
     }
 }
-void handleInput(FS::Window &window, Scene &scene) {
+void handleInput(FS::Window &window, Scene &scene,float dt) {
     FS::Input &input = window.getInput();
     Camera &camera   = scene.camera;
 
     if (isDown(FS::Buttons::BUTTON_ESC)) {
         window.close();
     }
-    cameraMovementSystem(camera, window);
+    cameraMovementSystem(camera, window,dt);
 }
 int main() {
     Timer timer;
     Timer initTimer;
     startTimer(initTimer);
-    Model zenith     = AssetManager::loadModel("models/Zenith.obj", true);
-    Model bed        = AssetManager::loadModel("models/Bed.obj");
-    Model demonSkull = AssetManager::loadModel("models/DemonSkull.obj");
-    Model sponza     = AssetManager::loadModel("models/sponza.obj");
-    Model cube       = AssetManager::loadModel("models/cube.obj");
+    uint32_t zenith     = AssetManager::loadModel("models/Zenith.obj","textures/Zenith.png", true);
+    uint32_t bed        = AssetManager::loadModel("models/Bed.obj","textures/white.png");
+    uint32_t demonSkull = AssetManager::loadModel("models/DemonSkull.obj","textures/white.png");
+    uint32_t sponza     = AssetManager::loadModel("models/sponza.obj","textures/white.png");
+    uint32_t cube       = AssetManager::loadModel("models/cube.obj","this_is_invalid");
 
     FS::Window window("FSEngine", 720, 720);
     window.showCursor(false);
@@ -122,24 +122,11 @@ int main() {
     SwapchainContext swapchainContext = {};
     TIME_FUNC("initSwapchainContext", timer, initSwapchainContext(deviceContext, swapchainContext, window));
 
-    Mesh zenithMesh = {};
-    TIME_FUNC("createMesh", timer, zenithMesh = createMesh(deviceContext, zenith, "textures/Zenith.png"));
-
-    Mesh bedMesh = {};
-    TIME_FUNC("createMesh", timer, bedMesh = createMesh(deviceContext, bed, "textures/white.png"));
-
-    Mesh sponzaMesh = {};
-    TIME_FUNC("createMesh", timer, sponzaMesh = createMesh(deviceContext, sponza, "textures/white.png"));
-
-    Mesh demonSkullMesh = {};
-    TIME_FUNC("createMesh", timer, demonSkullMesh = createMesh(deviceContext, demonSkull, "textures/white.png"));
-
-    Mesh cubeMesh = {};
-    TIME_FUNC("createMesh", timer, cubeMesh = createMesh(deviceContext, cube, "textures/invalid.png"));
-
     VulkanRenderer renderer = {};
     TIME_FUNC("initVulkanRenderer", timer, initVulkanRenderer(deviceContext, swapchainContext, renderer));
     window.focus();
+
+    
 
     Scene scene{
         .camera{
@@ -148,102 +135,80 @@ int main() {
         },
         .entities{
             Entity{
-                .mesh      = cubeMesh,
-                .transform = {
+                .modelIndex = cube,
+                .transform  = {
                     .position = { 20.f, 0.f, -10.f },
                     .rotation = { 0.f, 0.f, 0.f },
                     .scale    = 3.f,
                 },
-                .uniformBuffer        = {},
-                .uniformBufferMapping = nullptr,
-                .descriptorSets       = {},
             },
             Entity{
-                .mesh      = zenithMesh,
-                .transform = {
+                .modelIndex = zenith,
+                .transform  = {
                     .position = { 20.f, 2.f, 0.f },
                     .rotation = { 0.f, 0.f, 0.f },
                     .scale    = 1.f,
                 },
-                .uniformBuffer        = {},
-                .uniformBufferMapping = nullptr,
-                .descriptorSets       = {},
             },
             Entity{
-                .mesh      = bedMesh,
-                .transform = {
+                .modelIndex = bed,
+                .transform  = {
                     .position = { 30.f, 2.f, 0.f },
                     .rotation = { 0.f, radians(90.f), 0.f },
                     .scale    = 1.f,
                 },
-                .uniformBuffer        = {},
-                .uniformBufferMapping = nullptr,
-                .descriptorSets       = {},
             },
             Entity{
-                .mesh      = demonSkullMesh,
-                .transform = {
+                .modelIndex = demonSkull,
+                .transform  = {
                     .position = { 20.f, -200.f * 0.3f + 4.f, 10.f },
                     .rotation = { 0.f, radians(-90.f), 0.f },
                     .scale    = 0.3f,
                 },
-                .uniformBuffer        = {},
-                .uniformBufferMapping = nullptr,
-                .descriptorSets       = {},
             },
             Entity{
-                .mesh      = sponzaMesh,
-                .transform = {
+                .modelIndex = sponza,
+                .transform  = {
                     .position = { 0.f, 0.f, 0.f },
                     .rotation = { 0.f, 0.f, 0.f },
                     .scale    = 0.1f,
                 },
-                .uniformBuffer        = {},
-                .uniformBufferMapping = nullptr,
-                .descriptorSets       = {},
             },
         }
     };
 
-    // scene.entities.resize(MAX_ENTITIES);
-    // for(uint32_t i=0;i<MAX_ENTITIES;++i){
-    //     const float distance = 10.f;
-    //     const float x        = static_cast<float>(i % static_cast<uint32_t>(sqrt(MAX_ENTITIES))) * distance;
-    //     const float z        = static_cast<float>(i / sqrt(MAX_ENTITIES)) * distance;
-    //     scene.entities[i] = {
-    //         .mesh = zenithMesh,
-    //         .transform = {
-    //             .position = {x,0.f,z},
-    //             .rotation = {0.f,0.f,0.f},
-    //             .scale = 1.f,
-    //         },
-    //         .uniformBuffer = {},
-    //         .uniformBufferMapping = nullptr,
-    //         .descriptorSets = {}
-    //     };
-    // }
-    TIME_FUNC("initScene", timer, initScene(deviceContext, scene));
+    scene.entities.resize(MAX_ENTITIES);
+    for(uint32_t i=0;i<MAX_ENTITIES;++i){
+        const float distance = 3.f;
+        const float x        = static_cast<float>(i % static_cast<uint32_t>(sqrt(MAX_ENTITIES))) * distance;
+        const float z        = static_cast<float>(i / sqrt(MAX_ENTITIES)) * distance;
+        scene.entities[i] = {
+            .modelIndex = cube,
+            .transform = {
+                .position = {x,0.f,z},
+                .rotation = {0.f,0.f,0.f},
+                .scale = 1.f,
+            },
+        };
+    }
+    setScene(deviceContext, renderer, scene);
 
     endTimer(initTimer);
     LOG_INFO("Initialization : " << microsecToms(initTimer.diff) << " ms");
 
+    float diff = 16.f;
     while (window.isOpen()) {
         startTimer(timer);
         renderScene(deviceContext, swapchainContext, window, renderer, scene);
-        handleInput(window, scene);
+        handleInput(window, scene,diff);
         endTimer(timer);
-        // scene.entities[0].transform.rotation.y += radians(90) * (timer.diff / 1000000.f);
+        scene.entities[0].transform.rotation.y += radians(90) * (timer.diff / 1000000.f);
+        diff = microsecToms(timer.diff);
         LOG_LIVE("FPS: " << microsecToFPS(timer.diff) << " Frame:" << microsecToms(timer.diff) << " ms");
         window.processMessages();
     }
 
     vkDeviceWaitIdle(deviceContext.device);
-    cleanupScene(deviceContext, scene);
-    cleanupMesh(deviceContext, zenithMesh);
-    cleanupMesh(deviceContext, bedMesh);
-    cleanupMesh(deviceContext, sponzaMesh);
-    cleanupMesh(deviceContext, demonSkullMesh);
-    cleanupMesh(deviceContext, cubeMesh);
     cleanupVulkanRenderer(deviceContext, renderer);
     cleanupSwapchainContext(deviceContext, swapchainContext);
     cleanupDeviceContext(deviceContext);

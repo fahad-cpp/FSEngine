@@ -11,6 +11,7 @@ std::unordered_set<uint64_t> modelCache;
 std::unordered_set<uint64_t> textureCache;
 bool cacheInitialized = false;
 std::hash<std::string> stringHasher;
+std::vector<Model> models;
 
 static void initCache() {
     if (!std::filesystem::exists("cache")) {
@@ -48,7 +49,7 @@ static void cacheModel(const Model &model, uint64_t hash) {
 
     ofs.close();
 }
-static Model loadCachedModel(uint64_t hash) {
+static uint32_t loadCachedModel(uint64_t hash, const std::string &texturePath) {
     std::string filepath = "cache/" + std::to_string(hash) + ".fsmodel";
     std::ifstream ifs(filepath, std::ios::binary);
     uint32_t verticesCount = 0;
@@ -65,9 +66,11 @@ static Model loadCachedModel(uint64_t hash) {
     ifs.close();
     Model model = {
         vertices,
-        indices
+        indices,
+        texturePath
     };
-    return model;
+    models.push_back(model);
+    return static_cast<uint32_t>(models.size() - 1);
 }
 static void cacheTexture(uint8_t *texture, const int width, const int height, const int channelSize, const uint64_t hash) {
     const std::string filepath = "cache/" + std::to_string(hash) + ".fstex";
@@ -89,7 +92,7 @@ static uint8_t *loadCachedTexture(uint64_t hash, int *width, int *height, int *c
     ifs.close();
     return texture;
 }
-Model loadModel(const std::string &filepath, bool flipYZ) {
+uint32_t loadModel(const std::string &filepath, const std::string &texturePath, bool flipYZ) {
     Timer timer;
     startTimer(timer);
     if (!cacheInitialized) {
@@ -99,7 +102,7 @@ Model loadModel(const std::string &filepath, bool flipYZ) {
 
     uint64_t hash = stringHasher(filepath);
     if (modelCache.find(hash) != modelCache.end()) {
-        Model model = loadCachedModel(hash);
+        uint32_t model = loadCachedModel(hash, texturePath);
         endTimer(timer);
         LOG_INFO("Loaded cached model " << hash << ".fsmodel" << " : " << microsecToms(timer.diff) << " ms");
         return model;
@@ -109,7 +112,9 @@ Model loadModel(const std::string &filepath, bool flipYZ) {
     cacheModel(model, hash);
     endTimer(timer);
     LOG_INFO("Loaded new model " << filepath << " : " << microsecToms(timer.diff) << " ms");
-    return model;
+    model.texturePath = texturePath;
+    models.push_back(model);
+    return static_cast<uint32_t>(models.size() - 1);
 }
 uint8_t *loadTexture(const std::string &filepath, int *texWidth, int *texHeight, int *channelSize) {
     Timer timer;
@@ -127,6 +132,9 @@ uint8_t *loadTexture(const std::string &filepath, int *texWidth, int *texHeight,
     }
 
     uint8_t *texture = stbi_load(filepath.c_str(), texWidth, texHeight, channelSize, STBI_rgb_alpha);
+    if (!texture) {
+        return nullptr;
+    }
     cacheTexture(texture, *texWidth, *texHeight, *channelSize, hash);
     endTimer(timer);
     LOG_INFO("Loaded new texture: " << filepath << " : " << microsecToms(timer.diff) << " ms");
@@ -134,5 +142,11 @@ uint8_t *loadTexture(const std::string &filepath, int *texWidth, int *texHeight,
 }
 void unloadTexture(uint8_t *texture) {
     free(texture);
+}
+Model getModel(uint32_t index) {
+    return models[index];
+}
+uint32_t getModelCount() {
+    return static_cast<uint32_t>(models.size());
 }
 } // namespace AssetManager

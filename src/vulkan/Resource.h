@@ -10,6 +10,7 @@ struct UniformBufferData {
     alignas(16) Matrix4 view;
     alignas(16) Matrix4 projection;
 };
+
 struct Image {
     VkImage image;
     VkDeviceMemory memory;
@@ -18,11 +19,17 @@ struct Buffer {
     VkBuffer buffer;
     VkDeviceMemory memory;
 };
+struct VulkanEntity{
+    uint32_t meshIndex;
+    Buffer uniformBuffer;
+    void* uniformBufferMapping;
+    VkDescriptorSet descriptorSets[MAX_FRAMES_IN_FLIGHT];
+};
 struct Texture {
     Image image;
     VkImageView imageView;
 };
-struct Mesh {
+struct VulkanMesh {
     Texture texture;
     Buffer vertexBuffer;
     Buffer indexBuffer;
@@ -45,6 +52,6 @@ void generateMipMaps(VkCommandBuffer commandBuffer, VkImage image, int32_t texWi
 Texture createTexture(DeviceContext &deviceContext, const std::string &filepath);
 void cleanupTexture(DeviceContext &deviceContext, Texture &texture);
 // mesh
-Mesh createMesh(DeviceContext &deviceContext, Model &model, const std::string &texturePath);
-void cleanupMesh(DeviceContext &deviceContext, Mesh &mesh);
+VulkanMesh createMesh(DeviceContext &deviceContext, Model &model, const std::string &texturePath);
+void cleanupMesh(DeviceContext &deviceContext, VulkanMesh &mesh);
 #endif

@@ -19,6 +19,7 @@ struct OBJIndex {
 struct Model {
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
+    std::string texturePath;
 };
 
 Model loadOBJ(const std::string &filepath, bool flipYZ = false);

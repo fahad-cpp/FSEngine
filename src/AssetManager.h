@@ -2,8 +2,10 @@
 #define ASSETMANAGER_H
 #include "Model.h"
 namespace AssetManager {
-Model loadModel(const std::string &filepath, bool flipYZ = false);
+uint32_t loadModel(const std::string &filepath,const std::string& texturePath, bool flipYZ = false);
 uint8_t *loadTexture(const std::string &filepath, int *texWidth, int *texHeight, int *channelSize);
 void unloadTexture(uint8_t *texture);
+Model getModel(uint32_t index);
+uint32_t getModelCount();
 } // namespace AssetManager
 #endif
