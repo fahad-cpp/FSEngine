@@ -305,38 +305,38 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
     vkCreateGraphicsPipelines(deviceContext.device, nullptr, 1, &graphicsPipelineInfo, nullptr, &pipeline.pipeline);
     vkDestroyShaderModule(deviceContext.device, module, nullptr);
 }
-void updateEntityRange(const VulkanRenderer& renderer,const Scene& scene,float aspect,uint32_t start,uint32_t end){
+void updateEntityRange(const VulkanRenderer &renderer, const Scene &scene, const float aspect, const uint32_t start, const uint32_t end) {
     const Camera &camera      = scene.camera;
-    Vector3 cameraPoint = rotate(Vector3{ 0.f, 0.f, 1.f }, camera.rotation);
-    Vector3 lookatpos   = { camera.position.x + cameraPoint.x, camera.position.y + cameraPoint.y, camera.position.z + cameraPoint.z };
+    const Vector3 cameraPoint = rotate(Vector3{ 0.f, 0.f, 1.f }, camera.rotation);
+    const Vector3 lookatpos   = { camera.position.x + cameraPoint.x, camera.position.y + cameraPoint.y, camera.position.z + cameraPoint.z };
     for (uint32_t i = start; i <= end; ++i) {
         const Entity &entity             = scene.entities[i];
         const VulkanEntity &vulkanEntity = renderer.entities[i];
-        UniformBufferData uboData  = {};
-        uboData.model              = modelMatrix(entity.transform);
-        uboData.view               = lookAt(camera.position, lookatpos, Vector3{ 0.f, 1.f, 0.f });
-        uboData.projection         = perspective(radians(60.f), aspect, 0.1f, 10000.f);
+        UniformBufferData uboData        = {};
+        uboData.model                    = modelMatrix(entity.transform);
+        uboData.view                     = lookAt(camera.position, lookatpos, Vector3{ 0.f, 1.f, 0.f });
+        uboData.projection               = perspective(radians(60.f), aspect, 0.1f, 10000.f);
         uboData.projection.values[1][1] *= -1;
 
         std::memcpy(vulkanEntity.uniformBufferMapping, &uboData, sizeof(uboData));
     }
 }
-void updateUniformBuffer(const SwapchainContext &swapchainContext,const VulkanRenderer &renderer,const Scene &scene) {
-    float aspectRatio   = static_cast<float>(swapchainContext.extent.width) / static_cast<float>(swapchainContext.extent.height);
+void updateUniformBuffer(const SwapchainContext &swapchainContext, const VulkanRenderer &renderer, const Scene &scene) {
+    const float aspectRatio           = static_cast<float>(swapchainContext.extent.width) / static_cast<float>(swapchainContext.extent.height);
     static const uint32_t threadCount = std::thread::hardware_concurrency();
     static std::vector<std::thread> updateThreads(threadCount);
-    
-    uint32_t entityPerThread = static_cast<uint32_t>(scene.entities.size() / threadCount);
-    uint32_t remainingEntities = scene.entities.size() % threadCount;
 
-    uint32_t start=0,end=0;
-    for(uint32_t i=0;i<threadCount;i++){
-        end = start + (entityPerThread-1) + ((i < remainingEntities)?1:0);
-        updateThreads[i] = std::thread(updateEntityRange,std::cref(renderer),std::cref(scene),aspectRatio,start,end);
-        start = end+1;
+    const uint32_t entityPerThread   = static_cast<uint32_t>(scene.entities.size() / threadCount);
+    const uint32_t remainingEntities = scene.entities.size() % threadCount;
+
+    uint32_t start = 0, end = 0;
+    for (uint32_t i = 0; i < threadCount; i++) {
+        end              = start + (entityPerThread - 1) + ((i < remainingEntities) ? 1 : 0);
+        updateThreads[i] = std::thread(updateEntityRange, std::cref(renderer), std::cref(scene), aspectRatio, start, end);
+        start            = end + 1;
     }
 
-    for(uint32_t i=0;i<threadCount;i++){
+    for (uint32_t i = 0; i < threadCount; i++) {
         updateThreads[i].join();
     }
 }
@@ -482,7 +482,6 @@ void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContex
     VkSemaphore renderFinishedSemaphore = renderer.renderFinishedSemaphores[imageIndex];
 
     vkResetFences(deviceContext.device, 1, &drawFence);
-    updateUniformBuffer(swapchainContext, renderer, scene);
     recordCommandBuffer(renderer.frames[frameIndex], swapchainContext, renderer, imageIndex, frameIndex);
 
     VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -515,6 +514,7 @@ void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContex
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
         recreateSwapchain(deviceContext, swapchainContext, window);
     }
+    updateUniformBuffer(swapchainContext, renderer, scene);
     frameIndex = (frameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
@@ -532,24 +532,30 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
             cleanupMesh(deviceContext, mesh);
         }
     }
-    if(!renderer.entities.empty()){
-        for(VulkanEntity& entity : renderer.entities){
+
+    if (!renderer.entities.empty()) {
+        for (VulkanEntity &entity : renderer.entities) {
             vkFreeDescriptorSets(deviceContext.device, deviceContext.descriptorPool, MAX_FRAMES_IN_FLIGHT, entity.descriptorSets);
             cleanupBuffer(deviceContext, entity.uniformBuffer);
         }
     }
+
     std::vector<Entity> &entities = scene.entities;
     renderer.meshes.resize(AssetManager::getModelCount());
+
+    // Meshes are organized in the same order as models in AssetManager
+    // so that we can use the same modelHandle in entities to refer to meshes in renderer.entities
     for (uint32_t i = 0; i < AssetManager::getModelCount(); ++i) {
-        Model model                             = AssetManager::getModel(i);
+        Model model        = AssetManager::getModel(i);
         renderer.meshes[i] = createMesh(deviceContext, model, model.texturePath);
     }
 
     renderer.entities.resize(entities.size());
     for (uint32_t i = 0; i < entities.size(); i++) {
+        // TODO(fahad-cpp): Use SSBO for Entity Data
         renderer.entities[i].uniformBuffer = createUniformBuffer(deviceContext, &renderer.entities[i].uniformBufferMapping);
-        createDescriptorSets(deviceContext, renderer.meshes[entities[i].modelIndex], renderer.entities[i]);
-        renderer.entities[i].meshIndex = entities[i].modelIndex;
+        createDescriptorSets(deviceContext, renderer.meshes[entities[i].modelHandle], renderer.entities[i]);
+        renderer.entities[i].meshIndex = entities[i].modelHandle;
     }
 }
 void initVulkanRenderer(DeviceContext &deviceContext, SwapchainContext &swapchainContext, VulkanRenderer &renderer) {

@@ -21,6 +21,6 @@ struct Model {
     std::vector<uint32_t> indices;
     std::string texturePath;
 };
-
+using ModelHandle = uint32_t;
 Model loadOBJ(const std::string &filepath, bool flipYZ = false);
 #endif

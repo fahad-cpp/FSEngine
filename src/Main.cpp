@@ -5,7 +5,7 @@
 #include <numbers>
 
 /*
-    TODO:
+    TODO(fahad-cpp):
     -Restructure code according to Design.md
     -MSAA
     -proper light handling (send light array from CPU to GPU)
@@ -27,7 +27,7 @@ static Vector2 getMouseDiff(FS::Window &window) {
     window.setCursorPos(static_cast<uint32_t>(centerPos.x), static_cast<uint32_t>(centerPos.y));
     return { diff.x, diff.y };
 }
-void cameraMovementSystem(Camera &camera, FS::Window &window,float dt) {
+void cameraMovementSystem(Camera &camera, FS::Window &window, float dt) {
     float moveSpeed   = 0.01f * dt;
     FS::Input &input  = window.getInput();
     Vector2 mouseDiff = getMouseDiff(window);
@@ -94,24 +94,24 @@ void cameraMovementSystem(Camera &camera, FS::Window &window,float dt) {
         camera.rotation = { 0.f, 0.f, 0.f };
     }
 }
-void handleInput(FS::Window &window, Scene &scene,float dt) {
+void handleInput(FS::Window &window, Scene &scene, float dt) {
     FS::Input &input = window.getInput();
     Camera &camera   = scene.camera;
 
     if (isDown(FS::Buttons::BUTTON_ESC)) {
         window.close();
     }
-    cameraMovementSystem(camera, window,dt);
+    cameraMovementSystem(camera, window, dt);
 }
 int main() {
     Timer timer;
     Timer initTimer;
     startTimer(initTimer);
-    uint32_t zenith     = AssetManager::loadModel("models/Zenith.obj","textures/Zenith.png", true);
-    uint32_t bed        = AssetManager::loadModel("models/Bed.obj","textures/white.png");
-    uint32_t demonSkull = AssetManager::loadModel("models/DemonSkull.obj","textures/white.png");
-    uint32_t sponza     = AssetManager::loadModel("models/sponza.obj","textures/white.png");
-    uint32_t cube       = AssetManager::loadModel("models/cube.obj","this_is_invalid");
+    const ModelHandle zenith     = AssetManager::loadModel("models/Zenith.obj", "textures/Zenith.png", true);
+    const ModelHandle bed        = AssetManager::loadModel("models/Bed.obj", "textures/white.png");
+    const ModelHandle demonSkull = AssetManager::loadModel("models/DemonSkull.obj", "textures/white.png");
+    const ModelHandle sponza     = AssetManager::loadModel("models/sponza.obj", "textures/white.png");
+    const ModelHandle cube       = AssetManager::loadModel("models/cube.obj", "textures/invalid.png", true);
 
     FS::Window window("FSEngine", 720, 720);
     window.showCursor(false);
@@ -126,8 +126,6 @@ int main() {
     TIME_FUNC("initVulkanRenderer", timer, initVulkanRenderer(deviceContext, swapchainContext, renderer));
     window.focus();
 
-    
-
     Scene scene{
         .camera{
             .position = { 0.f, 0.f, 0.f },
@@ -135,40 +133,40 @@ int main() {
         },
         .entities{
             Entity{
-                .modelIndex = cube,
-                .transform  = {
+                .modelHandle = cube,
+                .transform   = {
                     .position = { 20.f, 0.f, -10.f },
                     .rotation = { 0.f, 0.f, 0.f },
                     .scale    = 3.f,
                 },
             },
             Entity{
-                .modelIndex = zenith,
-                .transform  = {
+                .modelHandle = zenith,
+                .transform   = {
                     .position = { 20.f, 2.f, 0.f },
                     .rotation = { 0.f, 0.f, 0.f },
                     .scale    = 1.f,
                 },
             },
             Entity{
-                .modelIndex = bed,
-                .transform  = {
+                .modelHandle = bed,
+                .transform   = {
                     .position = { 30.f, 2.f, 0.f },
                     .rotation = { 0.f, radians(90.f), 0.f },
                     .scale    = 1.f,
                 },
             },
             Entity{
-                .modelIndex = demonSkull,
-                .transform  = {
+                .modelHandle = demonSkull,
+                .transform   = {
                     .position = { 20.f, -200.f * 0.3f + 4.f, 10.f },
                     .rotation = { 0.f, radians(-90.f), 0.f },
                     .scale    = 0.3f,
                 },
             },
             Entity{
-                .modelIndex = sponza,
-                .transform  = {
+                .modelHandle = sponza,
+                .transform   = {
                     .position = { 0.f, 0.f, 0.f },
                     .rotation = { 0.f, 0.f, 0.f },
                     .scale    = 0.1f,
@@ -178,19 +176,27 @@ int main() {
     };
 
     scene.entities.resize(MAX_ENTITIES);
-    for(uint32_t i=0;i<MAX_ENTITIES;++i){
-        const float distance = 3.f;
-        const float x        = static_cast<float>(i % static_cast<uint32_t>(sqrt(MAX_ENTITIES))) * distance;
-        const float z        = static_cast<float>(i / sqrt(MAX_ENTITIES)) * distance;
-        scene.entities[i] = {
-            .modelIndex = cube,
-            .transform = {
-                .position = {x,0.f,z},
-                .rotation = {0.f,0.f,0.f},
-                .scale = 1.f,
-            },
-        };
+    const uint32_t side  = static_cast<uint32_t>(cbrt(MAX_ENTITIES));
+    const float distance = 3.f;
+    for (uint32_t i = 0; i < side; ++i) {
+        for (uint32_t j = 0; j < side; ++j) {
+            for (uint32_t k = 0; k < side; ++k) {
+                const float x         = static_cast<float>(k) * distance;
+                const float z         = static_cast<float>(j) * distance;
+                const float y         = static_cast<float>(i) * distance;
+                uint32_t index        = k + (j * side) + (i * side * side);
+                scene.entities[index] = {
+                    .modelHandle = cube,
+                    .transform   = {
+                        .position = { x, y, z },
+                        .rotation = { 0.f, 0.f, 0.f },
+                        .scale    = 1.f,
+                    },
+                };
+            }
+        }
     }
+
     setScene(deviceContext, renderer, scene);
 
     endTimer(initTimer);
@@ -200,7 +206,7 @@ int main() {
     while (window.isOpen()) {
         startTimer(timer);
         renderScene(deviceContext, swapchainContext, window, renderer, scene);
-        handleInput(window, scene,diff);
+        handleInput(window, scene, diff);
         endTimer(timer);
         scene.entities[0].transform.rotation.y += radians(90) * (timer.diff / 1000000.f);
         diff = microsecToms(timer.diff);

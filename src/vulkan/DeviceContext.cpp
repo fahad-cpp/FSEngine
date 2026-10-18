@@ -40,7 +40,7 @@ debugCallback(
     return VK_FALSE;
 }
 VkInstance createInstance(DeviceContext &deviceContext) {
-// TODO: check for layers support
+// TODO(fahad-cpp): check for layers support
 #ifdef _DEBUG
     const char *instanceLayers[] = {
         "VK_LAYER_KHRONOS_validation"

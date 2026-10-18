@@ -5,7 +5,6 @@
 #include <fstream>
 #include <stb_image.h>
 #include <unordered_set>
-
 namespace AssetManager {
 std::unordered_set<uint64_t> modelCache;
 std::unordered_set<uint64_t> textureCache;
@@ -40,27 +39,26 @@ static void cacheModel(const Model &model, uint64_t hash) {
     std::ofstream ofs(filepath, std::ios::binary);
 
     uint32_t vertexCount = static_cast<uint32_t>(model.vertices.size());
-    ofs.write(reinterpret_cast<const char *>(&vertexCount), sizeof(uint32_t));
-    ofs.write(reinterpret_cast<const char *>(model.vertices.data()), static_cast<std::streamsize>(model.vertices.size() * sizeof(Vertex)));
-
     uint32_t indexCount = static_cast<uint32_t>(model.indices.size());
+    ofs.write(reinterpret_cast<const char *>(&vertexCount), sizeof(uint32_t));
     ofs.write(reinterpret_cast<const char *>(&indexCount), sizeof(uint32_t));
+    ofs.write(reinterpret_cast<const char *>(model.vertices.data()), static_cast<std::streamsize>(model.vertices.size() * sizeof(Vertex)));
     ofs.write(reinterpret_cast<const char *>(model.indices.data()), static_cast<std::streamsize>(model.indices.size() * sizeof(uint32_t)));
 
     ofs.close();
 }
-static uint32_t loadCachedModel(uint64_t hash, const std::string &texturePath) {
+static ModelHandle loadCachedModel(uint64_t hash, const std::string &texturePath) {
     std::string filepath = "cache/" + std::to_string(hash) + ".fsmodel";
     std::ifstream ifs(filepath, std::ios::binary);
     uint32_t verticesCount = 0;
     uint32_t indicesCount  = 0;
 
     ifs.read(reinterpret_cast<char *>(&verticesCount), sizeof(uint32_t));
-    std::vector<Vertex> vertices(verticesCount);
-    ifs.read(reinterpret_cast<char *>(vertices.data()), static_cast<std::streamsize>(verticesCount * sizeof(Vertex)));
-
     ifs.read(reinterpret_cast<char *>(&indicesCount), sizeof(uint32_t));
+    std::vector<Vertex> vertices(verticesCount);
     std::vector<uint32_t> indices(indicesCount);
+    
+    ifs.read(reinterpret_cast<char *>(vertices.data()), static_cast<std::streamsize>(verticesCount * sizeof(Vertex)));
     ifs.read(reinterpret_cast<char *>(indices.data()), static_cast<std::streamsize>(indicesCount * sizeof(uint32_t)));
 
     ifs.close();
@@ -87,12 +85,12 @@ static uint8_t *loadCachedTexture(uint64_t hash, int *width, int *height, int *c
     ifs.read(reinterpret_cast<char *>(width), sizeof(int));
     ifs.read(reinterpret_cast<char *>(height), sizeof(int));
     ifs.read(reinterpret_cast<char *>(channelSize), sizeof(int));
-    uint8_t *texture = (uint8_t *)malloc((size_t)(*width * *height * 4));
-    ifs.read(reinterpret_cast<char *>(texture), *width * *height * 4);
+    uint8_t *texture = (uint8_t *)malloc((size_t)((*width) * (*height) * 4));
+    ifs.read(reinterpret_cast<char *>(texture), (*width) * (*height) * 4);
     ifs.close();
     return texture;
 }
-uint32_t loadModel(const std::string &filepath, const std::string &texturePath, bool flipYZ) {
+ModelHandle loadModel(const std::string &filepath, const std::string &texturePath, bool flipYZ) {
     Timer timer;
     startTimer(timer);
     if (!cacheInitialized) {
@@ -102,7 +100,7 @@ uint32_t loadModel(const std::string &filepath, const std::string &texturePath, 
 
     uint64_t hash = stringHasher(filepath);
     if (modelCache.find(hash) != modelCache.end()) {
-        uint32_t model = loadCachedModel(hash, texturePath);
+        ModelHandle model = loadCachedModel(hash, texturePath);
         endTimer(timer);
         LOG_INFO("Loaded cached model " << hash << ".fsmodel" << " : " << microsecToms(timer.diff) << " ms");
         return model;

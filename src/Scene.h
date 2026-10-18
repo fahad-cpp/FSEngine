@@ -1,9 +1,8 @@
 #ifndef SCENE_H
 #define SCENE_H
-#include "Vector.h"
-#include <cstdint>
+#include "Model.h"
 #include <vector>
-#define MAX_ENTITIES 32767
+#define MAX_ENTITIES 343
 struct Transform {
     Vector3 position;
     Vector3 rotation;
@@ -14,7 +13,7 @@ struct Camera {
     Vector3 rotation;
 };
 struct Entity {
-    uint32_t modelIndex;
+    ModelHandle modelHandle;
     Transform transform;
 };
 struct Scene {
