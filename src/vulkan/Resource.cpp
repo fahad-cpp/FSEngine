@@ -2,6 +2,7 @@
 #include "Resource.h"
 #include "../AssetManager.h"
 #include "../Logging.h"
+#include "../Scene.h"
 #include "VulkanUtils.h"
 #include <algorithm>
 #include <cstring>
@@ -24,7 +25,7 @@ std::string bufferUsageString(VkBufferUsageFlags usage){
     }
     return "Unhandled";
 }
-Buffer createBuffer(DeviceContext &deviceContext, VkBufferUsageFlags usage, VkDeviceSize size, VkMemoryPropertyFlags memoryProperty) {
+Buffer createBuffer(DeviceContext &deviceContext,const VkBufferUsageFlags usage,const VkDeviceSize size,const VkMemoryPropertyFlags memoryProperty) {
     // static int bufferCount = 0;
     // bufferCount++;
     // std::cout << "Buffer created: " << bufferCount << " : " << bufferUsageString(usage) << "\n";
@@ -119,6 +120,14 @@ Buffer createUniformBuffer(DeviceContext &deviceContext, void **pMapped) {
     *pMapped      = nullptr;
     vkMapMemory(deviceContext.device, uniformBuffer.memory, 0, bufferSize, 0, pMapped);
     return uniformBuffer;
+}
+Buffer createEntityStorageBuffer(DeviceContext& deviceContext,void **pMapped,const uint32_t entityCount){
+    Buffer storageBuffer = {};
+    std::size_t bufferSize = sizeof(Entity) * entityCount;
+    storageBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, bufferSize , VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
+    *pMapped = nullptr;
+    vkMapMemory(deviceContext.device, storageBuffer.memory, 0, bufferSize, 0, pMapped);
+    return storageBuffer;
 }
 Image createImage(DeviceContext &deviceContext, uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags memoryFlags) {
     Image image                 = {};
@@ -356,13 +365,13 @@ void cleanupTexture(DeviceContext &deviceContext, Texture &texture) {
     cleanupImage(deviceContext, texture.image);
     vkDestroyImageView(deviceContext.device, texture.imageView, nullptr);
 }
-VulkanMesh createMesh(DeviceContext &deviceContext, Model &model, const std::string &texturePath) {
+VulkanMesh createMesh(DeviceContext &deviceContext, Model &model) {
     VulkanMesh mesh         = {};
     mesh.vertexCount  = static_cast<uint32_t>(model.vertices.size());
     mesh.indexCount   = static_cast<uint32_t>(model.indices.size());
     mesh.vertexBuffer = createVertexBuffer(deviceContext, model.vertices.data(), mesh.vertexCount);
     mesh.indexBuffer  = createIndexBuffer(deviceContext, model.indices.data(), mesh.indexCount);
-    mesh.texture      = createTexture(deviceContext, texturePath);
+    mesh.texture      = createTexture(deviceContext, model.texturePath);
     return mesh;
 }
 void cleanupMesh(DeviceContext &deviceContext, VulkanMesh &mesh) {

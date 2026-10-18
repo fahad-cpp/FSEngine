@@ -5,28 +5,39 @@ struct VSInput {
     float2 inTexCoord;
 };
 struct UniformBuffer {
-    float4x4 model;
     float4x4 view;
     float4x4 projection;
 };
 ConstantBuffer<UniformBuffer> ubo;
+
+struct EntityData {
+    float4x4 model;
+    uint textureIndex;
+    uint padding0;
+    uint padding1;
+    uint padding2;
+};
+Sampler2D texture[];
+StructuredBuffer<EntityData> entityBuffer;
 struct VSOutput {
     float4 pos : SV_Position;
     float3 wpos;
     float3 normal;
     float2 fragTexCoord;
+    uint textureIndex;
 };
 
 [shader("vertex")]
-VSOutput vertMain(VSInput vertIn) {
+VSOutput vertMain(VSInput vertIn,uint instanceID : SV_InstanceID) {
+    EntityData entity = entityBuffer[instanceID];
     VSOutput output;
-    output.pos          = mul(ubo.projection, mul(ubo.view, mul(ubo.model, float4(vertIn.pos, 1.0))));
-    output.wpos         = mul(ubo.view, mul(ubo.model, float4(vertIn.pos, 1.0))).xyz;
-    output.normal       = mul(ubo.view, mul(ubo.model, float4(vertIn.normal, 0.0))).xyz;
+    output.pos          = mul(ubo.projection, mul(ubo.view, mul(entity.model, float4(vertIn.pos, 1.0))));
+    output.wpos         = mul(ubo.view, mul(entity.model, float4(vertIn.pos, 1.0))).xyz;
+    output.normal       = mul(ubo.view, mul(entity.model, float4(vertIn.normal, 0.0))).xyz;
     output.fragTexCoord = vertIn.inTexCoord;
+    output.textureIndex = entity.textureIndex;
     return output;
 }
-Sampler2D texture;
 struct DirectionalLight {
     float3 direction;
     float  intensity;
@@ -93,6 +104,6 @@ float getLight(float3 normal, float3 point, DirectionalLight dLight, PointLight 
 float4 fragMain(VSOutput fragIn) : SV_TARGET {
     float light = getLight(fragIn.normal, fragIn.wpos, directionalLight, pointLight);
 
-    return float4(texture.Sample(fragIn.fragTexCoord).xyz * light, 1.f);
+    return float4(texture[fragIn.textureIndex].Sample(fragIn.fragTexCoord).xyz * light, 1.f);
     // return float4(fragIn.wpos, 1.f);
 }

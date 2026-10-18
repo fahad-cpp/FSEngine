@@ -195,8 +195,12 @@ VkDevice createDevice(DeviceContext &deviceContext) {
     requiredFeatures.tessellationShader     = VK_TRUE;
     requiredFeatures.geometryShader         = VK_TRUE;
 
+    VkPhysicalDeviceVulkan12Features requiredFeaturesvk12{};
+    requiredFeaturesvk12.sType                  = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    requiredFeaturesvk12.runtimeDescriptorArray = VK_TRUE;
     VkPhysicalDeviceVulkan13Features requiredFeaturesvk13{};
     requiredFeaturesvk13.sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    requiredFeaturesvk13.pNext            = &requiredFeaturesvk12;
     requiredFeaturesvk13.dynamicRendering = VK_TRUE;
     requiredFeaturesvk13.synchronization2 = VK_TRUE;
 
@@ -327,7 +331,7 @@ void endOneTimeCommandBuffer(DeviceContext &deviceContext, VkCommandBuffer &comm
     vkFreeCommandBuffers(deviceContext.device, deviceContext.commandPool, 1, &commandBuffer);
 }
 VkDescriptorSetLayout createDescriptorSetLayout(DeviceContext &deviceContext) {
-    const VkDescriptorSetLayoutBinding descriptorBindings[2] = {
+    const VkDescriptorSetLayoutBinding descriptorBindings[3] = {
         {
             .binding            = 0,
             .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -338,10 +342,17 @@ VkDescriptorSetLayout createDescriptorSetLayout(DeviceContext &deviceContext) {
         {
             .binding            = 1,
             .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .descriptorCount    = 1,
+            .descriptorCount    = MAX_TEXTURES,
             .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
             .pImmutableSamplers = nullptr,
-        }
+        },
+        {
+            .binding            = 2,
+            .descriptorType     = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            .descriptorCount    = 1,
+            .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
+            .pImmutableSamplers = nullptr,
+        },
     };
     VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
         .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -357,22 +368,26 @@ VkDescriptorSetLayout createDescriptorSetLayout(DeviceContext &deviceContext) {
     }
     return descriptorSetLayout;
 }
-VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext, uint32_t entityCount) {
-    VkDescriptorPoolSize poolSizes[2] = {
+VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext) {
+    VkDescriptorPoolSize poolSizes[3] = {
         {
             .type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = MAX_FRAMES_IN_FLIGHT * entityCount,
+            .descriptorCount = MAX_FRAMES_IN_FLIGHT,
         },
         {
             .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .descriptorCount = MAX_FRAMES_IN_FLIGHT * entityCount,
+            .descriptorCount = MAX_FRAMES_IN_FLIGHT,
+        },
+        {
+            .type            = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            .descriptorCount = MAX_FRAMES_IN_FLIGHT,
         },
     };
     VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
         .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
         .pNext         = nullptr,
         .flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-        .maxSets       = MAX_FRAMES_IN_FLIGHT * entityCount,
+        .maxSets       = MAX_FRAMES_IN_FLIGHT,
         .poolSizeCount = sizeof(poolSizes) / sizeof(poolSizes[0]),
         .pPoolSizes    = poolSizes
     };
@@ -456,14 +471,14 @@ void copyBufferToImage(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImag
     };
     vkCmdCopyBufferToImage(commandBuffer, srcBuffer, dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 }
-void initDeviceContext(DeviceContext &deviceContext, uint32_t entityCount, FS::Window &window) {
+void initDeviceContext(DeviceContext &deviceContext, FS::Window &window) {
     deviceContext.instance            = createInstance(deviceContext);
     deviceContext.physicalDevice      = getPhysicalDevice(deviceContext);
     deviceContext.device              = createDevice(deviceContext);
     deviceContext.graphicsQueue       = getQueue(deviceContext, VK_QUEUE_GRAPHICS_BIT);
     deviceContext.surface             = createSurface(deviceContext, window);
     deviceContext.commandPool         = createCommandPool(deviceContext, VK_QUEUE_GRAPHICS_BIT);
-    deviceContext.descriptorPool      = createDescriptorPool(deviceContext, entityCount);
+    deviceContext.descriptorPool      = createDescriptorPool(deviceContext);
     deviceContext.descriptorSetLayout = createDescriptorSetLayout(deviceContext);
     deviceContext.sampler             = createTextureSampler(deviceContext);
 }

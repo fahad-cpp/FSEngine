@@ -6,7 +6,6 @@
 #include <array>
 #include <chrono> // IWYU pragma: keep
 #include <cstring>
-#include <thread>
 
 VkShaderModule createShaderModule(VkDevice &device, const std::vector<char> &code) {
     VkShaderModuleCreateInfo shaderModuleCreateInfo = {
@@ -60,7 +59,7 @@ std::array<VkVertexInputAttributeDescription, 3> getAttributeDescription() {
     };
 }
 
-VkResult createDescriptorSets(DeviceContext &deviceContext, VulkanMesh &mesh, VulkanEntity &entity) {
+VkResult createDescriptorSets(DeviceContext &deviceContext, VulkanRenderer &renderer) {
     VkDescriptorSetLayout layouts[MAX_FRAMES_IN_FLIGHT];
     for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         layouts[i] = deviceContext.descriptorSetLayout;
@@ -72,7 +71,7 @@ VkResult createDescriptorSets(DeviceContext &deviceContext, VulkanMesh &mesh, Vu
         .descriptorSetCount = MAX_FRAMES_IN_FLIGHT,
         .pSetLayouts        = layouts
     };
-    VkResult result = vkAllocateDescriptorSets(deviceContext.device, &allocateInfo, entity.descriptorSets);
+    VkResult result = vkAllocateDescriptorSets(deviceContext.device, &allocateInfo, renderer.descriptorSets);
     if (result != VK_SUCCESS) {
         LOG_ERROR("Failed to allocate descriptor sets");
         return result;
@@ -80,20 +79,28 @@ VkResult createDescriptorSets(DeviceContext &deviceContext, VulkanMesh &mesh, Vu
 
     for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         VkDescriptorBufferInfo bufferInfo = {
-            .buffer = entity.uniformBuffer.buffer,
+            .buffer = renderer.cameraUniform.buffer,
             .offset = 0,
             .range  = sizeof(UniformBufferData)
         };
-        VkDescriptorImageInfo imageInfo = {
-            .sampler     = deviceContext.sampler,
-            .imageView   = mesh.texture.imageView,
-            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        VkDescriptorBufferInfo storageBufferInfo = {
+            .buffer = renderer.entityBuffer.buffer,
+            .offset = 0,
+            .range  = sizeof(EntityBufferData)
         };
-        VkWriteDescriptorSet descriptorWrites[2] = {
+        VkDescriptorImageInfo imageInfo[MAX_TEXTURES];
+        for (uint32_t i = 0; i < renderer.meshes.size(); i++) {
+            imageInfo[i] = {
+                .sampler     = deviceContext.sampler,
+                .imageView   = renderer.meshes[i].texture.imageView,
+                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            };
+        }
+        VkWriteDescriptorSet descriptorWrites[3] = {
             {
                 .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                 .pNext            = nullptr,
-                .dstSet           = entity.descriptorSets[i],
+                .dstSet           = renderer.descriptorSets[i],
                 .dstBinding       = 0,
                 .dstArrayElement  = 0,
                 .descriptorCount  = 1,
@@ -105,15 +112,27 @@ VkResult createDescriptorSets(DeviceContext &deviceContext, VulkanMesh &mesh, Vu
             {
                 .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                 .pNext            = nullptr,
-                .dstSet           = entity.descriptorSets[i],
+                .dstSet           = renderer.descriptorSets[i],
                 .dstBinding       = 1,
                 .dstArrayElement  = 0,
-                .descriptorCount  = 1,
+                .descriptorCount  = static_cast<uint32_t>(renderer.meshes.size()),
                 .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .pImageInfo       = &imageInfo,
+                .pImageInfo       = imageInfo,
                 .pBufferInfo      = nullptr,
                 .pTexelBufferView = nullptr,
-            }
+            },
+            {
+                .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .pNext            = nullptr,
+                .dstSet           = renderer.descriptorSets[i],
+                .dstBinding       = 2,
+                .dstArrayElement  = 0,
+                .descriptorCount  = 1,
+                .descriptorType   = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                .pImageInfo       = nullptr,
+                .pBufferInfo      = &storageBufferInfo,
+                .pTexelBufferView = nullptr,
+            },
         };
 
         vkUpdateDescriptorSets(deviceContext.device, (sizeof(descriptorWrites) / sizeof(descriptorWrites[0])), descriptorWrites, 0, nullptr);
@@ -305,40 +324,16 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
     vkCreateGraphicsPipelines(deviceContext.device, nullptr, 1, &graphicsPipelineInfo, nullptr, &pipeline.pipeline);
     vkDestroyShaderModule(deviceContext.device, module, nullptr);
 }
-void updateEntityRange(const VulkanRenderer &renderer, const Scene &scene, const float aspect, const uint32_t start, const uint32_t end) {
-    const Camera &camera      = scene.camera;
+void updateUniformBuffer(const SwapchainContext &swapchainContext, const VulkanRenderer &renderer, const Camera &camera) {
+    const float aspectRatio           = static_cast<float>(swapchainContext.extent.width) / static_cast<float>(swapchainContext.extent.height);
     const Vector3 cameraPoint = rotate(Vector3{ 0.f, 0.f, 1.f }, camera.rotation);
     const Vector3 lookatpos   = { camera.position.x + cameraPoint.x, camera.position.y + cameraPoint.y, camera.position.z + cameraPoint.z };
-    for (uint32_t i = start; i <= end; ++i) {
-        const Entity &entity             = scene.entities[i];
-        const VulkanEntity &vulkanEntity = renderer.entities[i];
-        UniformBufferData uboData        = {};
-        uboData.model                    = modelMatrix(entity.transform);
-        uboData.view                     = lookAt(camera.position, lookatpos, Vector3{ 0.f, 1.f, 0.f });
-        uboData.projection               = perspective(radians(60.f), aspect, 0.1f, 10000.f);
-        uboData.projection.values[1][1] *= -1;
+    UniformBufferData uboData        = {};
+    uboData.view                     = lookAt(camera.position, lookatpos, Vector3{ 0.f, 1.f, 0.f });
+    uboData.projection               = perspective(radians(60.f), aspectRatio, 0.1f, 10000.f);
+    uboData.projection.values[1][1] *= -1;
 
-        std::memcpy(vulkanEntity.uniformBufferMapping, &uboData, sizeof(uboData));
-    }
-}
-void updateUniformBuffer(const SwapchainContext &swapchainContext, const VulkanRenderer &renderer, const Scene &scene) {
-    const float aspectRatio           = static_cast<float>(swapchainContext.extent.width) / static_cast<float>(swapchainContext.extent.height);
-    static const uint32_t threadCount = std::thread::hardware_concurrency();
-    static std::vector<std::thread> updateThreads(threadCount);
-
-    const uint32_t entityPerThread   = static_cast<uint32_t>(scene.entities.size() / threadCount);
-    const uint32_t remainingEntities = scene.entities.size() % threadCount;
-
-    uint32_t start = 0, end = 0;
-    for (uint32_t i = 0; i < threadCount; i++) {
-        end              = start + (entityPerThread - 1) + ((i < remainingEntities) ? 1 : 0);
-        updateThreads[i] = std::thread(updateEntityRange, std::cref(renderer), std::cref(scene), aspectRatio, start, end);
-        start            = end + 1;
-    }
-
-    for (uint32_t i = 0; i < threadCount; i++) {
-        updateThreads[i].join();
-    }
+    std::memcpy(renderer.uniformBufferMapping, &uboData, sizeof(uboData));
 }
 void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext, VulkanRenderer &renderer, uint32_t imageIndex, uint32_t frameIndex) {
     VkImage image         = swapchainContext.images[imageIndex];
@@ -431,21 +426,21 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
         .extent = swapchainContext.extent
     };
     vkCmdSetScissor(frameData.commandBuffer, 0, 1, &scissor);
+    vkCmdBindDescriptorSets(frameData.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderer.pipeline.pipelineLayout, 0, 1, &renderer.descriptorSets[frameIndex], 0, nullptr);
 
-    for (uint32_t i = 0; i < renderer.entities.size(); ++i) {
-        VulkanEntity &entity  = renderer.entities[i];
-        VulkanMesh &mesh      = renderer.meshes[renderer.entities[i].meshIndex];
-        VkDeviceSize vboffset = 0;
-        if (mesh.vertexBuffer.buffer != VK_NULL_HANDLE) {
-            vkCmdBindVertexBuffers(frameData.commandBuffer, 0, 1, &mesh.vertexBuffer.buffer, &vboffset);
-        }
+    // Replace with indirect draw
+    // for (VulkanEntity& entity : renderer.entities) {
+    //     VulkanMesh& mesh = renderer.meshes[entity.meshIndex];
+    //     VkDeviceSize vboffset = 0;
+    //     if (mesh.vertexBuffer.buffer != VK_NULL_HANDLE) {
+    //         vkCmdBindVertexBuffers(frameData.commandBuffer, 0, 1, &mesh.vertexBuffer.buffer, &vboffset);
+    //     }
 
-        vkCmdBindDescriptorSets(frameData.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderer.pipeline.pipelineLayout, 0, 1, &entity.descriptorSets[frameIndex], 0, nullptr);
-        if (mesh.indexBuffer.buffer != VK_NULL_HANDLE) {
-            vkCmdBindIndexBuffer(frameData.commandBuffer, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-            vkCmdDrawIndexed(frameData.commandBuffer, mesh.indexCount, 1, 0, 0, 0);
-        }
-    }
+    //     if (mesh.indexBuffer.buffer != VK_NULL_HANDLE) {
+    //         vkCmdBindIndexBuffer(frameData.commandBuffer, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+    //         vkCmdDrawIndexed(frameData.commandBuffer, mesh.indexCount, 1, 0, 0, 0);
+    //     }
+    // }
 
     // Rendering END
     vkCmdEndRendering(frameData.commandBuffer);
@@ -482,6 +477,7 @@ void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContex
     VkSemaphore renderFinishedSemaphore = renderer.renderFinishedSemaphores[imageIndex];
 
     vkResetFences(deviceContext.device, 1, &drawFence);
+    updateUniformBuffer(swapchainContext, renderer, scene.camera);
     recordCommandBuffer(renderer.frames[frameIndex], swapchainContext, renderer, imageIndex, frameIndex);
 
     VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -514,7 +510,6 @@ void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContex
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
         recreateSwapchain(deviceContext, swapchainContext, window);
     }
-    updateUniformBuffer(swapchainContext, renderer, scene);
     frameIndex = (frameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
@@ -534,10 +529,8 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
     }
 
     if (!renderer.entities.empty()) {
-        for (VulkanEntity &entity : renderer.entities) {
-            vkFreeDescriptorSets(deviceContext.device, deviceContext.descriptorPool, MAX_FRAMES_IN_FLIGHT, entity.descriptorSets);
-            cleanupBuffer(deviceContext, entity.uniformBuffer);
-        }
+        vkFreeDescriptorSets(deviceContext.device, deviceContext.descriptorPool, MAX_FRAMES_IN_FLIGHT, renderer.descriptorSets);
+        cleanupBuffer(deviceContext, renderer.entityBuffer);
     }
 
     std::vector<Entity> &entities = scene.entities;
@@ -547,16 +540,20 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
     // so that we can use the same modelHandle in entities to refer to meshes in renderer.entities
     for (uint32_t i = 0; i < AssetManager::getModelCount(); ++i) {
         Model model        = AssetManager::getModel(i);
-        renderer.meshes[i] = createMesh(deviceContext, model, model.texturePath);
+        renderer.meshes[i] = createMesh(deviceContext, model);
     }
 
     renderer.entities.resize(entities.size());
-    for (uint32_t i = 0; i < entities.size(); i++) {
-        // TODO(fahad-cpp): Use SSBO for Entity Data
-        renderer.entities[i].uniformBuffer = createUniformBuffer(deviceContext, &renderer.entities[i].uniformBufferMapping);
-        createDescriptorSets(deviceContext, renderer.meshes[entities[i].modelHandle], renderer.entities[i]);
+    renderer.entityBuffer = createEntityStorageBuffer(deviceContext, &renderer.entityBufferMapping,static_cast<uint32_t>(renderer.entities.size()));
+    createDescriptorSets(deviceContext, renderer);
+
+    std::vector<EntityBufferData> entityData(entities.size());
+    for(uint32_t i=0;i<entities.size();i++){
+        entityData[i].model = modelMatrix(entities[i].transform);
+        entityData[i].textureIndex = entities[i].modelHandle;
         renderer.entities[i].meshIndex = entities[i].modelHandle;
     }
+    std::memcpy(renderer.entityBufferMapping,entityData.data(),entityData.size());
 }
 void initVulkanRenderer(DeviceContext &deviceContext, SwapchainContext &swapchainContext, VulkanRenderer &renderer) {
     createSemaphores(deviceContext.device, MAX_SWAPCHAIN_IMAGES, renderer.renderFinishedSemaphores);
@@ -572,8 +569,13 @@ void initVulkanRenderer(DeviceContext &deviceContext, SwapchainContext &swapchai
     }
 
     initPipeline(deviceContext, swapchainContext, renderer.pipeline);
+
+    renderer.cameraUniform = createUniformBuffer(deviceContext, &renderer.uniformBufferMapping);
 }
 void cleanupVulkanRenderer(DeviceContext &deviceContext, VulkanRenderer &renderer) {
+    cleanupBuffer(deviceContext, renderer.cameraUniform);
+    cleanupBuffer(deviceContext, renderer.entityBuffer);
+
     cleanupPipeline(deviceContext, renderer.pipeline);
 
     VkCommandBuffer commandBuffers[MAX_FRAMES_IN_FLIGHT];
@@ -597,8 +599,5 @@ void cleanupVulkanRenderer(DeviceContext &deviceContext, VulkanRenderer &rendere
         cleanupMesh(deviceContext, mesh);
     }
 
-    for (VulkanEntity &entity : renderer.entities) {
-        vkFreeDescriptorSets(deviceContext.device, deviceContext.descriptorPool, MAX_FRAMES_IN_FLIGHT, entity.descriptorSets);
-        cleanupBuffer(deviceContext, entity.uniformBuffer);
-    }
+    vkFreeDescriptorSets(deviceContext.device, deviceContext.descriptorPool, MAX_FRAMES_IN_FLIGHT, renderer.descriptorSets);
 }

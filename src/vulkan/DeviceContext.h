@@ -5,6 +5,7 @@
 
 #define SELECTED_DEVICE 0
 constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 3;
+constexpr uint32_t MAX_TEXTURES         = 256;
 
 struct DeviceContext {
     VkDebugUtilsMessengerEXT debugMessenger;
@@ -34,7 +35,7 @@ VkCommandBuffer startOneTimeCommandBuffer(DeviceContext &deviceContext);
 void endOneTimeCommandBuffer(DeviceContext &deviceContext, VkCommandBuffer &commandBuffer);
 // Descriptors
 VkDescriptorSetLayout createDescriptorSetLayout(DeviceContext &deviceContext);
-VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext, uint32_t entityCount);
+VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext);
 // synchronization
 VkResult createSemaphores(VkDevice &device, uint32_t count, VkSemaphore *semaphores);
 VkResult createSemaphore(VkDevice &device, VkSemaphore *semaphore);
@@ -44,6 +45,6 @@ VkResult createFence(VkDevice &device, VkFence *fence, VkFenceCreateFlags flags 
 void copyBuffer(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 void copyBufferToImage(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImage dstImage, uint32_t width, uint32_t height);
 // device context
-void initDeviceContext(DeviceContext &deviceContext, uint32_t entityCount, FS::Window &window);
+void initDeviceContext(DeviceContext &deviceContext, FS::Window &window);
 void cleanupDeviceContext(DeviceContext &deviceContext);
 #endif

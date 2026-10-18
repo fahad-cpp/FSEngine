@@ -9,6 +9,7 @@
     -Restructure code according to Design.md
     -MSAA
     -proper light handling (send light array from CPU to GPU)
+    -ECS
     -Multi Draw Indirect
     -Push Constants
     -Editor
@@ -117,7 +118,7 @@ int main() {
     window.showCursor(false);
 
     DeviceContext deviceContext = {};
-    TIME_FUNC("initDeviceContext", timer, initDeviceContext(deviceContext, MAX_ENTITIES, window));
+    TIME_FUNC("initDeviceContext", timer, initDeviceContext(deviceContext, window));
 
     SwapchainContext swapchainContext = {};
     TIME_FUNC("initSwapchainContext", timer, initSwapchainContext(deviceContext, swapchainContext, window));
