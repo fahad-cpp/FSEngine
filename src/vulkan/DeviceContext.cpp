@@ -178,13 +178,16 @@ VkDevice createDevice(DeviceContext &deviceContext) {
 
     VkPhysicalDeviceFeatures supportedFeatures;
     vkGetPhysicalDeviceFeatures(deviceContext.physicalDevice, &supportedFeatures);
-
-    // Get supported Modern vulkan features
+    // TODO(fahad-cpp): gracefully handle unsupported features
+    //  Get supported Modern vulkan features
     VkPhysicalDeviceVulkan13Features v13features{};
     v13features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    VkPhysicalDeviceVulkan12Features v12features{};
+    v12features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    v12features.pNext = &v13features;
     VkPhysicalDeviceFeatures2 supportedFeatures2{};
     supportedFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    supportedFeatures2.pNext = &v13features;
+    supportedFeatures2.pNext = &v12features;
     vkGetPhysicalDeviceFeatures2(deviceContext.physicalDevice, &supportedFeatures2);
 
     VkPhysicalDeviceFeatures requiredFeatures{};
@@ -194,6 +197,7 @@ VkDevice createDevice(DeviceContext &deviceContext) {
     requiredFeatures.samplerAnisotropy      = VK_TRUE;
     requiredFeatures.tessellationShader     = VK_TRUE;
     requiredFeatures.geometryShader         = VK_TRUE;
+    requiredFeatures.multiDrawIndirect      = VK_TRUE;
 
     VkPhysicalDeviceVulkan12Features requiredFeaturesvk12{};
     requiredFeaturesvk12.sType                  = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;

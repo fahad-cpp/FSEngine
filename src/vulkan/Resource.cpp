@@ -7,25 +7,25 @@
 #include <algorithm>
 #include <cstring>
 
-std::string bufferUsageString(VkBufferUsageFlags usage){
+std::string bufferUsageString(VkBufferUsageFlags usage) {
     std::vector<std::pair<VkBufferUsageFlags, std::string>> map{
-        {VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,"Vertex Buffer"},
-        {VK_BUFFER_USAGE_INDEX_BUFFER_BIT,"Index Buffer"},
-        {VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,"Uniform Buffer"},
-        {VK_BUFFER_USAGE_TRANSFER_SRC_BIT,"Transfer Source"}
+        { VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, "Vertex Buffer" },
+        { VK_BUFFER_USAGE_INDEX_BUFFER_BIT, "Index Buffer" },
+        { VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, "Uniform Buffer" },
+        { VK_BUFFER_USAGE_TRANSFER_SRC_BIT, "Transfer Source" }
     };
     std::string result = "";
-    for(std::pair<VkBufferUsageFlags, std::string> pair : map){
-        if(usage & pair.first){
+    for (std::pair<VkBufferUsageFlags, std::string> pair : map) {
+        if (usage & pair.first) {
             result += pair.second + " ";
         }
     }
-    if(result.length()){
+    if (result.length()) {
         return result;
     }
     return "Unhandled";
 }
-Buffer createBuffer(DeviceContext &deviceContext,const VkBufferUsageFlags usage,const VkDeviceSize size,const VkMemoryPropertyFlags memoryProperty) {
+Buffer createBuffer(DeviceContext &deviceContext, const VkBufferUsageFlags usage, const VkDeviceSize size, const VkMemoryPropertyFlags memoryProperty) {
     // static int bufferCount = 0;
     // bufferCount++;
     // std::cout << "Buffer created: " << bufferCount << " : " << bufferUsageString(usage) << "\n";
@@ -40,14 +40,14 @@ Buffer createBuffer(DeviceContext &deviceContext,const VkBufferUsageFlags usage,
         .queueFamilyIndexCount = 0,
         .pQueueFamilyIndices   = nullptr
     };
-    VkResult res = vkCreateBuffer(deviceContext.device, &createInfo, nullptr, &buffer.buffer);
+    VkResult res = vkCreateBuffer(deviceContext.device, &createInfo, nullptr, &buffer.bufferHandle);
     if (res != VK_SUCCESS) {
         LOG_ERROR("Failed to create Buffer : " << res);
         return {};
     }
 
     VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(deviceContext.device, buffer.buffer, &memRequirements);
+    vkGetBufferMemoryRequirements(deviceContext.device, buffer.bufferHandle, &memRequirements);
 
     uint32_t memoryIndex                    = getMemoryIndex(deviceContext.physicalDevice, memRequirements, memoryProperty);
     VkMemoryAllocateInfo memoryAllocateInfo = {
@@ -56,8 +56,8 @@ Buffer createBuffer(DeviceContext &deviceContext,const VkBufferUsageFlags usage,
         .allocationSize  = memRequirements.size,
         .memoryTypeIndex = memoryIndex
     };
-    vkAllocateMemory(deviceContext.device, &memoryAllocateInfo, nullptr, &buffer.memory);
-    vkBindBufferMemory(deviceContext.device, buffer.buffer, buffer.memory, 0);
+    vkAllocateMemory(deviceContext.device, &memoryAllocateInfo, nullptr, &buffer.memoryHandle);
+    vkBindBufferMemory(deviceContext.device, buffer.bufferHandle, buffer.memoryHandle, 0);
 
     return buffer;
 }
@@ -65,8 +65,8 @@ void cleanupBuffer(DeviceContext &deviceContext, Buffer &buffer) {
     // static int bufferCount = 0;
     // bufferCount++;
     // std::cout << "Buffer Destroyed: " << bufferCount << "\n";
-    vkDestroyBuffer(deviceContext.device, buffer.buffer, nullptr);
-    vkFreeMemory(deviceContext.device, buffer.memory, nullptr);
+    vkDestroyBuffer(deviceContext.device, buffer.bufferHandle, nullptr);
+    vkFreeMemory(deviceContext.device, buffer.memoryHandle, nullptr);
 }
 Buffer createVertexBuffer(DeviceContext &deviceContext, const Vertex *vertices, uint32_t vertexCount) {
     Buffer vertexBuffer = {};
@@ -74,20 +74,9 @@ Buffer createVertexBuffer(DeviceContext &deviceContext, const Vertex *vertices, 
         return {};
     }
     std::size_t bufferSize = sizeof(vertices[0]) * vertexCount;
-    Buffer stagingBuffer   = createBuffer(deviceContext, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, bufferSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    vertexBuffer           = createBuffer(deviceContext, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, bufferSize, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    void *data = nullptr;
-    vkMapMemory(deviceContext.device, stagingBuffer.memory, 0, bufferSize, 0, &data);
-    std::memcpy(data, vertices, bufferSize);
-    vkUnmapMemory(deviceContext.device, stagingBuffer.memory);
-
-    vertexBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, bufferSize, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    VkCommandBuffer commandBuffer = startOneTimeCommandBuffer(deviceContext);
-    copyBuffer(commandBuffer, stagingBuffer.buffer, vertexBuffer.buffer, bufferSize);
-    endOneTimeCommandBuffer(deviceContext, commandBuffer);
-
-    cleanupBuffer(deviceContext, stagingBuffer);
+    uploadToDeviceBuffer(deviceContext, vertexBuffer, vertices, bufferSize);
     return vertexBuffer;
 }
 Buffer createIndexBuffer(DeviceContext &deviceContext, const uint32_t *indices, uint32_t indexCount) {
@@ -96,38 +85,45 @@ Buffer createIndexBuffer(DeviceContext &deviceContext, const uint32_t *indices, 
         return {};
     }
     std::size_t bufferSize = sizeof(indices[0]) * indexCount;
-    Buffer stagingBuffer   = createBuffer(deviceContext, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, bufferSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    indexBuffer            = createBuffer(deviceContext, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, bufferSize, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    void *data = nullptr;
-    vkMapMemory(deviceContext.device, stagingBuffer.memory, 0, bufferSize, 0, &data);
-    std::memcpy(data, indices, bufferSize);
-    vkUnmapMemory(deviceContext.device, stagingBuffer.memory);
-
-    indexBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, bufferSize, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    VkCommandBuffer commandBuffer = startOneTimeCommandBuffer(deviceContext);
-    copyBuffer(commandBuffer, stagingBuffer.buffer, indexBuffer.buffer, bufferSize);
-    endOneTimeCommandBuffer(deviceContext, commandBuffer);
-
-    cleanupBuffer(deviceContext, stagingBuffer);
+    uploadToDeviceBuffer(deviceContext, indexBuffer, indices, bufferSize);
     return indexBuffer;
 }
-Buffer createUniformBuffer(DeviceContext &deviceContext, void **pMapped) {
-    Buffer uniformBuffer   = {};
-    std::size_t bufferSize = sizeof(UniformBufferData);
-
-    uniformBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, bufferSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-    *pMapped      = nullptr;
-    vkMapMemory(deviceContext.device, uniformBuffer.memory, 0, bufferSize, 0, pMapped);
+MappedBuffer createUniformBuffer(DeviceContext &deviceContext) {
+    MappedBuffer uniformBuffer = {};
+    std::size_t bufferSize     = sizeof(UniformBufferData);
+    uniformBuffer.buffer       = createBuffer(deviceContext, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, bufferSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    uniformBuffer.mapped       = nullptr;
+    vkMapMemory(deviceContext.device, uniformBuffer.buffer.memoryHandle, 0, bufferSize, 0, &uniformBuffer.mapped);
     return uniformBuffer;
 }
-Buffer createEntityStorageBuffer(DeviceContext& deviceContext,void **pMapped,const uint32_t entityCount){
-    Buffer storageBuffer = {};
-    std::size_t bufferSize = sizeof(Entity) * entityCount;
-    storageBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, bufferSize , VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
-    *pMapped = nullptr;
-    vkMapMemory(deviceContext.device, storageBuffer.memory, 0, bufferSize, 0, pMapped);
+MappedBuffer createEntityStorageBuffer(DeviceContext &deviceContext, const uint32_t entityCount) {
+    MappedBuffer storageBuffer = {};
+    std::size_t bufferSize     = sizeof(Entity) * entityCount;
+    storageBuffer.buffer       = createBuffer(deviceContext, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, bufferSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
+    storageBuffer.mapped       = nullptr;
+    vkMapMemory(deviceContext.device, storageBuffer.buffer.memoryHandle, 0, bufferSize, 0, &storageBuffer.mapped);
     return storageBuffer;
+}
+Buffer createIndirectDrawBuffer(DeviceContext &deviceContext, const uint32_t entityCount) {
+    Buffer indirectBuffer  = {};
+    std::size_t bufferSize = sizeof(VkDrawIndirectCommand) * entityCount;
+    indirectBuffer         = createBuffer(deviceContext, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, bufferSize, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    return indirectBuffer;
+}
+void uploadToDeviceBuffer(DeviceContext &deviceContext, const Buffer buffer, const void *data, const std::size_t size) {
+    Buffer stagingBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, size, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
+    void *pMapped        = nullptr;
+
+    vkMapMemory(deviceContext.device, stagingBuffer.memoryHandle, 0, size, 0, &pMapped);
+    std::memcpy(pMapped, data, size);
+    vkUnmapMemory(deviceContext.device, stagingBuffer.memoryHandle);
+
+    VkCommandBuffer commandBuffer = startOneTimeCommandBuffer(deviceContext);
+    copyBuffer(commandBuffer, stagingBuffer.bufferHandle, buffer.bufferHandle, size);
+    endOneTimeCommandBuffer(deviceContext, commandBuffer);
+    cleanupBuffer(deviceContext, stagingBuffer);
 }
 Image createImage(DeviceContext &deviceContext, uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags memoryFlags) {
     Image image                 = {};
@@ -320,9 +316,9 @@ Texture createTexture(DeviceContext &deviceContext, const std::string &filepath)
 
     Buffer stagingBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, imageSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
     void *data           = nullptr;
-    vkMapMemory(deviceContext.device, stagingBuffer.memory, 0, imageSize, 0, &data);
+    vkMapMemory(deviceContext.device, stagingBuffer.memoryHandle, 0, imageSize, 0, &data);
     std::memcpy(data, pixels, imageSize);
-    vkUnmapMemory(deviceContext.device, stagingBuffer.memory);
+    vkUnmapMemory(deviceContext.device, stagingBuffer.memoryHandle);
 
     AssetManager::unloadTexture(pixels);
 
@@ -350,7 +346,7 @@ Texture createTexture(DeviceContext &deviceContext, const std::string &filepath)
         VK_IMAGE_ASPECT_COLOR_BIT,
         mipLevels);
 
-    copyBufferToImage(commandBuffer, stagingBuffer.buffer, texture.image.image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+    copyBufferToImage(commandBuffer, stagingBuffer.bufferHandle, texture.image.image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 
     generateMipMaps(commandBuffer, texture.image.image, texWidth, texHeight, mipLevels);
 
@@ -366,7 +362,7 @@ void cleanupTexture(DeviceContext &deviceContext, Texture &texture) {
     vkDestroyImageView(deviceContext.device, texture.imageView, nullptr);
 }
 VulkanMesh createMesh(DeviceContext &deviceContext, Model &model) {
-    VulkanMesh mesh         = {};
+    VulkanMesh mesh   = {};
     mesh.vertexCount  = static_cast<uint32_t>(model.vertices.size());
     mesh.indexCount   = static_cast<uint32_t>(model.indices.size());
     mesh.vertexBuffer = createVertexBuffer(deviceContext, model.vertices.data(), mesh.vertexCount);
@@ -377,11 +373,11 @@ VulkanMesh createMesh(DeviceContext &deviceContext, Model &model) {
 void cleanupMesh(DeviceContext &deviceContext, VulkanMesh &mesh) {
     cleanupTexture(deviceContext, mesh.texture);
 
-    if (mesh.vertexBuffer.buffer != VK_NULL_HANDLE) {
+    if (mesh.vertexBuffer.bufferHandle != VK_NULL_HANDLE) {
         cleanupBuffer(deviceContext, mesh.vertexBuffer);
     }
 
-    if (mesh.indexBuffer.buffer != VK_NULL_HANDLE) {
+    if (mesh.indexBuffer.bufferHandle != VK_NULL_HANDLE) {
         cleanupBuffer(deviceContext, mesh.indexBuffer);
     }
 }

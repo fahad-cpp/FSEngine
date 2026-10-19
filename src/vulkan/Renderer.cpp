@@ -79,12 +79,12 @@ VkResult createDescriptorSets(DeviceContext &deviceContext, VulkanRenderer &rend
 
     for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         VkDescriptorBufferInfo bufferInfo = {
-            .buffer = renderer.cameraUniform.buffer,
+            .buffer = renderer.cameraUniform.buffer.bufferHandle,
             .offset = 0,
             .range  = sizeof(UniformBufferData)
         };
         VkDescriptorBufferInfo storageBufferInfo = {
-            .buffer = renderer.entityBuffer.buffer,
+            .buffer = renderer.entityBuffer.buffer.bufferHandle,
             .offset = 0,
             .range  = sizeof(EntityBufferData)
         };
@@ -325,15 +325,15 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
     vkDestroyShaderModule(deviceContext.device, module, nullptr);
 }
 void updateUniformBuffer(const SwapchainContext &swapchainContext, const VulkanRenderer &renderer, const Camera &camera) {
-    const float aspectRatio           = static_cast<float>(swapchainContext.extent.width) / static_cast<float>(swapchainContext.extent.height);
+    const float aspectRatio   = static_cast<float>(swapchainContext.extent.width) / static_cast<float>(swapchainContext.extent.height);
     const Vector3 cameraPoint = rotate(Vector3{ 0.f, 0.f, 1.f }, camera.rotation);
     const Vector3 lookatpos   = { camera.position.x + cameraPoint.x, camera.position.y + cameraPoint.y, camera.position.z + cameraPoint.z };
-    UniformBufferData uboData        = {};
-    uboData.view                     = lookAt(camera.position, lookatpos, Vector3{ 0.f, 1.f, 0.f });
-    uboData.projection               = perspective(radians(60.f), aspectRatio, 0.1f, 10000.f);
+    UniformBufferData uboData = {};
+    uboData.view              = lookAt(camera.position, lookatpos, Vector3{ 0.f, 1.f, 0.f });
+    uboData.projection        = perspective(radians(60.f), aspectRatio, 0.1f, 10000.f);
     uboData.projection.values[1][1] *= -1;
 
-    std::memcpy(renderer.uniformBufferMapping, &uboData, sizeof(uboData));
+    std::memcpy(renderer.cameraUniform.mapped, &uboData, sizeof(uboData));
 }
 void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext, VulkanRenderer &renderer, uint32_t imageIndex, uint32_t frameIndex) {
     VkImage image         = swapchainContext.images[imageIndex];
@@ -432,12 +432,12 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
     // for (VulkanEntity& entity : renderer.entities) {
     //     VulkanMesh& mesh = renderer.meshes[entity.meshIndex];
     //     VkDeviceSize vboffset = 0;
-    //     if (mesh.vertexBuffer.buffer != VK_NULL_HANDLE) {
-    //         vkCmdBindVertexBuffers(frameData.commandBuffer, 0, 1, &mesh.vertexBuffer.buffer, &vboffset);
+    //     if (mesh.vertexBuffer.bufferHandle != VK_NULL_HANDLE) {
+    //         vkCmdBindVertexBuffers(frameData.commandBuffer, 0, 1, &mesh.vertexBuffer.bufferHandle, &vboffset);
     //     }
 
-    //     if (mesh.indexBuffer.buffer != VK_NULL_HANDLE) {
-    //         vkCmdBindIndexBuffer(frameData.commandBuffer, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+    //     if (mesh.indexBuffer.bufferHandle != VK_NULL_HANDLE) {
+    //         vkCmdBindIndexBuffer(frameData.commandBuffer, mesh.indexBuffer.bufferHandle, 0, VK_INDEX_TYPE_UINT32);
     //         vkCmdDrawIndexed(frameData.commandBuffer, mesh.indexCount, 1, 0, 0, 0);
     //     }
     // }
@@ -530,7 +530,7 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
 
     if (!renderer.entities.empty()) {
         vkFreeDescriptorSets(deviceContext.device, deviceContext.descriptorPool, MAX_FRAMES_IN_FLIGHT, renderer.descriptorSets);
-        cleanupBuffer(deviceContext, renderer.entityBuffer);
+        cleanupBuffer(deviceContext, renderer.entityBuffer.buffer);
     }
 
     std::vector<Entity> &entities = scene.entities;
@@ -544,16 +544,20 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
     }
 
     renderer.entities.resize(entities.size());
-    renderer.entityBuffer = createEntityStorageBuffer(deviceContext, &renderer.entityBufferMapping,static_cast<uint32_t>(renderer.entities.size()));
+    renderer.entityBuffer = createEntityStorageBuffer(deviceContext, static_cast<uint32_t>(renderer.entities.size()));
     createDescriptorSets(deviceContext, renderer);
 
     std::vector<EntityBufferData> entityData(entities.size());
-    for(uint32_t i=0;i<entities.size();i++){
-        entityData[i].model = modelMatrix(entities[i].transform);
-        entityData[i].textureIndex = entities[i].modelHandle;
-        renderer.entities[i].meshIndex = entities[i].modelHandle;
+    //TODO(fahad-cpp) concatenate meshes into one vertex and index buffer
+    //TODO(fahad-cpp) build up indirect draw buffer of entities and upload it
+    std::vector<VkDrawIndexedIndirectCommand> indirectBuffer(entities.size());
+    for (uint32_t i = 0; i < entities.size(); i++) {
+        const uint32_t meshIndex = entities[i].modelHandle;
+        entityData[i].model            = modelMatrix(entities[i].transform);
+        entityData[i].textureIndex     = meshIndex;
+        renderer.entities[i].meshIndex = meshIndex;
     }
-    std::memcpy(renderer.entityBufferMapping,entityData.data(),entityData.size());
+    std::memcpy(renderer.entityBuffer.mapped, entityData.data(), entityData.size());
 }
 void initVulkanRenderer(DeviceContext &deviceContext, SwapchainContext &swapchainContext, VulkanRenderer &renderer) {
     createSemaphores(deviceContext.device, MAX_SWAPCHAIN_IMAGES, renderer.renderFinishedSemaphores);
@@ -570,11 +574,13 @@ void initVulkanRenderer(DeviceContext &deviceContext, SwapchainContext &swapchai
 
     initPipeline(deviceContext, swapchainContext, renderer.pipeline);
 
-    renderer.cameraUniform = createUniformBuffer(deviceContext, &renderer.uniformBufferMapping);
+    renderer.cameraUniform      = createUniformBuffer(deviceContext);
+    renderer.indirectDrawBuffer = createIndirectDrawBuffer(deviceContext, MAX_ENTITIES);
 }
 void cleanupVulkanRenderer(DeviceContext &deviceContext, VulkanRenderer &renderer) {
-    cleanupBuffer(deviceContext, renderer.cameraUniform);
-    cleanupBuffer(deviceContext, renderer.entityBuffer);
+    cleanupBuffer(deviceContext, renderer.indirectDrawBuffer);
+    cleanupBuffer(deviceContext, renderer.cameraUniform.buffer);
+    cleanupBuffer(deviceContext, renderer.entityBuffer.buffer);
 
     cleanupPipeline(deviceContext, renderer.pipeline);
 
