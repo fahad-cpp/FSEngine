@@ -165,3 +165,14 @@ float radians(float degree) {
 float degree(float radians) {
     return radians * (180.f / static_cast<float>(std::numbers::pi));
 }
+
+bool operator==(const Matrix4& mat1,const Matrix4& mat2){
+    for(uint32_t i=0;i<4;++i){
+        for(uint32_t j=0;j<4;++j){
+            if(mat1.values[i][j] != mat2.values[i][j]){
+                return false;
+            }
+        }
+    }
+    return true;
+}

@@ -2,7 +2,6 @@
 #include "Resource.h"
 #include "../AssetManager.h"
 #include "../Logging.h"
-#include "../Scene.h"
 #include "VulkanUtils.h"
 #include <algorithm>
 #include <cstring>
@@ -98,17 +97,15 @@ MappedBuffer createUniformBuffer(DeviceContext &deviceContext) {
     vkMapMemory(deviceContext.device, uniformBuffer.buffer.memoryHandle, 0, bufferSize, 0, &uniformBuffer.mapped);
     return uniformBuffer;
 }
-MappedBuffer createEntityStorageBuffer(DeviceContext &deviceContext, const uint32_t entityCount) {
-    MappedBuffer storageBuffer = {};
-    std::size_t bufferSize     = sizeof(Entity) * entityCount;
-    storageBuffer.buffer       = createBuffer(deviceContext, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, bufferSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
-    storageBuffer.mapped       = nullptr;
-    vkMapMemory(deviceContext.device, storageBuffer.buffer.memoryHandle, 0, bufferSize, 0, &storageBuffer.mapped);
+Buffer createEntityStorageBuffer(DeviceContext &deviceContext, const uint32_t entityCount) {
+    Buffer storageBuffer = {};
+    std::size_t bufferSize     = sizeof(EntityBufferData) * entityCount;
+    storageBuffer       = createBuffer(deviceContext, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, bufferSize, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     return storageBuffer;
 }
 Buffer createIndirectDrawBuffer(DeviceContext &deviceContext, const uint32_t entityCount) {
     Buffer indirectBuffer  = {};
-    std::size_t bufferSize = sizeof(VkDrawIndirectCommand) * entityCount;
+    std::size_t bufferSize = sizeof(VkDrawIndexedIndirectCommand) * entityCount;
     indirectBuffer         = createBuffer(deviceContext, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, bufferSize, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     return indirectBuffer;
 }
@@ -360,24 +357,4 @@ Texture createTexture(DeviceContext &deviceContext, const std::string &filepath)
 void cleanupTexture(DeviceContext &deviceContext, Texture &texture) {
     cleanupImage(deviceContext, texture.image);
     vkDestroyImageView(deviceContext.device, texture.imageView, nullptr);
-}
-VulkanMesh createMesh(DeviceContext &deviceContext, Model &model) {
-    VulkanMesh mesh   = {};
-    mesh.vertexCount  = static_cast<uint32_t>(model.vertices.size());
-    mesh.indexCount   = static_cast<uint32_t>(model.indices.size());
-    mesh.vertexBuffer = createVertexBuffer(deviceContext, model.vertices.data(), mesh.vertexCount);
-    mesh.indexBuffer  = createIndexBuffer(deviceContext, model.indices.data(), mesh.indexCount);
-    mesh.texture      = createTexture(deviceContext, model.texturePath);
-    return mesh;
-}
-void cleanupMesh(DeviceContext &deviceContext, VulkanMesh &mesh) {
-    cleanupTexture(deviceContext, mesh.texture);
-
-    if (mesh.vertexBuffer.bufferHandle != VK_NULL_HANDLE) {
-        cleanupBuffer(deviceContext, mesh.vertexBuffer);
-    }
-
-    if (mesh.indexBuffer.bufferHandle != VK_NULL_HANDLE) {
-        cleanupBuffer(deviceContext, mesh.indexBuffer);
-    }
 }

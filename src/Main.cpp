@@ -7,10 +7,10 @@
 /*
     TODO(fahad-cpp):
     -Restructure code according to Design.md
+    -Find a better way to update dirty entities
     -MSAA
     -proper light handling (send light array from CPU to GPU)
     -ECS
-    -Multi Draw Indirect
     -Push Constants
     -Editor
     -glTF/glb support and PBR
@@ -176,27 +176,28 @@ int main() {
         }
     };
 
-    scene.entities.resize(MAX_ENTITIES);
-    const uint32_t side  = static_cast<uint32_t>(cbrt(MAX_ENTITIES));
-    const float distance = 3.f;
-    for (uint32_t i = 0; i < side; ++i) {
-        for (uint32_t j = 0; j < side; ++j) {
-            for (uint32_t k = 0; k < side; ++k) {
-                const float x         = static_cast<float>(k) * distance;
-                const float z         = static_cast<float>(j) * distance;
-                const float y         = static_cast<float>(i) * distance;
-                uint32_t index        = k + (j * side) + (i * side * side);
-                scene.entities[index] = {
-                    .modelHandle = cube,
-                    .transform   = {
-                        .position = { x, y, z },
-                        .rotation = { 0.f, 0.f, 0.f },
-                        .scale    = 1.f,
-                    },
-                };
-            }
-        }
-    }
+    // uint32_t cubeCount = MAX_ENTITIES;
+    // scene.entities.resize(cubeCount);
+    // const uint32_t side  = static_cast<uint32_t>(cbrt(cubeCount));
+    // const float distance = 3.f;
+    // for (uint32_t i = 0; i < side; ++i) {
+    //     for (uint32_t j = 0; j < side; ++j) {
+    //         for (uint32_t k = 0; k < side; ++k) {
+    //             const float x         = static_cast<float>(k) * distance;
+    //             const float z         = static_cast<float>(j) * distance;
+    //             const float y         = static_cast<float>(i) * distance;
+    //             uint32_t index        = k + (j * side) + (i * side * side);
+    //             scene.entities[index] = {
+    //                 .modelHandle = cube,
+    //                 .transform   = {
+    //                     .position = { x, y, z },
+    //                     .rotation = { 0.f, 0.f, 0.f },
+    //                     .scale    = 1.f,
+    //                 },
+    //             };
+    //         }
+    //     }
+    // }
 
     setScene(deviceContext, renderer, scene);
 

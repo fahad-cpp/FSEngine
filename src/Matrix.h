@@ -17,4 +17,5 @@ Matrix4 lookAt(const Vector3 eye, const Vector3 center, const Vector3 up);
 Matrix4 perspective(const float fov, const float aspectRatio, const float nearPlane, const float farPlane);
 float radians(float degree);
 float degree(float radians);
+bool operator==(const Matrix4& mat1,const Matrix4& mat2);
 #endif

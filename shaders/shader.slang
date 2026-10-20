@@ -17,8 +17,8 @@ struct EntityData {
     uint padding1;
     uint padding2;
 };
+[[vk::binding(1,0)]]
 Sampler2D texture[];
-StructuredBuffer<EntityData> entityBuffer;
 struct VSOutput {
     float4 pos : SV_Position;
     float3 wpos;
@@ -26,7 +26,8 @@ struct VSOutput {
     float2 fragTexCoord;
     uint textureIndex;
 };
-
+[[vk::binding(2, 0)]]
+StructuredBuffer<EntityData> entityBuffer;
 [shader("vertex")]
 VSOutput vertMain(VSInput vertIn,uint instanceID : SV_InstanceID) {
     EntityData entity = entityBuffer[instanceID];
@@ -105,5 +106,4 @@ float4 fragMain(VSOutput fragIn) : SV_TARGET {
     float light = getLight(fragIn.normal, fragIn.wpos, directionalLight, pointLight);
 
     return float4(texture[fragIn.textureIndex].Sample(fragIn.fragTexCoord).xyz * light, 1.f);
-    // return float4(fragIn.wpos, 1.f);
 }

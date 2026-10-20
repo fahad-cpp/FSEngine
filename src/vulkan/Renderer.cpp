@@ -6,6 +6,7 @@
 #include <array>
 #include <chrono> // IWYU pragma: keep
 #include <cstring>
+#include <thread>
 
 VkShaderModule createShaderModule(VkDevice &device, const std::vector<char> &code) {
     VkShaderModuleCreateInfo shaderModuleCreateInfo = {
@@ -84,15 +85,15 @@ VkResult createDescriptorSets(DeviceContext &deviceContext, VulkanRenderer &rend
             .range  = sizeof(UniformBufferData)
         };
         VkDescriptorBufferInfo storageBufferInfo = {
-            .buffer = renderer.entityBuffer.buffer.bufferHandle,
+            .buffer = renderer.entityBuffer.bufferHandle,
             .offset = 0,
             .range  = sizeof(EntityBufferData)
         };
         VkDescriptorImageInfo imageInfo[MAX_TEXTURES];
-        for (uint32_t i = 0; i < renderer.meshes.size(); i++) {
+        for (uint32_t i = 0; i < renderer.textures.size(); i++) {
             imageInfo[i] = {
                 .sampler     = deviceContext.sampler,
-                .imageView   = renderer.meshes[i].texture.imageView,
+                .imageView   = renderer.textures[i].imageView,
                 .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             };
         }
@@ -115,7 +116,7 @@ VkResult createDescriptorSets(DeviceContext &deviceContext, VulkanRenderer &rend
                 .dstSet           = renderer.descriptorSets[i],
                 .dstBinding       = 1,
                 .dstArrayElement  = 0,
-                .descriptorCount  = static_cast<uint32_t>(renderer.meshes.size()),
+                .descriptorCount  = static_cast<uint32_t>(renderer.textures.size()),
                 .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                 .pImageInfo       = imageInfo,
                 .pBufferInfo      = nullptr,
@@ -335,6 +336,16 @@ void updateUniformBuffer(const SwapchainContext &swapchainContext, const VulkanR
 
     std::memcpy(renderer.cameraUniform.mapped, &uboData, sizeof(uboData));
 }
+void updateEntityBuffer(DeviceContext& deviceContext,const VulkanRenderer& renderer,const std::vector<Entity>& entities){
+    static EntityBufferData entityData[MAX_ENTITIES];
+    for (uint32_t i = 0; i < entities.size(); i++) {
+        const uint32_t meshIndex       = entities[i].modelHandle;
+        entityData[i].model            = modelMatrix(entities[i].transform);
+        entityData[i].textureIndex     = meshIndex;
+    }
+    uint32_t size = static_cast<uint32_t>(entities.size() * sizeof(EntityBufferData));
+    uploadToDeviceBuffer(deviceContext, renderer.entityBuffer,entityData,size);
+}
 void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext, VulkanRenderer &renderer, uint32_t imageIndex, uint32_t frameIndex) {
     VkImage image         = swapchainContext.images[imageIndex];
     VkImageView imageView = swapchainContext.imageViews[imageIndex];
@@ -428,10 +439,14 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
     vkCmdSetScissor(frameData.commandBuffer, 0, 1, &scissor);
     vkCmdBindDescriptorSets(frameData.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderer.pipeline.pipelineLayout, 0, 1, &renderer.descriptorSets[frameIndex], 0, nullptr);
 
+    uint32_t entityCount = static_cast<uint32_t>(renderer.entities.size());
     // Replace with indirect draw
+    VkDeviceSize vboffset = 0;
+    vkCmdBindVertexBuffers(frameData.commandBuffer, 0, 1, &renderer.vertexBuffer.bufferHandle, &vboffset);
+    vkCmdBindIndexBuffer(frameData.commandBuffer, renderer.indexBuffer.bufferHandle, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdDrawIndexedIndirect(frameData.commandBuffer, renderer.indirectDrawBuffer.bufferHandle, 0, entityCount, sizeof(VkDrawIndexedIndirectCommand));
     // for (VulkanEntity& entity : renderer.entities) {
     //     VulkanMesh& mesh = renderer.meshes[entity.meshIndex];
-    //     VkDeviceSize vboffset = 0;
     //     if (mesh.vertexBuffer.bufferHandle != VK_NULL_HANDLE) {
     //         vkCmdBindVertexBuffers(frameData.commandBuffer, 0, 1, &mesh.vertexBuffer.bufferHandle, &vboffset);
     //     }
@@ -459,15 +474,15 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
     vkEndCommandBuffer(frameData.commandBuffer);
 }
 void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer, Scene &scene) {
-
+    std::thread entityUpdateThread(updateEntityBuffer,std::ref(deviceContext),std::cref(renderer), std::cref(scene.entities));
     FS::RenderState &renderState      = window.getRenderState();
     bool windowMinimized              = (renderState.width <= 0) || (renderState.height <= 0);
     uint32_t frameIndex               = renderer.frameIndex;
-    VkFence drawFence                 = renderer.frames[frameIndex].drawFence;
+    VkFence& drawFence                 = renderer.frames[frameIndex].drawFence;
     VkSemaphore imageAcquireSemaphore = renderer.frames[frameIndex].imageAcquireSemaphore;
-
+    
     vkWaitForFences(deviceContext.device, 1, &drawFence, VK_TRUE, UINT64_MAX);
-
+    
     uint32_t imageIndex    = 0;
     VkResult acquireResult = vkAcquireNextImageKHR(deviceContext.device, swapchainContext.swapchain, UINT64_MAX, imageAcquireSemaphore, VK_NULL_HANDLE, &imageIndex);
     if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR || windowMinimized) {
@@ -475,9 +490,11 @@ void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContex
         return;
     }
     VkSemaphore renderFinishedSemaphore = renderer.renderFinishedSemaphores[imageIndex];
-
+    
     vkResetFences(deviceContext.device, 1, &drawFence);
+    
     updateUniformBuffer(swapchainContext, renderer, scene.camera);
+    entityUpdateThread.join();
     recordCommandBuffer(renderer.frames[frameIndex], swapchainContext, renderer, imageIndex, frameIndex);
 
     VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -522,49 +539,97 @@ void cleanupPipeline(DeviceContext &deviceContext, GraphicsPipeline &pipeline) {
     vkDestroyPipelineLayout(deviceContext.device, pipeline.pipelineLayout, nullptr);
 }
 void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &scene) {
-    if (!renderer.meshes.empty()) {
-        for (VulkanMesh &mesh : renderer.meshes) {
-            cleanupMesh(deviceContext, mesh);
+    if (!renderer.textures.empty()) {
+        for (Texture &texture : renderer.textures) {
+            cleanupTexture(deviceContext, texture);
         }
     }
 
     if (!renderer.entities.empty()) {
         vkFreeDescriptorSets(deviceContext.device, deviceContext.descriptorPool, MAX_FRAMES_IN_FLIGHT, renderer.descriptorSets);
-        cleanupBuffer(deviceContext, renderer.entityBuffer.buffer);
+        cleanupBuffer(deviceContext, renderer.entityBuffer);
+    }
+    if (renderer.vertexBuffer.bufferHandle != VK_NULL_HANDLE) {
+        cleanupBuffer(deviceContext, renderer.vertexBuffer);
+    }
+    if (renderer.indexBuffer.bufferHandle != VK_NULL_HANDLE) {
+        cleanupBuffer(deviceContext, renderer.indexBuffer);
     }
 
     std::vector<Entity> &entities = scene.entities;
-    renderer.meshes.resize(AssetManager::getModelCount());
+    renderer.textures.resize(AssetManager::getModelCount());
 
     // Meshes are organized in the same order as models in AssetManager
     // so that we can use the same modelHandle in entities to refer to meshes in renderer.entities
     for (uint32_t i = 0; i < AssetManager::getModelCount(); ++i) {
         Model model        = AssetManager::getModel(i);
-        renderer.meshes[i] = createMesh(deviceContext, model);
+        renderer.textures[i] = createTexture(deviceContext, model.texturePath);
     }
 
     renderer.entities.resize(entities.size());
     renderer.entityBuffer = createEntityStorageBuffer(deviceContext, static_cast<uint32_t>(renderer.entities.size()));
     createDescriptorSets(deviceContext, renderer);
 
-    std::vector<EntityBufferData> entityData(entities.size());
-    //TODO(fahad-cpp) concatenate meshes into one vertex and index buffer
-    //TODO(fahad-cpp) build up indirect draw buffer of entities and upload it
+    
+    // concatenate meshes into one vertex and index buffer
+    uint32_t totalVertex             = 0;
+    uint32_t totalIndex              = 0;
+    const std::vector<Model> &models = AssetManager::getModels();
+    for (const Model &model : models) {
+        totalIndex += model.indices.size();
+        totalVertex += model.vertices.size();
+    }
+    std::vector<Vertex> vertices(totalVertex);
+    std::vector<uint32_t> indices(totalIndex);
+    std::vector<uint32_t> indexOffsets(models.size());
+    std::vector<uint32_t> vertexOffsets(models.size());
+    {
+        uint32_t vertexInd = 0;
+        uint32_t indexInd  = 0;
+        for (uint32_t i = 0; i < models.size(); i++) {
+            const Model &model = models[i];
+            std::memcpy(vertices.data() + vertexInd, model.vertices.data(), model.vertices.size() * sizeof(Vertex));
+            std::memcpy(indices.data() + indexInd, model.indices.data(), model.indices.size() * sizeof(uint32_t));
+            indexOffsets[i]  = indexInd;
+            vertexOffsets[i] = vertexInd;
+            vertexInd += model.vertices.size();
+            indexInd += model.indices.size();
+        }
+    }
+    renderer.vertexBuffer = createVertexBuffer(deviceContext, vertices.data(), static_cast<uint32_t>(vertices.size()));
+    renderer.indexBuffer  = createIndexBuffer(deviceContext, indices.data(), static_cast<uint32_t>(indices.size()));
+    
+    // build up indirect draw buffer of entities and upload it
     std::vector<VkDrawIndexedIndirectCommand> indirectBuffer(entities.size());
     for (uint32_t i = 0; i < entities.size(); i++) {
-        const uint32_t meshIndex = entities[i].modelHandle;
+        const Entity &entity   = entities[i];
+        const uint32_t indexCount = static_cast<uint32_t>(models[entity.modelHandle].indices.size());
+        VkDrawIndexedIndirectCommand command{
+            .indexCount    = indexCount,
+            .instanceCount = 1,
+            .firstIndex    = indexOffsets[entity.modelHandle],
+            .vertexOffset  = static_cast<int32_t>(vertexOffsets[entity.modelHandle]),
+            .firstInstance = i
+        };
+        indirectBuffer[i] = command;
+    }
+    uploadToDeviceBuffer(deviceContext, renderer.indirectDrawBuffer, indirectBuffer.data(), indirectBuffer.size() * sizeof(VkDrawIndexedIndirectCommand));
+    
+    std::vector<EntityBufferData> entityData(entities.size());
+    for (uint32_t i = 0; i < entities.size(); i++) {
+        const uint32_t meshIndex       = entities[i].modelHandle;
         entityData[i].model            = modelMatrix(entities[i].transform);
         entityData[i].textureIndex     = meshIndex;
         renderer.entities[i].meshIndex = meshIndex;
     }
-    std::memcpy(renderer.entityBuffer.mapped, entityData.data(), entityData.size());
+    uploadToDeviceBuffer(deviceContext, renderer.entityBuffer, entityData.data(), entityData.size() * sizeof(EntityBufferData));
 }
 void initVulkanRenderer(DeviceContext &deviceContext, SwapchainContext &swapchainContext, VulkanRenderer &renderer) {
     createSemaphores(deviceContext.device, MAX_SWAPCHAIN_IMAGES, renderer.renderFinishedSemaphores);
-
+    
     VkCommandBuffer commandBuffers[MAX_FRAMES_IN_FLIGHT];
     createCommandBuffers(deviceContext, MAX_FRAMES_IN_FLIGHT, commandBuffers);
-
+    
     for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         FrameData &frame    = renderer.frames[i];
         frame.commandBuffer = commandBuffers[i];
@@ -578,9 +643,11 @@ void initVulkanRenderer(DeviceContext &deviceContext, SwapchainContext &swapchai
     renderer.indirectDrawBuffer = createIndirectDrawBuffer(deviceContext, MAX_ENTITIES);
 }
 void cleanupVulkanRenderer(DeviceContext &deviceContext, VulkanRenderer &renderer) {
+    cleanupBuffer(deviceContext, renderer.indexBuffer);
+    cleanupBuffer(deviceContext, renderer.vertexBuffer);
     cleanupBuffer(deviceContext, renderer.indirectDrawBuffer);
     cleanupBuffer(deviceContext, renderer.cameraUniform.buffer);
-    cleanupBuffer(deviceContext, renderer.entityBuffer.buffer);
+    cleanupBuffer(deviceContext, renderer.entityBuffer);
 
     cleanupPipeline(deviceContext, renderer.pipeline);
 
@@ -601,8 +668,8 @@ void cleanupVulkanRenderer(DeviceContext &deviceContext, VulkanRenderer &rendere
         vkDestroySemaphore(deviceContext.device, renderer.renderFinishedSemaphores[i], nullptr);
     }
 
-    for (VulkanMesh &mesh : renderer.meshes) {
-        cleanupMesh(deviceContext, mesh);
+    for (Texture &texture : renderer.textures) {
+        cleanupTexture(deviceContext, texture);
     }
 
     vkFreeDescriptorSets(deviceContext.device, deviceContext.descriptorPool, MAX_FRAMES_IN_FLIGHT, renderer.descriptorSets);

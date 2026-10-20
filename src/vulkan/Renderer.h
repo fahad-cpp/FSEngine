@@ -21,9 +21,11 @@ struct VulkanRenderer {
     VkDescriptorSet descriptorSets[MAX_FRAMES_IN_FLIGHT]       = {};
     Buffer indirectDrawBuffer{};
     MappedBuffer cameraUniform{};
-    MappedBuffer entityBuffer{};
+    Buffer entityBuffer{};
+    Buffer vertexBuffer{};
+    Buffer indexBuffer{};
     std::vector<VulkanEntity> entities{};
-    std::vector<VulkanMesh> meshes{};
+    std::vector<Texture> textures{};
 };
 VkResult createPipelineLayout(DeviceContext &deviceContext, GraphicsPipeline &pipeline);
 VkVertexInputBindingDescription getBindingDescription();

@@ -144,6 +144,9 @@ void unloadTexture(uint8_t *texture) {
 Model getModel(uint32_t index) {
     return models[index];
 }
+const std::vector<Model>& getModels(){
+    return models;
+}
 uint32_t getModelCount() {
     return static_cast<uint32_t>(models.size());
 }

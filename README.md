@@ -13,7 +13,8 @@ Vulkan based game engine made in C++
 - WASD camera system
 - hardcoded lights
 - BLOB Entity
-- Uniform buffers to send entity orientation
+- SSBO to send entity orientation
+- MultiDrawIndirect to draw
 - Vulkan is tightly coupled with the engine
 
 # todo

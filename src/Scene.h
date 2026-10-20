@@ -2,7 +2,7 @@
 #define SCENE_H
 #include "Model.h"
 #include <vector>
-#define MAX_ENTITIES 343
+#define MAX_ENTITIES 256
 struct Transform {
     Vector3 position;
     Vector3 rotation;

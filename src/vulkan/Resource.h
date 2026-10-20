@@ -35,10 +35,6 @@ struct Texture {
 };
 struct VulkanMesh {
     Texture texture;
-    Buffer vertexBuffer;
-    Buffer indexBuffer;
-    uint32_t vertexCount;
-    uint32_t indexCount;
 };
 
 // buffer
@@ -47,7 +43,7 @@ void cleanupBuffer(DeviceContext &deviceContext, Buffer &buffer);
 Buffer createVertexBuffer(DeviceContext &deviceContext, const Vertex *vertices, uint32_t vertexCount);
 Buffer createIndexBuffer(DeviceContext &deviceContext, const uint32_t *indices, uint32_t indexCount);
 MappedBuffer createUniformBuffer(DeviceContext &deviceContext);
-MappedBuffer createEntityStorageBuffer(DeviceContext &deviceContext, const uint32_t entityCount);
+Buffer createEntityStorageBuffer(DeviceContext &deviceContext, const uint32_t entityCount);
 Buffer createIndirectDrawBuffer(DeviceContext &deviceContext, const uint32_t entityCount);
 void uploadToDeviceBuffer(DeviceContext &deviceContext, const Buffer buffer, const void *data, const std::size_t size);
 // image / texture
@@ -58,7 +54,4 @@ VkSampler createTextureSampler(DeviceContext &deviceContext);
 void generateMipMaps(VkCommandBuffer commandBuffer, VkImage image, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
 Texture createTexture(DeviceContext &deviceContext, const std::string &filepath);
 void cleanupTexture(DeviceContext &deviceContext, Texture &texture);
-// mesh
-VulkanMesh createMesh(DeviceContext &deviceContext, Model &model);
-void cleanupMesh(DeviceContext &deviceContext, VulkanMesh &mesh);
 #endif
