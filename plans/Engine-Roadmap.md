@@ -34,7 +34,7 @@
 
 - GPU-generated indirect draw commands
 
-- Multi-draw indirect (MDI)
+- Multi-draw indirect (MDI) - [Done]
 
 - Instanced rendering
 
