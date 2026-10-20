@@ -6,7 +6,6 @@
 #include <array>
 #include <chrono> // IWYU pragma: keep
 #include <cstring>
-#include <thread>
 
 VkShaderModule createShaderModule(VkDevice &device, const std::vector<char> &code) {
     VkShaderModuleCreateInfo shaderModuleCreateInfo = {
@@ -87,7 +86,7 @@ VkResult createDescriptorSets(DeviceContext &deviceContext, VulkanRenderer &rend
         VkDescriptorBufferInfo storageBufferInfo = {
             .buffer = renderer.entityBuffer.bufferHandle,
             .offset = 0,
-            .range  = sizeof(EntityBufferData)
+            .range  = sizeof(EntityBufferData) * renderer.entities.size()
         };
         VkDescriptorImageInfo imageInfo[MAX_TEXTURES];
         for (uint32_t i = 0; i < renderer.textures.size(); i++) {
@@ -474,7 +473,6 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
     vkEndCommandBuffer(frameData.commandBuffer);
 }
 void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer, Scene &scene) {
-    std::thread entityUpdateThread(updateEntityBuffer,std::ref(deviceContext),std::cref(renderer), std::cref(scene.entities));
     FS::RenderState &renderState      = window.getRenderState();
     bool windowMinimized              = (renderState.width <= 0) || (renderState.height <= 0);
     uint32_t frameIndex               = renderer.frameIndex;
@@ -494,7 +492,7 @@ void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContex
     vkResetFences(deviceContext.device, 1, &drawFence);
     
     updateUniformBuffer(swapchainContext, renderer, scene.camera);
-    entityUpdateThread.join();
+    updateEntityBuffer(std::ref(deviceContext),std::cref(renderer), std::cref(scene.entities));
     recordCommandBuffer(renderer.frames[frameIndex], swapchainContext, renderer, imageIndex, frameIndex);
 
     VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
