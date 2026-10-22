@@ -4,8 +4,10 @@
 #include "../Utilities.h"
 #include "VulkanUtils.h"
 #include <array>
+#include <assert.h>
 #include <chrono> // IWYU pragma: keep
 #include <cstring>
+#include <thread>
 
 VkShaderModule createShaderModule(VkDevice &device, const std::vector<char> &code) {
     VkShaderModuleCreateInfo shaderModuleCreateInfo = {
@@ -335,15 +337,38 @@ void updateUniformBuffer(const SwapchainContext &swapchainContext, const VulkanR
 
     std::memcpy(renderer.cameraUniform.mapped, &uboData, sizeof(uboData));
 }
-void updateEntityBuffer(DeviceContext& deviceContext,const VulkanRenderer& renderer,const std::vector<Entity>& entities){
-    static EntityBufferData entityData[MAX_ENTITIES];
-    for (uint32_t i = 0; i < entities.size(); i++) {
-        const uint32_t meshIndex       = entities[i].modelHandle;
-        entityData[i].model            = modelMatrix(entities[i].transform);
-        entityData[i].textureIndex     = meshIndex;
+void updateEntityRange(const std::vector<Entity> &entities, EntityBufferData entityData[], const uint32_t start, const uint32_t end) {
+    assert(end <= entities.size());
+    for (uint32_t i = start; i < end; i++) {
+        const uint32_t meshIndex   = entities[i].modelHandle;
+        entityData[i].model        = modelMatrix(entities[i].transform);
+        entityData[i].textureIndex = meshIndex;
     }
-    uint32_t size = static_cast<uint32_t>(entities.size() * sizeof(EntityBufferData));
-    uploadToDeviceBuffer(deviceContext, renderer.entityBuffer,entityData,size);
+}
+void updateEntityBuffer(DeviceContext &deviceContext,Buffer entityBuffer, const std::vector<Entity> &entities) {
+    const uint32_t entityCount = static_cast<uint32_t>(entities.size());
+    static const uint32_t threadCount = std::thread::hardware_concurrency();
+    const uint32_t size = static_cast<uint32_t>(entities.size() * sizeof(EntityBufferData));
+    if(entityCount < threadCount){
+        std::vector<EntityBufferData> entityData(entityCount);
+        updateEntityRange(entities,entityData.data(),0,entityCount);
+        uploadToDeviceBuffer(deviceContext, entityBuffer, entityData.data(), size);
+        return;
+    }
+    static std::vector<std::thread> entityUpdateThreads(threadCount);
+    const uint32_t entityPerThread   = static_cast<uint32_t>(entityCount / threadCount);
+    const uint32_t remainingEntities = entityCount % threadCount;
+    std::vector<EntityBufferData> entityData(entityCount);
+    uint32_t start = 0, end = 0;
+    for (uint32_t i = 0; i < threadCount; ++i) {
+        end                    = start + entityPerThread + (i < remainingEntities ? 1 : 0);
+        entityUpdateThreads[i] = std::thread(updateEntityRange,std::cref(entities), entityData.data(), start, end);
+        start                  = end;
+    }
+    for (uint32_t i = 0; i < threadCount; ++i) {
+        entityUpdateThreads[i].join();
+    }
+    uploadToDeviceBuffer(deviceContext, entityBuffer, entityData.data(), size);
 }
 void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext, VulkanRenderer &renderer, uint32_t imageIndex, uint32_t frameIndex) {
     VkImage image         = swapchainContext.images[imageIndex];
@@ -476,11 +501,11 @@ void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContex
     FS::RenderState &renderState      = window.getRenderState();
     bool windowMinimized              = (renderState.width <= 0) || (renderState.height <= 0);
     uint32_t frameIndex               = renderer.frameIndex;
-    VkFence& drawFence                 = renderer.frames[frameIndex].drawFence;
+    VkFence &drawFence                = renderer.frames[frameIndex].drawFence;
     VkSemaphore imageAcquireSemaphore = renderer.frames[frameIndex].imageAcquireSemaphore;
-    
+
     vkWaitForFences(deviceContext.device, 1, &drawFence, VK_TRUE, UINT64_MAX);
-    
+
     uint32_t imageIndex    = 0;
     VkResult acquireResult = vkAcquireNextImageKHR(deviceContext.device, swapchainContext.swapchain, UINT64_MAX, imageAcquireSemaphore, VK_NULL_HANDLE, &imageIndex);
     if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR || windowMinimized) {
@@ -488,11 +513,11 @@ void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContex
         return;
     }
     VkSemaphore renderFinishedSemaphore = renderer.renderFinishedSemaphores[imageIndex];
-    
+
     vkResetFences(deviceContext.device, 1, &drawFence);
-    
+
     updateUniformBuffer(swapchainContext, renderer, scene.camera);
-    updateEntityBuffer(std::ref(deviceContext),std::cref(renderer), std::cref(scene.entities));
+    updateEntityBuffer(deviceContext, renderer.entityBuffer, scene.entities);
     recordCommandBuffer(renderer.frames[frameIndex], swapchainContext, renderer, imageIndex, frameIndex);
 
     VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -555,12 +580,14 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
     }
 
     std::vector<Entity> &entities = scene.entities;
+    assert(entities.size() <= MAX_ENTITIES);
     renderer.textures.resize(AssetManager::getModelCount());
+    assert(renderer.textures.size() <= MAX_TEXTURES);
 
     // Meshes are organized in the same order as models in AssetManager
     // so that we can use the same modelHandle in entities to refer to meshes in renderer.entities
     for (uint32_t i = 0; i < AssetManager::getModelCount(); ++i) {
-        Model model        = AssetManager::getModel(i);
+        Model model          = AssetManager::getModel(i);
         renderer.textures[i] = createTexture(deviceContext, model.texturePath);
     }
 
@@ -568,7 +595,6 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
     renderer.entityBuffer = createEntityStorageBuffer(deviceContext, static_cast<uint32_t>(renderer.entities.size()));
     createDescriptorSets(deviceContext, renderer);
 
-    
     // concatenate meshes into one vertex and index buffer
     uint32_t totalVertex             = 0;
     uint32_t totalIndex              = 0;
@@ -596,11 +622,11 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
     }
     renderer.vertexBuffer = createVertexBuffer(deviceContext, vertices.data(), static_cast<uint32_t>(vertices.size()));
     renderer.indexBuffer  = createIndexBuffer(deviceContext, indices.data(), static_cast<uint32_t>(indices.size()));
-    
+
     // build up indirect draw buffer of entities and upload it
     std::vector<VkDrawIndexedIndirectCommand> indirectBuffer(entities.size());
     for (uint32_t i = 0; i < entities.size(); i++) {
-        const Entity &entity   = entities[i];
+        const Entity &entity      = entities[i];
         const uint32_t indexCount = static_cast<uint32_t>(models[entity.modelHandle].indices.size());
         VkDrawIndexedIndirectCommand command{
             .indexCount    = indexCount,
@@ -612,7 +638,7 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
         indirectBuffer[i] = command;
     }
     uploadToDeviceBuffer(deviceContext, renderer.indirectDrawBuffer, indirectBuffer.data(), indirectBuffer.size() * sizeof(VkDrawIndexedIndirectCommand));
-    
+
     std::vector<EntityBufferData> entityData(entities.size());
     for (uint32_t i = 0; i < entities.size(); i++) {
         const uint32_t meshIndex       = entities[i].modelHandle;
@@ -624,10 +650,10 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
 }
 void initVulkanRenderer(DeviceContext &deviceContext, SwapchainContext &swapchainContext, VulkanRenderer &renderer) {
     createSemaphores(deviceContext.device, MAX_SWAPCHAIN_IMAGES, renderer.renderFinishedSemaphores);
-    
+
     VkCommandBuffer commandBuffers[MAX_FRAMES_IN_FLIGHT];
     createCommandBuffers(deviceContext, MAX_FRAMES_IN_FLIGHT, commandBuffers);
-    
+
     for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         FrameData &frame    = renderer.frames[i];
         frame.commandBuffer = commandBuffers[i];

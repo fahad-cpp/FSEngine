@@ -2,11 +2,12 @@
 Vulkan based game engine made in C++
 
 # current status
+
 - specular lighting
 ![Specular Lighting](showcase/specular.png)
 
-- 15625 non-instanced cubes running at 144 FPS
-![Cubes](showcase/cubes.png)
+- 97,336 non-instanced cubes running at ~60-70+ FPS while being updated every frame
+![Cubes](showcase/97kcubes.png)
 
 - full vulkan graphics pipeline
 - specular and diffuse lighting (blinn-phong)
@@ -14,18 +15,16 @@ Vulkan based game engine made in C++
 - using my own maths utilities
 - using my own windowing library (windows + linux (x11) only)
 - WASD camera system
-- hardcoded lights
-- BLOB Entity
 - SSBO to send entity orientation
 - MultiDrawIndirect to draw
-- Vulkan is tightly coupled with the engine
 
 # todo
 
-- Add MSAA
+- remove hardcoded lights
 - support glTF and better lighting 
-- decouple the engine from the rendering API 
-- and maybe have software + vulkan + other apis as one click/line change
-- also decouple the engine from the game
-- implement my own ECS
+- decouple the engine from vulkan
+- decouple the engine from the game
+- implement ECS
+- have software + vulkan + other apis as one click/line change
+- Add MSAA
 - have some ui maybe
