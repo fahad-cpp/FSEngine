@@ -345,13 +345,13 @@ void updateEntityRange(const std::vector<Entity> &entities, EntityBufferData ent
         entityData[i].textureIndex = meshIndex;
     }
 }
-void updateEntityBuffer(DeviceContext &deviceContext,Buffer entityBuffer, const std::vector<Entity> &entities) {
-    const uint32_t entityCount = static_cast<uint32_t>(entities.size());
+void updateEntityBuffer(DeviceContext &deviceContext, Buffer entityBuffer, const std::vector<Entity> &entities) {
+    const uint32_t entityCount        = static_cast<uint32_t>(entities.size());
     static const uint32_t threadCount = std::thread::hardware_concurrency();
-    const uint32_t size = static_cast<uint32_t>(entities.size() * sizeof(EntityBufferData));
-    if(entityCount < threadCount){
+    const uint32_t size               = static_cast<uint32_t>(entities.size() * sizeof(EntityBufferData));
+    if (entityCount < threadCount) {
         std::vector<EntityBufferData> entityData(entityCount);
-        updateEntityRange(entities,entityData.data(),0,entityCount);
+        updateEntityRange(entities, entityData.data(), 0, entityCount);
         uploadToDeviceBuffer(deviceContext, entityBuffer, entityData.data(), size);
         return;
     }
@@ -362,7 +362,7 @@ void updateEntityBuffer(DeviceContext &deviceContext,Buffer entityBuffer, const 
     uint32_t start = 0, end = 0;
     for (uint32_t i = 0; i < threadCount; ++i) {
         end                    = start + entityPerThread + (i < remainingEntities ? 1 : 0);
-        entityUpdateThreads[i] = std::thread(updateEntityRange,std::cref(entities), entityData.data(), start, end);
+        entityUpdateThreads[i] = std::thread(updateEntityRange, std::cref(entities), entityData.data(), start, end);
         start                  = end;
     }
     for (uint32_t i = 0; i < threadCount; ++i) {
@@ -581,14 +581,12 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
 
     std::vector<Entity> &entities = scene.entities;
     assert(entities.size() <= MAX_ENTITIES);
-    renderer.textures.resize(AssetManager::getModelCount());
-    assert(renderer.textures.size() <= MAX_TEXTURES);
+    assert(AssetManager::getModelCount() <= MAX_TEXTURES);
 
-    // Meshes are organized in the same order as models in AssetManager
-    // so that we can use the same modelHandle in entities to refer to meshes in renderer.entities
-    for (uint32_t i = 0; i < AssetManager::getModelCount(); ++i) {
-        Model model          = AssetManager::getModel(i);
-        renderer.textures[i] = createTexture(deviceContext, model.texturePath);
+    renderer.textures.resize(MAX_TEXTURES);
+    for (uint32_t i = 0; i < MAX_TEXTURES; ++i) {
+        const std::string &texturePath = i < AssetManager::getModelCount() ? AssetManager::getModel(i).texturePath : "textures/invalid.png";
+        renderer.textures[i]           = createTexture(deviceContext, texturePath);
     }
 
     renderer.entities.resize(entities.size());

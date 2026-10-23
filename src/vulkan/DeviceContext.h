@@ -5,7 +5,7 @@
 
 #define SELECTED_DEVICE 0
 constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 3;
-constexpr uint32_t MAX_TEXTURES         = 256;
+constexpr uint32_t MAX_TEXTURES         = 12;
 
 struct DeviceContext {
     VkDebugUtilsMessengerEXT debugMessenger;

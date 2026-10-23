@@ -199,9 +199,14 @@ VkDevice createDevice(DeviceContext &deviceContext) {
     requiredFeatures.geometryShader         = VK_TRUE;
     requiredFeatures.multiDrawIndirect      = VK_TRUE;
 
+    VkPhysicalDeviceVulkan11Features requiredFeaturesvk11{};
+    requiredFeaturesvk11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+    requiredFeaturesvk11.shaderDrawParameters = VK_TRUE;
+
     VkPhysicalDeviceVulkan12Features requiredFeaturesvk12{};
     requiredFeaturesvk12.sType                  = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-    requiredFeaturesvk12.runtimeDescriptorArray = VK_TRUE;
+    requiredFeaturesvk12.pNext = &requiredFeaturesvk11;
+    //requiredFeaturesvk12.runtimeDescriptorArray = VK_TRUE;
     VkPhysicalDeviceVulkan13Features requiredFeaturesvk13{};
     requiredFeaturesvk13.sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
     requiredFeaturesvk13.pNext            = &requiredFeaturesvk12;
@@ -380,7 +385,7 @@ VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext) {
         },
         {
             .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .descriptorCount = MAX_FRAMES_IN_FLIGHT,
+            .descriptorCount = MAX_FRAMES_IN_FLIGHT * MAX_TEXTURES,
         },
         {
             .type            = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,

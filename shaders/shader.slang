@@ -18,7 +18,7 @@ struct EntityData {
     uint padding2;
 };
 [[vk::binding(1,0)]]
-Sampler2D texture[];
+Sampler2D texture[12];
 struct VSOutput {
     float4 pos : SV_Position;
     float3 wpos;
@@ -29,7 +29,7 @@ struct VSOutput {
 [[vk::binding(2, 0)]]
 StructuredBuffer<EntityData> entityBuffer;
 [shader("vertex")]
-VSOutput vertMain(VSInput vertIn,uint instanceID : SV_InstanceID) {
+VSOutput vertMain(VSInput vertIn,uint instanceID : SV_StartInstanceLocation) {
     EntityData entity = entityBuffer[instanceID];
     VSOutput output;
     output.pos          = mul(ubo.projection, mul(ubo.view, mul(entity.model, float4(vertIn.pos, 1.0))));
