@@ -28,10 +28,10 @@ static Vector2 getMouseDiff(FS::Window &window) {
     window.setCursorPos(static_cast<uint32_t>(centerPos.x), static_cast<uint32_t>(centerPos.y));
     return { diff.x, diff.y };
 }
-void cameraMovementSystem(Camera &camera, FS::Window &window, float dt) {
+void cameraMovementSystem(Camera &camera, FS::Window &window,bool mouseLocked, float dt) {
     float moveSpeed   = 0.01f * dt;
     FS::Input &input  = window.getInput();
-    Vector2 mouseDiff = getMouseDiff(window);
+    Vector2 mouseDiff = ((!mouseLocked)?Vector2{0,0}:getMouseDiff(window));
 
     camera.rotation.x += mouseDiff.y * 0.001f;
     camera.rotation.x = std::clamp(camera.rotation.x, radians(-89.f), radians(89.f));
@@ -96,13 +96,21 @@ void cameraMovementSystem(Camera &camera, FS::Window &window, float dt) {
     }
 }
 void handleInput(FS::Window &window, Scene &scene, float dt) {
+    #define pressed(button)\
+    (input.buttons[button].isDown && input.buttons[button].changed)
+
     FS::Input &input = window.getInput();
     Camera &camera   = scene.camera;
+    static bool mouseLocked = true;
 
     if (isDown(FS::Buttons::BUTTON_ESC)) {
         window.close();
     }
-    cameraMovementSystem(camera, window, dt);
+    if(pressed(FS::Buttons::BUTTON_G)){
+        mouseLocked = !mouseLocked;
+        window.showCursor(!mouseLocked);
+    }
+    cameraMovementSystem(camera, window,mouseLocked, dt);
 }
 int main() {
     Timer timer;

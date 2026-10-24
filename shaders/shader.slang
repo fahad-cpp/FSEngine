@@ -29,8 +29,8 @@ struct VSOutput {
 [[vk::binding(2, 0)]]
 StructuredBuffer<EntityData> entityBuffer;
 [shader("vertex")]
-VSOutput vertMain(VSInput vertIn,uint instanceID : SV_StartInstanceLocation) {
-    EntityData entity = entityBuffer[instanceID];
+VSOutput vertMain(VSInput vertIn,uint baseInstance : SV_StartInstanceLocation) {
+    EntityData entity = entityBuffer[baseInstance];
     VSOutput output;
     output.pos          = mul(ubo.projection, mul(ubo.view, mul(entity.model, float4(vertIn.pos, 1.0))));
     output.wpos         = mul(ubo.view, mul(entity.model, float4(vertIn.pos, 1.0))).xyz;
