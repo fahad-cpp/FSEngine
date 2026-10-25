@@ -1,13 +1,25 @@
 # FSEngine
 Vulkan based game engine made in C++
 
-# current status
-
+## Screenshots
 - specular lighting
 ![Specular Lighting](showcase/specular.png)
 
 - 97,336 non-instanced cubes running at ~60-70+ FPS while being updated every frame
 ![Cubes](showcase/97kcubes.png)
+
+## Building Requirements:
+Vulkan : 1.4<br>
+Slangc : 2025.0+<br>
+Platform : Windows or Linux<br>
+CMake : 3.10+<br>
+
+## Controls
+WASD - move<br>
+Arrow keys/Mouse - rotate<br>
+G - lock-unlock mouse<br>
+
+## current status
 
 - full vulkan graphics pipeline
 - specular and diffuse lighting (blinn-phong)
@@ -18,7 +30,7 @@ Vulkan based game engine made in C++
 - SSBO to send entity orientation
 - MultiDrawIndirect to draw
 
-# todo
+## todo
 
 - remove hardcoded lights
 - support glTF and better lighting 
