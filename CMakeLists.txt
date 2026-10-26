@@ -18,7 +18,7 @@ target_include_directories(FSEngine SYSTEM PRIVATE ${VULKAN_INCLUDE} vendor/stb)
 
 target_compile_options(
     FSEngine PRIVATE -Wall -Wextra -Weffc++ -Wconversion -Wsign-conversion -Werror -pedantic-errors
-    $<$<CONFIG:Debug>:-ggdb>
+    $<$<CONFIG:Debug>:-ggdb -D_DEBUG>
     $<$<CONFIG:Release>:-O3 -ffast-math>
 )
 

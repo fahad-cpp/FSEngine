@@ -194,10 +194,10 @@ VkDevice createDevice(DeviceContext &deviceContext) {
     requiredFeatures.multiDrawIndirect      = supportedFeatures.multiDrawIndirect;
     requiredFeatures.sparseBinding          = supportedFeatures.sparseBinding;
     requiredFeatures.sparseResidencyImage2D = supportedFeatures.sparseResidencyImage2D;
-    requiredFeatures.samplerAnisotropy      = VK_TRUE;
+    requiredFeatures.samplerAnisotropy      = VK_TRUE; 
     requiredFeatures.tessellationShader     = VK_TRUE;
     requiredFeatures.geometryShader         = VK_TRUE;
-    requiredFeatures.multiDrawIndirect      = VK_TRUE;
+    requiredFeatures.multiDrawIndirect      = VK_TRUE; //TODO(fahad-cpp): use multiple drawIndirect if multidraw isn't supported
 
     VkPhysicalDeviceVulkan11Features requiredFeaturesvk11{};
     requiredFeaturesvk11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
@@ -206,7 +206,7 @@ VkDevice createDevice(DeviceContext &deviceContext) {
     VkPhysicalDeviceVulkan12Features requiredFeaturesvk12{};
     requiredFeaturesvk12.sType                  = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
     requiredFeaturesvk12.pNext = &requiredFeaturesvk11;
-    //requiredFeaturesvk12.runtimeDescriptorArray = VK_TRUE;
+    //requiredFeaturesvk12.runtimeDescriptorArray = VK_TRUE; // TODO(fahad-cpp): use this if supported
     VkPhysicalDeviceVulkan13Features requiredFeaturesvk13{};
     requiredFeaturesvk13.sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
     requiredFeaturesvk13.pNext            = &requiredFeaturesvk12;
