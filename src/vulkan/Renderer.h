@@ -24,6 +24,7 @@ struct VulkanRenderer {
     Buffer entityBuffer{};
     Buffer vertexBuffer{};
     Buffer indexBuffer{};
+    Scene scene{};
     std::vector<VulkanEntity> entities{};
     std::vector<Texture> textures{};
 };
@@ -36,7 +37,7 @@ VkShaderModule createShaderModule(VkDevice &device, const std::vector<char> &cod
 void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swapchainContext, GraphicsPipeline &pipeline, const std::string &shaderPath);
 void updateUniformBuffer(const SwapchainContext &swapchainContext, const VulkanRenderer &renderer, const Camera &camera);
 void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext, VulkanRenderer &renderer, uint32_t imageIndex, uint32_t frameIndex);
-void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer, Scene &scene);
+void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer, Camera &camera);
 void initPipeline(DeviceContext &deviceContext, SwapchainContext &swapchainContext, GraphicsPipeline &pipeline);
 void cleanupPipeline(DeviceContext &deviceContext, GraphicsPipeline &pipeline);
 void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &scene);

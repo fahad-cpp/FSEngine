@@ -171,7 +171,7 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
 
     const VkVertexInputBindingDescription bindingDescription                     = getBindingDescription();
     const std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = getAttributeDescription();
-    const VkPipelineVertexInputStateCreateInfo vertexInputState                        = {
+    const VkPipelineVertexInputStateCreateInfo vertexInputState                  = {
         .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         .pNext                           = nullptr,
         .flags                           = 0,
@@ -247,7 +247,7 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
         .depthTestEnable       = VK_TRUE,
         .depthWriteEnable      = VK_TRUE,
         .depthCompareOp        = VK_COMPARE_OP_LESS,
-        .depthBoundsTestEnable = VK_TRUE,
+        .depthBoundsTestEnable = VK_FALSE,
         .stencilTestEnable     = VK_FALSE,
         .front                 = {},
         .back                  = {},
@@ -337,7 +337,7 @@ void updateUniformBuffer(const SwapchainContext &swapchainContext, const VulkanR
     std::memcpy(renderer.cameraUniform.mapped, &uboData, sizeof(uboData));
 }
 void updateEntityRange(const std::vector<Entity> &entities, EntityBufferData entityData[], const uint32_t start, const uint32_t end) {
-    assert( start <= entities.size() && end <= entities.size());
+    assert(start <= entities.size() && end <= entities.size());
     for (uint32_t i = start; i < end; i++) {
         const uint32_t meshIndex   = entities[i].modelHandle;
         entityData[i].model        = modelMatrix(entities[i].transform);
@@ -345,6 +345,9 @@ void updateEntityRange(const std::vector<Entity> &entities, EntityBufferData ent
     }
 }
 void updateEntityBuffer(DeviceContext &deviceContext, Buffer entityBuffer, const std::vector<Entity> &entities) {
+    if(entities.empty()){
+        return;
+    }
     const uint32_t entityCount        = static_cast<uint32_t>(entities.size());
     static const uint32_t threadCount = std::thread::hardware_concurrency();
     const uint32_t size               = static_cast<uint32_t>(entities.size() * sizeof(EntityBufferData));
@@ -403,8 +406,8 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
         VK_IMAGE_ASPECT_COLOR_BIT, 1);
 
-    constexpr VkClearValue clearColor          = { .color = VkClearColorValue{ { 0.01f, 0.02f, 0.05f, 1.f } } };
-    constexpr VkClearValue clearDepth          = { .depthStencil = VkClearDepthStencilValue{ 1.f, 0 } };
+    constexpr VkClearValue clearColor                   = { .color = VkClearColorValue{ { 0.01f, 0.02f, 0.05f, 1.f } } };
+    constexpr VkClearValue clearDepth                   = { .depthStencil = VkClearDepthStencilValue{ 1.f, 0 } };
     const VkRenderingAttachmentInfo colorAttachmentInfo = {
         .sType              = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
         .pNext              = nullptr,
@@ -460,25 +463,17 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
         .extent = swapchainContext.extent
     };
     vkCmdSetScissor(frameData.commandBuffer, 0, 1, &scissor);
-    vkCmdBindDescriptorSets(frameData.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderer.pipeline.pipelineLayout, 0, 1, &renderer.descriptorSets[frameIndex], 0, nullptr);
 
-    uint32_t entityCount = static_cast<uint32_t>(renderer.entities.size());
-    // Replace with indirect draw
-    VkDeviceSize vboffset = 0;
-    vkCmdBindVertexBuffers(frameData.commandBuffer, 0, 1, &renderer.vertexBuffer.bufferHandle, &vboffset);
-    vkCmdBindIndexBuffer(frameData.commandBuffer, renderer.indexBuffer.bufferHandle, 0, VK_INDEX_TYPE_UINT32);
-    vkCmdDrawIndexedIndirect(frameData.commandBuffer, renderer.indirectDrawBuffer.bufferHandle, 0, entityCount, sizeof(VkDrawIndexedIndirectCommand));
-    // for (VulkanEntity& entity : renderer.entities) {
-    //     VulkanMesh& mesh = renderer.meshes[entity.meshIndex];
-    //     if (mesh.vertexBuffer.bufferHandle != VK_NULL_HANDLE) {
-    //         vkCmdBindVertexBuffers(frameData.commandBuffer, 0, 1, &mesh.vertexBuffer.bufferHandle, &vboffset);
-    //     }
-
-    //     if (mesh.indexBuffer.bufferHandle != VK_NULL_HANDLE) {
-    //         vkCmdBindIndexBuffer(frameData.commandBuffer, mesh.indexBuffer.bufferHandle, 0, VK_INDEX_TYPE_UINT32);
-    //         vkCmdDrawIndexed(frameData.commandBuffer, mesh.indexCount, 1, 0, 0, 0);
-    //     }
-    // }
+    if(!renderer.entities.empty()){
+        vkCmdBindDescriptorSets(frameData.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderer.pipeline.pipelineLayout, 0, 1, &renderer.descriptorSets[frameIndex], 0, nullptr);
+    }
+    if(renderer.vertexBuffer.bufferHandle != VK_NULL_HANDLE && renderer.indexBuffer.bufferHandle != VK_NULL_HANDLE && renderer.indirectDrawBuffer.bufferHandle != VK_NULL_HANDLE){
+        uint32_t entityCount = static_cast<uint32_t>(renderer.entities.size());
+        VkDeviceSize vboffset = 0;
+        vkCmdBindVertexBuffers(frameData.commandBuffer, 0, 1, &renderer.vertexBuffer.bufferHandle, &vboffset);
+        vkCmdBindIndexBuffer(frameData.commandBuffer, renderer.indexBuffer.bufferHandle, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexedIndirect(frameData.commandBuffer, renderer.indirectDrawBuffer.bufferHandle, 0, entityCount, sizeof(VkDrawIndexedIndirectCommand));
+    }
 
     // Rendering END
     vkCmdEndRendering(frameData.commandBuffer);
@@ -496,10 +491,10 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
 
     vkEndCommandBuffer(frameData.commandBuffer);
 }
-void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer, Scene &scene) {
+void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer,Camera& camera) {
     FS::RenderState &renderState       = window.getRenderState();
     bool windowMinimized               = (renderState.width <= 0) || (renderState.height <= 0);
-    uint32_t& frameIndex               = renderer.frameIndex;
+    uint32_t &frameIndex               = renderer.frameIndex;
     VkFence &drawFence                 = renderer.frames[frameIndex].drawFence;
     VkSemaphore &imageAcquireSemaphore = renderer.frames[frameIndex].imageAcquireSemaphore;
 
@@ -515,8 +510,8 @@ void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContex
 
     vkResetFences(deviceContext.device, 1, &drawFence);
 
-    updateUniformBuffer(swapchainContext, renderer, scene.camera);
-    updateEntityBuffer(deviceContext, renderer.entityBuffer, scene.entities);
+    updateEntityBuffer(deviceContext, renderer.entityBuffer, renderer.scene.entities);
+    updateUniformBuffer(swapchainContext, renderer, camera);
     recordCommandBuffer(renderer.frames[frameIndex], swapchainContext, renderer, imageIndex, frameIndex);
 
     VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -579,6 +574,7 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
     if (renderer.indexBuffer.bufferHandle != VK_NULL_HANDLE) {
         cleanupBuffer(deviceContext, renderer.indexBuffer);
     }
+    renderer.scene = scene;
 
     std::vector<Entity> &entities = scene.entities;
     assert(entities.size() <= MAX_ENTITIES);

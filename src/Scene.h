@@ -17,7 +17,6 @@ struct Entity {
     Transform transform;
 };
 struct Scene {
-    Camera camera;
     std::vector<Entity> entities;
 };
 #endif

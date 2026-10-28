@@ -95,12 +95,11 @@ void cameraMovementSystem(Camera &camera, FS::Window &window,bool mouseLocked, f
         camera.rotation = { 0.f, 0.f, 0.f };
     }
 }
-void handleInput(FS::Window &window, Scene &scene, float dt) {
+void handleInput(FS::Window &window, Camera& camera, float dt) {
     #define pressed(button)\
     (input.buttons[button].isDown && input.buttons[button].changed)
 
     FS::Input &input = window.getInput();
-    Camera &camera   = scene.camera;
     static bool mouseLocked = true;
 
     if (isDown(FS::Buttons::BUTTON_ESC)) {
@@ -135,11 +134,11 @@ int main() {
     TIME_FUNC("initVulkanRenderer", timer, initVulkanRenderer(deviceContext, swapchainContext, renderer));
     window.focus();
 
+    Camera camera{
+        .position = { 0.f, 0.f, 0.f },
+        .rotation = { 0.f, 0.f, 0.f },
+    };
     Scene scene{
-        .camera{
-            .position = { 0.f, 0.f, 0.f },
-            .rotation = { 0.f, 0.f, 0.f },
-        },
         .entities{
             Entity{
                 .modelHandle = cube,
@@ -215,13 +214,13 @@ int main() {
     float diff = 16.f;
     while (window.isOpen()) {
         startTimer(timer);
-        renderScene(deviceContext, swapchainContext, window, renderer, scene);
-        handleInput(window, scene, diff);
+        renderScene(deviceContext, swapchainContext, window, renderer, camera);
+        handleInput(window, camera, diff);
+        window.processMessages();
         endTimer(timer);
         scene.entities[0].transform.rotation.y += radians(90) * (timer.diff / 1000000.f);
         diff = microsecToms(timer.diff);
         LOG_LIVE("FPS: " << microsecToFPS(timer.diff) << " Frame:" << microsecToms(timer.diff) << " ms");
-        window.processMessages();
     }
 
     vkDeviceWaitIdle(deviceContext.device);
