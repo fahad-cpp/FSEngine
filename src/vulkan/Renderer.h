@@ -29,7 +29,7 @@ struct VulkanRenderer {
 };
 VkResult createPipelineLayout(DeviceContext &deviceContext, GraphicsPipeline &pipeline);
 VkVertexInputBindingDescription getBindingDescription();
-std::array<VkVertexInputAttributeDescription, 3> getAttributeDescription();
+const std::array<VkVertexInputAttributeDescription, 3> getAttributeDescription();
 VkResult createDescriptorSets(DeviceContext &deviceContext, VulkanRenderer &renderer);
 
 VkShaderModule createShaderModule(VkDevice &device, const std::vector<char> &code);

@@ -61,9 +61,6 @@ Buffer createBuffer(DeviceContext &deviceContext, const VkBufferUsageFlags usage
     return buffer;
 }
 void cleanupBuffer(DeviceContext &deviceContext, Buffer &buffer) {
-    // static int bufferCount = 0;
-    // bufferCount++;
-    // std::cout << "Buffer Destroyed: " << bufferCount << "\n";
     vkDestroyBuffer(deviceContext.device, buffer.bufferHandle, nullptr);
     vkFreeMemory(deviceContext.device, buffer.memoryHandle, nullptr);
 }

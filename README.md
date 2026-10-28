@@ -5,7 +5,7 @@ Vulkan based game engine made in C++
 - specular lighting
 ![Specular Lighting](showcase/specular.png)
 
-- 97,336 non-instanced cubes running at ~60-70+ FPS while being updated every frame
+- 97,336 non-instanced cubes running at ~90+ FPS while being updated every frame
 ![Cubes](showcase/97kcubes.png)
 
 ## Building Requirements:

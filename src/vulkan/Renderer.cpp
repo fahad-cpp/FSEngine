@@ -41,7 +41,7 @@ VkVertexInputBindingDescription getBindingDescription() {
         .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
     };
 }
-std::array<VkVertexInputAttributeDescription, 3> getAttributeDescription() {
+const std::array<VkVertexInputAttributeDescription, 3> getAttributeDescription() {
     return {
         VkVertexInputAttributeDescription{
             .location = 0,
@@ -146,9 +146,9 @@ VkResult createDescriptorSets(DeviceContext &deviceContext, VulkanRenderer &rend
 void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swapchainContext, GraphicsPipeline &pipeline, const std::string &shaderPath) {
     VkSurfaceCapabilitiesKHR surfaceCaps;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(deviceContext.physicalDevice, deviceContext.surface, &surfaceCaps);
-    const std::vector<char> code                        = readFile(shaderPath);
-    VkShaderModule module                               = createShaderModule(deviceContext.device, code);
-    VkPipelineShaderStageCreateInfo vertShaderStageInfo = {
+    const std::vector<char> code                              = readFile(shaderPath);
+    VkShaderModule module                                     = createShaderModule(deviceContext.device, code);
+    const VkPipelineShaderStageCreateInfo vertShaderStageInfo = {
         .sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
         .pNext               = nullptr,
         .flags               = 0,
@@ -157,7 +157,7 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
         .pName               = "vertMain",
         .pSpecializationInfo = nullptr
     };
-    VkPipelineShaderStageCreateInfo fragShaderStageInfo = {
+    const VkPipelineShaderStageCreateInfo fragShaderStageInfo = {
         .sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
         .pNext               = nullptr,
         .flags               = 0,
@@ -167,11 +167,11 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
         .pSpecializationInfo = nullptr
     };
 
-    VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
+    const VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
-    VkVertexInputBindingDescription bindingDescription                     = getBindingDescription();
-    std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = getAttributeDescription();
-    VkPipelineVertexInputStateCreateInfo vertexInputState                  = {
+    const VkVertexInputBindingDescription bindingDescription                     = getBindingDescription();
+    const std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = getAttributeDescription();
+    const VkPipelineVertexInputStateCreateInfo vertexInputState                        = {
         .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         .pNext                           = nullptr,
         .flags                           = 0,
@@ -181,7 +181,7 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
         .pVertexAttributeDescriptions    = attributeDescriptions.data()
     };
 
-    VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = {
+    const VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = {
         .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
         .pNext                  = nullptr,
         .flags                  = 0,
@@ -189,20 +189,20 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
         .primitiveRestartEnable = VK_FALSE,
     };
 
-    VkViewport viewport{
+    const VkViewport viewport{
         .x        = 0.f,
         .y        = 0.f,
         .width    = static_cast<float>(surfaceCaps.currentExtent.width),
         .height   = static_cast<float>(surfaceCaps.currentExtent.height),
         .minDepth = 0.f,
-        .maxDepth = 0.f
+        .maxDepth = 1.f
     };
 
-    VkRect2D scissor{
+    const VkRect2D scissor{
         .offset = VkOffset2D{ 0, 0 },
         .extent = surfaceCaps.currentExtent
     };
-    VkPipelineViewportStateCreateInfo viewportState = {
+    const VkPipelineViewportStateCreateInfo viewportState = {
         .sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
         .pNext         = nullptr,
         .flags         = 0,
@@ -212,7 +212,7 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
         .pScissors     = &scissor
     };
 
-    VkPipelineRasterizationStateCreateInfo rasterizerState = {
+    const VkPipelineRasterizationStateCreateInfo rasterizerState = {
         .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
         .pNext                   = nullptr,
         .flags                   = 0,
@@ -228,7 +228,7 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
         .lineWidth               = 1.f
     };
 
-    VkPipelineMultisampleStateCreateInfo multisampleState = {
+    const VkPipelineMultisampleStateCreateInfo multisampleState = {
         .sType                 = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         .pNext                 = nullptr,
         .flags                 = 0,
@@ -240,7 +240,7 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
         .alphaToOneEnable      = VK_FALSE
     };
 
-    VkPipelineDepthStencilStateCreateInfo depthStencilState = {
+    const VkPipelineDepthStencilStateCreateInfo depthStencilState = {
         .sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
         .pNext                 = nullptr,
         .flags                 = 0,
@@ -255,7 +255,7 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
         .maxDepthBounds        = 1.f
     };
 
-    VkPipelineColorBlendAttachmentState colorBlendAttachment = {
+    const VkPipelineColorBlendAttachmentState colorBlendAttachment = {
         .blendEnable         = VK_TRUE,
         .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
         .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
@@ -266,7 +266,7 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
         .colorWriteMask      = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
     };
 
-    VkPipelineColorBlendStateCreateInfo colorBlendState = {
+    const VkPipelineColorBlendStateCreateInfo colorBlendState = {
         .sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
         .pNext           = nullptr,
         .flags           = 0,
@@ -277,12 +277,12 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
         .blendConstants  = {}
     };
 
-    VkDynamicState dynamicStates[] = {
+    const VkDynamicState dynamicStates[] = {
         VK_DYNAMIC_STATE_VIEWPORT,
         VK_DYNAMIC_STATE_SCISSOR
     };
 
-    VkPipelineDynamicStateCreateInfo dynamicState = {
+    const VkPipelineDynamicStateCreateInfo dynamicState = {
         .sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
         .pNext             = nullptr,
         .flags             = 0,
@@ -290,7 +290,7 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
         .pDynamicStates    = dynamicStates
     };
 
-    VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo = {
+    const VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo = {
         .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
         .pNext                   = nullptr,
         .viewMask                = 0,
@@ -300,7 +300,7 @@ void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swap
         .stencilAttachmentFormat = VK_FORMAT_UNDEFINED
     };
 
-    VkGraphicsPipelineCreateInfo graphicsPipelineInfo = {
+    const VkGraphicsPipelineCreateInfo graphicsPipelineInfo = {
         .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         .pNext               = &pipelineRenderingCreateInfo,
         .flags               = 0,
@@ -333,12 +333,11 @@ void updateUniformBuffer(const SwapchainContext &swapchainContext, const VulkanR
     UniformBufferData uboData = {};
     uboData.view              = lookAt(camera.position, lookatpos, Vector3{ 0.f, 1.f, 0.f });
     uboData.projection        = perspective(radians(60.f), aspectRatio, 0.1f, 10000.f);
-    uboData.projection.values[1][1] *= -1;
 
     std::memcpy(renderer.cameraUniform.mapped, &uboData, sizeof(uboData));
 }
 void updateEntityRange(const std::vector<Entity> &entities, EntityBufferData entityData[], const uint32_t start, const uint32_t end) {
-    assert(end <= entities.size());
+    assert( start <= entities.size() && end <= entities.size());
     for (uint32_t i = start; i < end; i++) {
         const uint32_t meshIndex   = entities[i].modelHandle;
         entityData[i].model        = modelMatrix(entities[i].transform);
@@ -374,7 +373,7 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
     VkImage image         = swapchainContext.images[imageIndex];
     VkImageView imageView = swapchainContext.imageViews[imageIndex];
 
-    static const VkCommandBufferBeginInfo beginInfo = {
+    constexpr VkCommandBufferBeginInfo beginInfo = {
         .sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         .pNext            = nullptr,
         .flags            = 0,
@@ -404,9 +403,9 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
         VK_IMAGE_ASPECT_COLOR_BIT, 1);
 
-    static const VkClearValue clearColor          = { .color = VkClearColorValue{ { 0.01f, 0.02f, 0.05f, 1.f } } };
-    static const VkClearValue clearDepth          = { .depthStencil = VkClearDepthStencilValue{ 1.f, 0 } };
-    VkRenderingAttachmentInfo colorAttachmentInfo = {
+    constexpr VkClearValue clearColor          = { .color = VkClearColorValue{ { 0.01f, 0.02f, 0.05f, 1.f } } };
+    constexpr VkClearValue clearDepth          = { .depthStencil = VkClearDepthStencilValue{ 1.f, 0 } };
+    const VkRenderingAttachmentInfo colorAttachmentInfo = {
         .sType              = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
         .pNext              = nullptr,
         .imageView          = imageView,
@@ -418,7 +417,7 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
         .storeOp            = VK_ATTACHMENT_STORE_OP_STORE,
         .clearValue         = clearColor
     };
-    VkRenderingAttachmentInfo depthAttachmentInfo = {
+    const VkRenderingAttachmentInfo depthAttachmentInfo = {
         .sType              = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
         .pNext              = nullptr,
         .imageView          = swapchainContext.depth.imageView,
@@ -431,7 +430,7 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
         .clearValue         = clearDepth
     };
 
-    VkRenderingInfo renderingInfo = {
+    const VkRenderingInfo renderingInfo = {
         .sType                = VK_STRUCTURE_TYPE_RENDERING_INFO,
         .pNext                = nullptr,
         .flags                = 0,
@@ -498,11 +497,11 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
     vkEndCommandBuffer(frameData.commandBuffer);
 }
 void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer, Scene &scene) {
-    FS::RenderState &renderState      = window.getRenderState();
-    bool windowMinimized              = (renderState.width <= 0) || (renderState.height <= 0);
-    uint32_t frameIndex               = renderer.frameIndex;
-    VkFence &drawFence                = renderer.frames[frameIndex].drawFence;
-    VkSemaphore imageAcquireSemaphore = renderer.frames[frameIndex].imageAcquireSemaphore;
+    FS::RenderState &renderState       = window.getRenderState();
+    bool windowMinimized               = (renderState.width <= 0) || (renderState.height <= 0);
+    uint32_t& frameIndex               = renderer.frameIndex;
+    VkFence &drawFence                 = renderer.frames[frameIndex].drawFence;
+    VkSemaphore &imageAcquireSemaphore = renderer.frames[frameIndex].imageAcquireSemaphore;
 
     vkWaitForFences(deviceContext.device, 1, &drawFence, VK_TRUE, UINT64_MAX);
 
@@ -566,11 +565,13 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
         for (Texture &texture : renderer.textures) {
             cleanupTexture(deviceContext, texture);
         }
+        renderer.textures.clear();
     }
 
     if (!renderer.entities.empty()) {
         vkFreeDescriptorSets(deviceContext.device, deviceContext.descriptorPool, MAX_FRAMES_IN_FLIGHT, renderer.descriptorSets);
         cleanupBuffer(deviceContext, renderer.entityBuffer);
+        renderer.entities.clear();
     }
     if (renderer.vertexBuffer.bufferHandle != VK_NULL_HANDLE) {
         cleanupBuffer(deviceContext, renderer.vertexBuffer);
@@ -665,11 +666,22 @@ void initVulkanRenderer(DeviceContext &deviceContext, SwapchainContext &swapchai
     renderer.indirectDrawBuffer = createIndirectDrawBuffer(deviceContext, MAX_ENTITIES);
 }
 void cleanupVulkanRenderer(DeviceContext &deviceContext, VulkanRenderer &renderer) {
-    cleanupBuffer(deviceContext, renderer.indexBuffer);
-    cleanupBuffer(deviceContext, renderer.vertexBuffer);
-    cleanupBuffer(deviceContext, renderer.indirectDrawBuffer);
-    cleanupBuffer(deviceContext, renderer.cameraUniform.buffer);
-    cleanupBuffer(deviceContext, renderer.entityBuffer);
+    if (renderer.indexBuffer.bufferHandle != VK_NULL_HANDLE) {
+        cleanupBuffer(deviceContext, renderer.indexBuffer);
+    }
+    if (renderer.vertexBuffer.bufferHandle != VK_NULL_HANDLE) {
+        cleanupBuffer(deviceContext, renderer.vertexBuffer);
+    }
+    if (renderer.indirectDrawBuffer.bufferHandle != VK_NULL_HANDLE) {
+        cleanupBuffer(deviceContext, renderer.indirectDrawBuffer);
+    }
+    if (renderer.cameraUniform.buffer.bufferHandle != VK_NULL_HANDLE) {
+        cleanupBuffer(deviceContext, renderer.cameraUniform.buffer);
+        renderer.cameraUniform.mapped = nullptr;
+    }
+    if (renderer.entityBuffer.bufferHandle != VK_NULL_HANDLE) {
+        cleanupBuffer(deviceContext, renderer.entityBuffer);
+    }
 
     cleanupPipeline(deviceContext, renderer.pipeline);
 
@@ -677,14 +689,13 @@ void cleanupVulkanRenderer(DeviceContext &deviceContext, VulkanRenderer &rendere
     for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         commandBuffers[i] = renderer.frames[i].commandBuffer;
     }
+    vkFreeCommandBuffers(deviceContext.device, deviceContext.commandPool, MAX_FRAMES_IN_FLIGHT, commandBuffers);
 
     for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         FrameData &frame = renderer.frames[i];
         vkDestroyFence(deviceContext.device, frame.drawFence, nullptr);
         vkDestroySemaphore(deviceContext.device, frame.imageAcquireSemaphore, nullptr);
     }
-
-    vkFreeCommandBuffers(deviceContext.device, deviceContext.commandPool, MAX_FRAMES_IN_FLIGHT, commandBuffers);
 
     for (uint32_t i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i) {
         vkDestroySemaphore(deviceContext.device, renderer.renderFinishedSemaphores[i], nullptr);

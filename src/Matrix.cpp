@@ -134,7 +134,7 @@ Matrix4 modelMatrix(const Transform transform) {
 Matrix4 lookAt(const Vector3 position, const Vector3 lookPoint, const Vector3 up) {
     Vector3 cForward = normalize(dist(position, lookPoint));
     Vector3 cRight   = normalize(cross(up, cForward));
-    Vector3 cUp      = normalize(cross(cForward, cRight));
+    Vector3 cUp      = normalize(cross(cRight, cForward));
 
     Vector4 rightdir   = { cRight.x, cRight.y, cRight.z, -dot(cRight, position) };
     Vector4 updir      = { cUp.x, cUp.y, cUp.z, -dot(cUp, position) };
