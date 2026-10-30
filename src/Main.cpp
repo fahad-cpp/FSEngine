@@ -28,10 +28,10 @@ static Vector2 getMouseDiff(FS::Window &window) {
     window.setCursorPos(static_cast<uint32_t>(centerPos.x), static_cast<uint32_t>(centerPos.y));
     return { diff.x, diff.y };
 }
-void cameraMovementSystem(Camera &camera, FS::Window &window,bool mouseLocked, float dt) {
+void cameraMovementSystem(Camera &camera, FS::Window &window, bool mouseLocked, float dt) {
     float moveSpeed   = 0.01f * dt;
     FS::Input &input  = window.getInput();
-    Vector2 mouseDiff = ((!mouseLocked)?Vector2{0,0}:getMouseDiff(window));
+    Vector2 mouseDiff = ((!mouseLocked) ? Vector2{ 0, 0 } : getMouseDiff(window));
 
     camera.rotation.x += mouseDiff.y * 0.001f;
     camera.rotation.x = std::clamp(camera.rotation.x, radians(-89.f), radians(89.f));
@@ -95,32 +95,35 @@ void cameraMovementSystem(Camera &camera, FS::Window &window,bool mouseLocked, f
         camera.rotation = { 0.f, 0.f, 0.f };
     }
 }
-void handleInput(FS::Window &window, Camera& camera, float dt) {
-    #define pressed(button)\
+void handleInput(FS::Window &window, Camera &camera, float dt) {
+#define pressed(button) \
     (input.buttons[button].isDown && input.buttons[button].changed)
 
-    FS::Input &input = window.getInput();
+    FS::Input &input        = window.getInput();
     static bool mouseLocked = true;
 
     if (isDown(FS::Buttons::BUTTON_ESC)) {
         window.close();
     }
-    if(pressed(FS::Buttons::BUTTON_G)){
+    if (pressed(FS::Buttons::BUTTON_G)) {
         mouseLocked = !mouseLocked;
         window.showCursor(!mouseLocked);
     }
-    cameraMovementSystem(camera, window,mouseLocked, dt);
+    cameraMovementSystem(camera, window, mouseLocked, dt);
 }
 int main() {
     Timer timer;
     Timer initTimer;
+
     startTimer(initTimer);
-    const ModelHandle zenith     = AssetManager::loadModel("models/Zenith.obj", "textures/Zenith.png", true);
-    [[maybe_unused]] const ModelHandle testModel = AssetManager::loadModel("models/Zenith.obj", "textures/Zenith.png",true);
+
     const ModelHandle bed        = AssetManager::loadModel("models/Bed.obj", "textures/white.png");
+    const ModelHandle cube       = AssetManager::loadModel("models/cube.obj", "textures/statue.jpg", true);
     const ModelHandle demonSkull = AssetManager::loadModel("models/DemonSkull.obj", "textures/white.png");
+    const ModelHandle king       = AssetManager::loadModel("models/king.obj", "textures/invalid.png");
     const ModelHandle sponza     = AssetManager::loadModel("models/sponza.obj", "textures/white.png");
-    const ModelHandle cube       = AssetManager::loadModel("models/cube.obj", "textures/invalid.png", true);
+    const ModelHandle vikingRoom = AssetManager::loadModel("models/viking_room.obj", "textures/viking_room.png", true);
+    const ModelHandle zenith     = AssetManager::loadModel("models/Zenith.obj", "textures/Zenith.png", true);
 
     FS::Window window("FSEngine", 720, 720);
     window.showCursor(false);
@@ -174,6 +177,22 @@ int main() {
                 },
             },
             Entity{
+                .modelHandle = king,
+                .transform   = {
+                    .position = { 30.f, 0.f, -10.f },
+                    .rotation = { 0.f, 0.f, 0.f },
+                    .scale    = 3.f,
+                },
+            },
+            Entity{
+                .modelHandle = vikingRoom,
+                .transform   = {
+                    .position = { 30.f, 0.f, 10.f },
+                    .rotation = { 0.f, radians(90), 0.f },
+                    .scale    = 5.f,
+                },
+            },
+            Entity{
                 .modelHandle = sponza,
                 .transform   = {
                     .position = { 0.f, 0.f, 0.f },
@@ -184,28 +203,28 @@ int main() {
         }
     };
 
-    uint32_t cubeCount = MAX_ENTITIES;
-    scene.entities.resize(cubeCount);
-    const uint32_t side  = static_cast<uint32_t>(cbrt(cubeCount));
-    const float distance = 3.f;
-    for (uint32_t i = 0; i < side; ++i) {
-        for (uint32_t j = 0; j < side; ++j) {
-            for (uint32_t k = 0; k < side; ++k) {
-                const float x         = static_cast<float>(k) * distance;
-                const float z         = static_cast<float>(j) * distance;
-                const float y         = static_cast<float>(i) * distance;
-                uint32_t index        = k + (j * side) + (i * side * side);
-                scene.entities[index] = {
-                    .modelHandle = cube,
-                    .transform   = {
-                        .position = { x, y, z },
-                        .rotation = { 0.f, 0.f, 0.f },
-                        .scale    = 1.f,
-                    },
-                };
-            }
-        }
-    }
+    // uint32_t cubeCount = MAX_ENTITIES;
+    // scene.entities.resize(cubeCount);
+    // const uint32_t side  = static_cast<uint32_t>(cbrt(cubeCount));
+    // const float distance = 3.f;
+    // for (uint32_t i = 0; i < side; ++i) {
+    //     for (uint32_t j = 0; j < side; ++j) {
+    //         for (uint32_t k = 0; k < side; ++k) {
+    //             const float x         = static_cast<float>(k) * distance;
+    //             const float z         = static_cast<float>(j) * distance;
+    //             const float y         = static_cast<float>(i) * distance;
+    //             uint32_t index        = k + (j * side) + (i * side * side);
+    //             scene.entities[index] = {
+    //                 .modelHandle = cube,
+    //                 .transform   = {
+    //                     .position = { x, y, z },
+    //                     .rotation = { 0.f, 0.f, 0.f },
+    //                     .scale    = 1.f,
+    //                 },
+    //             };
+    //         }
+    //     }
+    // }
 
     setScene(deviceContext, renderer, scene);
 
