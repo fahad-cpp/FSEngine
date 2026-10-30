@@ -21,7 +21,7 @@ if "%CLEANBUILD%" == "YES" (
     )
 )
 
-cmake --build --preset %PRESET%
+cmake --build --preset %PRESET% -j%NUMBER_OF_PROCESSORS%
 if errorlevel 1 (
     echo CMake Build Failed.
     type error.txt

@@ -116,6 +116,7 @@ int main() {
     Timer initTimer;
     startTimer(initTimer);
     const ModelHandle zenith     = AssetManager::loadModel("models/Zenith.obj", "textures/Zenith.png", true);
+    [[maybe_unused]] const ModelHandle testModel = AssetManager::loadModel("models/Zenith.obj", "textures/Zenith.png",true);
     const ModelHandle bed        = AssetManager::loadModel("models/Bed.obj", "textures/white.png");
     const ModelHandle demonSkull = AssetManager::loadModel("models/DemonSkull.obj", "textures/white.png");
     const ModelHandle sponza     = AssetManager::loadModel("models/sponza.obj", "textures/white.png");

@@ -34,6 +34,7 @@ static void initCache() {
     }
 }
 static void cacheModel(const Model &model, uint64_t hash) {
+    modelCache.insert(hash);
     std::filesystem::create_directory("cache");
     const std::string filepath = "cache/" + std::to_string(hash) + ".fsmodel";
     std::ofstream ofs(filepath, std::ios::binary);
@@ -71,6 +72,8 @@ static ModelHandle loadCachedModel(uint64_t hash, const std::string &texturePath
     return static_cast<uint32_t>(models.size() - 1);
 }
 static void cacheTexture(uint8_t *texture, const int width, const int height, const int channelSize, const uint64_t hash) {
+    textureCache.insert(hash);
+
     const std::string filepath = "cache/" + std::to_string(hash) + ".fstex";
     std::ofstream ofs(filepath, std::ios::binary);
     ofs.write(reinterpret_cast<const char *>(&width), sizeof(int));
@@ -102,7 +105,7 @@ ModelHandle loadModel(const std::string &filepath, const std::string &texturePat
     if (modelCache.find(hash) != modelCache.end()) {
         ModelHandle model = loadCachedModel(hash, texturePath);
         endTimer(timer);
-        LOG_INFO("Loaded cached model " << hash << ".fsmodel" << " : " << microsecToms(timer.diff) << " ms");
+        LOG_INFO("Loaded cached model " << hash << ".fsmodel" << " : (" << filepath << ") : " << microsecToms(timer.diff) << " ms");
         return model;
     }
 
@@ -125,7 +128,7 @@ uint8_t *loadTexture(const std::string &filepath, int *texWidth, int *texHeight,
     if (textureCache.find(hash) != textureCache.end()) {
         uint8_t *texture = loadCachedTexture(hash, texWidth, texHeight, channelSize);
         endTimer(timer);
-        LOG_INFO("Loaded cached texture: " << hash << ".fstex" << " : " << microsecToms(timer.diff) << " ms");
+        LOG_INFO("Loaded cached texture: " << hash << ".fstex" << " : (" << filepath << ") : " << microsecToms(timer.diff) << " ms");
         return texture;
     }
 

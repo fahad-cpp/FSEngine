@@ -15,7 +15,7 @@ if ! cmake --preset $PRESET; then
     exit 1
 fi
 
-if ! cmake --build --preset $PRESET; then
+if ! cmake --build --preset $PRESET -j$(nproc); then
     echo Failed to build program.
     exit 1
 fi

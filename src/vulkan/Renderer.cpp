@@ -351,12 +351,15 @@ void updateEntityBuffer(DeviceContext &deviceContext, Buffer entityBuffer, const
     const uint32_t entityCount        = static_cast<uint32_t>(entities.size());
     static const uint32_t threadCount = std::thread::hardware_concurrency();
     const uint32_t size               = static_cast<uint32_t>(entities.size() * sizeof(EntityBufferData));
-    if (entityCount < threadCount) {
+
+    const uint32_t ENTITY_MT_THRESHOLD = 64;
+    if (entityCount < ENTITY_MT_THRESHOLD) {
         std::vector<EntityBufferData> entityData(entityCount);
         updateEntityRange(entities, entityData.data(), 0, entityCount);
         uploadToDeviceBuffer(deviceContext, entityBuffer, entityData.data(), size);
         return;
     }
+    
     static std::vector<std::thread> entityUpdateThreads(threadCount);
     const uint32_t entityPerThread   = static_cast<uint32_t>(entityCount / threadCount);
     const uint32_t remainingEntities = entityCount % threadCount;
