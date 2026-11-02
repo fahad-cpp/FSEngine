@@ -95,9 +95,9 @@ MappedBuffer createUniformBuffer(DeviceContext &deviceContext) {
     return uniformBuffer;
 }
 Buffer createEntityStorageBuffer(DeviceContext &deviceContext, const uint32_t entityCount) {
-    Buffer storageBuffer = {};
-    std::size_t bufferSize     = sizeof(EntityBufferData) * entityCount;
-    storageBuffer       = createBuffer(deviceContext, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, bufferSize, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    Buffer storageBuffer   = {};
+    std::size_t bufferSize = sizeof(EntityBufferData) * entityCount;
+    storageBuffer          = createBuffer(deviceContext, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, bufferSize, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     return storageBuffer;
 }
 Buffer createIndirectDrawBuffer(DeviceContext &deviceContext, const uint32_t entityCount) {

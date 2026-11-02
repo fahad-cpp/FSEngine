@@ -345,7 +345,7 @@ void updateEntityRange(const std::vector<Entity> &entities, EntityBufferData ent
     }
 }
 void updateEntityBuffer(DeviceContext &deviceContext, Buffer entityBuffer, const std::vector<Entity> &entities) {
-    if(entities.empty()){
+    if (entities.empty()) {
         return;
     }
     const uint32_t entityCount        = static_cast<uint32_t>(entities.size());
@@ -359,7 +359,7 @@ void updateEntityBuffer(DeviceContext &deviceContext, Buffer entityBuffer, const
         uploadToDeviceBuffer(deviceContext, entityBuffer, entityData.data(), size);
         return;
     }
-    
+
     static std::vector<std::thread> entityUpdateThreads(threadCount);
     const uint32_t entityPerThread   = static_cast<uint32_t>(entityCount / threadCount);
     const uint32_t remainingEntities = entityCount % threadCount;
@@ -467,11 +467,11 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
     };
     vkCmdSetScissor(frameData.commandBuffer, 0, 1, &scissor);
 
-    if(!renderer.entities.empty()){
+    if (!renderer.entities.empty()) {
         vkCmdBindDescriptorSets(frameData.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderer.pipeline.pipelineLayout, 0, 1, &renderer.descriptorSets[frameIndex], 0, nullptr);
     }
-    if(renderer.vertexBuffer.bufferHandle != VK_NULL_HANDLE && renderer.indexBuffer.bufferHandle != VK_NULL_HANDLE && renderer.indirectDrawBuffer.bufferHandle != VK_NULL_HANDLE){
-        uint32_t entityCount = static_cast<uint32_t>(renderer.entities.size());
+    if (renderer.vertexBuffer.bufferHandle != VK_NULL_HANDLE && renderer.indexBuffer.bufferHandle != VK_NULL_HANDLE && renderer.indirectDrawBuffer.bufferHandle != VK_NULL_HANDLE) {
+        uint32_t entityCount  = static_cast<uint32_t>(renderer.entities.size());
         VkDeviceSize vboffset = 0;
         vkCmdBindVertexBuffers(frameData.commandBuffer, 0, 1, &renderer.vertexBuffer.bufferHandle, &vboffset);
         vkCmdBindIndexBuffer(frameData.commandBuffer, renderer.indexBuffer.bufferHandle, 0, VK_INDEX_TYPE_UINT32);
@@ -494,7 +494,7 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
 
     vkEndCommandBuffer(frameData.commandBuffer);
 }
-void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer,Camera& camera) {
+void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer, Camera &camera) {
     FS::RenderState &renderState       = window.getRenderState();
     bool windowMinimized               = (renderState.width <= 0) || (renderState.height <= 0);
     uint32_t &frameIndex               = renderer.frameIndex;

@@ -40,7 +40,7 @@ static void cacheModel(const Model &model, uint64_t hash) {
     std::ofstream ofs(filepath, std::ios::binary);
 
     uint32_t vertexCount = static_cast<uint32_t>(model.vertices.size());
-    uint32_t indexCount = static_cast<uint32_t>(model.indices.size());
+    uint32_t indexCount  = static_cast<uint32_t>(model.indices.size());
     ofs.write(reinterpret_cast<const char *>(&vertexCount), sizeof(uint32_t));
     ofs.write(reinterpret_cast<const char *>(&indexCount), sizeof(uint32_t));
     ofs.write(reinterpret_cast<const char *>(model.vertices.data()), static_cast<std::streamsize>(model.vertices.size() * sizeof(Vertex)));
@@ -58,7 +58,7 @@ static ModelHandle loadCachedModel(uint64_t hash, const std::string &texturePath
     ifs.read(reinterpret_cast<char *>(&indicesCount), sizeof(uint32_t));
     std::vector<Vertex> vertices(verticesCount);
     std::vector<uint32_t> indices(indicesCount);
-    
+
     ifs.read(reinterpret_cast<char *>(vertices.data()), static_cast<std::streamsize>(verticesCount * sizeof(Vertex)));
     ifs.read(reinterpret_cast<char *>(indices.data()), static_cast<std::streamsize>(indicesCount * sizeof(uint32_t)));
 
@@ -147,7 +147,7 @@ void unloadTexture(uint8_t *texture) {
 Model getModel(uint32_t index) {
     return models[index];
 }
-const std::vector<Model>& getModels(){
+const std::vector<Model> &getModels() {
     return models;
 }
 uint32_t getModelCount() {
