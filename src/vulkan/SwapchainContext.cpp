@@ -15,7 +15,7 @@ void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainCo
     uint32_t formatCount                   = 0;
     VkSurfaceFormatKHR availableFormats[MAX_SURFACE_FORMATS];
     vkGetPhysicalDeviceSurfaceFormatsKHR(deviceContext.physicalDevice, deviceContext.surface, &formatCount, nullptr);
-    assert(formatCount < MAX_SURFACE_FORMATS);
+    assert(formatCount <= MAX_SURFACE_FORMATS);
     vkGetPhysicalDeviceSurfaceFormatsKHR(deviceContext.physicalDevice, deviceContext.surface, &formatCount, availableFormats);
 
     for (uint32_t i = 0; i < formatCount; ++i) {
@@ -54,7 +54,7 @@ void createSwapchain(DeviceContext &deviceContext, SwapchainContext &swapchainCo
     uint32_t windowWidth    = std::clamp<uint32_t>(renderState.width, surfaceCaps.minImageExtent.width, surfaceCaps.maxImageExtent.width);
     uint32_t windowHeight   = std::clamp<uint32_t>(renderState.height, surfaceCaps.minImageExtent.height, surfaceCaps.maxImageExtent.height);
     swapchainContext.extent = (surfaceCaps.currentExtent.width != UINT_MAX) ? surfaceCaps.currentExtent : VkExtent2D{ windowWidth, windowHeight };
-    assert(MAX_SWAPCHAIN_IMAGES >= surfaceCaps.minImageCount);
+    assert(surfaceCaps.minImageCount <= MAX_SWAPCHAIN_IMAGES);
     uint32_t minImageCount                       = std::max(surfaceCaps.minImageCount, MAX_SWAPCHAIN_IMAGES);
     VkSwapchainCreateInfoKHR swapchainCreateInfo = {
         .sType                 = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,

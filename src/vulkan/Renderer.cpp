@@ -337,7 +337,7 @@ void updateUniformBuffer(const SwapchainContext &swapchainContext, const VulkanR
     std::memcpy(renderer.cameraUniform.mapped, &uboData, sizeof(uboData));
 }
 void updateEntityRange(const std::vector<Entity> &entities, EntityBufferData entityData[], const uint32_t start, const uint32_t end) {
-    assert(start <= entities.size() && end <= entities.size());
+    assert(start < entities.size() && end <= entities.size());
     for (uint32_t i = start; i < end; i++) {
         const uint32_t meshIndex   = entities[i].modelHandle;
         entityData[i].model        = modelMatrix(entities[i].transform);

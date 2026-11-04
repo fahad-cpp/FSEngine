@@ -141,9 +141,10 @@ VkPhysicalDevice getPhysicalDevice(DeviceContext &deviceContext) {
 }
 uint32_t getQueueFamilyIndex(DeviceContext &deviceContext, VkQueueFlags queueFlags) {
     uint32_t queueFamilyCount = 0;
-    VkQueueFamilyProperties queueFamilyProperties[16];
+    constexpr uint32_t MAX_QUEUEFAMILIES = 16;
+    VkQueueFamilyProperties queueFamilyProperties[MAX_QUEUEFAMILIES];
     vkGetPhysicalDeviceQueueFamilyProperties(deviceContext.physicalDevice, &queueFamilyCount, nullptr);
-    assert(queueFamilyCount < 16);
+    assert(queueFamilyCount <= MAX_QUEUEFAMILIES);
     vkGetPhysicalDeviceQueueFamilyProperties(deviceContext.physicalDevice, &queueFamilyCount, queueFamilyProperties);
     uint32_t familyIndex = 0;
     for (uint32_t i = 0; i < queueFamilyCount; ++i) {
