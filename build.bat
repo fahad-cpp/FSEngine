@@ -30,5 +30,8 @@ if errorlevel 1 (
 )
 
 copy build\%PRESET%\compile_commands.json build\ >nul
+
 bin\%EXENAME%
+:: set "CONFIG=Debug"
+:: bin\%CONFIG%\%EXENAME%
 endlocal

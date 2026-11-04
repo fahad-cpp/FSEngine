@@ -16,10 +16,17 @@ add_subdirectory(vendor/FSWindow)
 
 target_include_directories(FSEngine SYSTEM PRIVATE ${VULKAN_INCLUDE} vendor/stb)
 
-target_compile_options(
-    FSEngine PRIVATE -Wall -Wextra -Weffc++ -Wconversion -Wsign-conversion -Werror -pedantic-errors
-    $<$<CONFIG:Debug>:-ggdb -D_DEBUG>
-    $<$<CONFIG:Release>:-O3 -ffast-math -DNDEBUG -D_NDEBUG>
-)
-
+if(MSVC)
+    target_compile_options(
+        FSEngine PRIVATE -Wall
+        $<$<CONFIG:Release>:/O3 /GL>
+        $<$<CONFIG:Debug>:/Od /RTC1>
+    )
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(
+        FSEngine PRIVATE -Wall -Wextra -Weffc++ -Wconversion -Wsign-conversion -Werror -pedantic-errors
+        $<$<CONFIG:Debug>:-ggdb -D_DEBUG>
+        $<$<CONFIG:Release>:-O3 -ffast-math -DNDEBUG -D_NDEBUG>
+    )
+endif()
 target_link_libraries(FSEngine Vulkan::Vulkan FSWindow)
