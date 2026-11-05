@@ -94,9 +94,8 @@ MappedBuffer createUniformBuffer(DeviceContext &deviceContext) {
     vkMapMemory(deviceContext.device, uniformBuffer.buffer.memoryHandle, 0, bufferSize, 0, &uniformBuffer.mapped);
     return uniformBuffer;
 }
-Buffer createEntityStorageBuffer(DeviceContext &deviceContext, const uint32_t entityCount) {
+Buffer createStorageBuffer(DeviceContext &deviceContext, const std::size_t bufferSize) {
     Buffer storageBuffer   = {};
-    std::size_t bufferSize = sizeof(EntityBufferData) * entityCount;
     storageBuffer          = createBuffer(deviceContext, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, bufferSize, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     return storageBuffer;
 }

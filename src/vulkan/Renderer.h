@@ -14,6 +14,8 @@ struct GraphicsPipeline {
 };
 
 struct VulkanRenderer {
+    uint32_t lightCount;
+
     GraphicsPipeline pipeline{};
     uint32_t frameIndex                                        = 0;
     VkSemaphore renderFinishedSemaphores[MAX_SWAPCHAIN_IMAGES] = {};
@@ -22,6 +24,7 @@ struct VulkanRenderer {
     Buffer indirectDrawBuffer{};
     MappedBuffer cameraUniform{};
     Buffer entityBuffer{};
+    Buffer lightBuffer{};
     Buffer vertexBuffer{};
     Buffer indexBuffer{};
     Scene scene{};

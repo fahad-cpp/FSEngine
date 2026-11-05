@@ -9,7 +9,6 @@
     -Restructure code according to Design.md
     -Find a better way to update dirty entities
     -MSAA
-    -proper light handling (send light array from CPU to GPU)
     -ECS
     -Push Constants
     -Editor
@@ -29,7 +28,7 @@ static Vector2 getMouseDiff(FS::Window &window) {
     return { diff.x, diff.y };
 }
 void cameraMovementSystem(Camera &camera, FS::Window &window, bool mouseLocked, float dt) {
-    float moveSpeed   = 0.01f * dt;
+    float moveSpeed   = 0.04f * dt;
     FS::Input &input  = window.getInput();
     Vector2 mouseDiff = ((!mouseLocked) ? Vector2{ 0, 0 } : getMouseDiff(window));
 
@@ -199,6 +198,20 @@ int main() {
                     .rotation = { 0.f, 0.f, 0.f },
                     .scale    = 0.1f,
                 },
+            },
+        },
+        .lights = {
+            Light{
+                .vec    = { -1, -1, 1 },
+                .radius = -1.f,
+                .illum  = 0.3f,
+                .type   = LightType::LT_DIRECTIONAL,
+            },
+            Light{
+                .vec    = { 0, 1, 0 },
+                .radius = 40.f,
+                .illum  = 0.4f,
+                .type   = LightType::LT_POINT,
             },
         }
     };

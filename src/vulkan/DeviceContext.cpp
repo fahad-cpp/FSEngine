@@ -140,7 +140,7 @@ VkPhysicalDevice getPhysicalDevice(DeviceContext &deviceContext) {
     return physicalDevices[SELECTED_DEVICE];
 }
 uint32_t getQueueFamilyIndex(DeviceContext &deviceContext, VkQueueFlags queueFlags) {
-    uint32_t queueFamilyCount = 0;
+    uint32_t queueFamilyCount            = 0;
     constexpr uint32_t MAX_QUEUEFAMILIES = 16;
     VkQueueFamilyProperties queueFamilyProperties[MAX_QUEUEFAMILIES];
     vkGetPhysicalDeviceQueueFamilyProperties(deviceContext.physicalDevice, &queueFamilyCount, nullptr);
@@ -341,7 +341,7 @@ void endOneTimeCommandBuffer(DeviceContext &deviceContext, VkCommandBuffer &comm
     vkFreeCommandBuffers(deviceContext.device, deviceContext.commandPool, 1, &commandBuffer);
 }
 VkDescriptorSetLayout createDescriptorSetLayout(DeviceContext &deviceContext) {
-    const VkDescriptorSetLayoutBinding descriptorBindings[3] = {
+    const VkDescriptorSetLayoutBinding descriptorBindings[4] = {
         {
             .binding            = 0,
             .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -363,6 +363,13 @@ VkDescriptorSetLayout createDescriptorSetLayout(DeviceContext &deviceContext) {
             .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
             .pImmutableSamplers = nullptr,
         },
+        {
+            .binding            = 3,
+            .descriptorType     = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            .descriptorCount    = 1,
+            .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
+            .pImmutableSamplers = nullptr,
+        },
     };
     VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
         .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -379,7 +386,7 @@ VkDescriptorSetLayout createDescriptorSetLayout(DeviceContext &deviceContext) {
     return descriptorSetLayout;
 }
 VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext) {
-    VkDescriptorPoolSize poolSizes[3] = {
+    VkDescriptorPoolSize poolSizes[4] = {
         {
             .type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             .descriptorCount = MAX_FRAMES_IN_FLIGHT,
@@ -387,6 +394,10 @@ VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext) {
         {
             .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
             .descriptorCount = MAX_FRAMES_IN_FLIGHT * MAX_TEXTURES,
+        },
+        {
+            .type            = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            .descriptorCount = MAX_FRAMES_IN_FLIGHT,
         },
         {
             .type            = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,

@@ -98,7 +98,12 @@ VkResult createDescriptorSets(DeviceContext &deviceContext, VulkanRenderer &rend
                 .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             };
         }
-        VkWriteDescriptorSet descriptorWrites[3] = {
+        VkDescriptorBufferInfo lightBufferInfo = {
+            .buffer = renderer.lightBuffer.bufferHandle,
+            .offset = 0,
+            .range  = sizeof(LightBufferData) * renderer.lightCount,
+        };
+        VkWriteDescriptorSet descriptorWrites[4] = {
             {
                 .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                 .pNext            = nullptr,
@@ -133,6 +138,18 @@ VkResult createDescriptorSets(DeviceContext &deviceContext, VulkanRenderer &rend
                 .descriptorType   = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                 .pImageInfo       = nullptr,
                 .pBufferInfo      = &storageBufferInfo,
+                .pTexelBufferView = nullptr,
+            },
+            {
+                .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .pNext            = nullptr,
+                .dstSet           = renderer.descriptorSets[i],
+                .dstBinding       = 3,
+                .dstArrayElement  = 0,
+                .descriptorCount  = 1,
+                .descriptorType   = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                .pImageInfo       = nullptr,
+                .pBufferInfo      = &lightBufferInfo,
                 .pTexelBufferView = nullptr,
             },
         };
@@ -333,6 +350,7 @@ void updateUniformBuffer(const SwapchainContext &swapchainContext, const VulkanR
     UniformBufferData uboData = {};
     uboData.view              = lookAt(camera.position, lookatpos, Vector3{ 0.f, 1.f, 0.f });
     uboData.projection        = perspective(radians(60.f), aspectRatio, 0.1f, 10000.f);
+    uboData.numLights         = renderer.lightCount;
 
     std::memcpy(renderer.cameraUniform.mapped, &uboData, sizeof(uboData));
 }
@@ -589,8 +607,14 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
         renderer.textures[i]           = createTexture(deviceContext, texturePath);
     }
 
-    renderer.entities.resize(entities.size());
-    renderer.entityBuffer = createEntityStorageBuffer(deviceContext, static_cast<uint32_t>(renderer.entities.size()));
+    const uint32_t entityCount = static_cast<uint32_t>(entities.size());
+    const uint32_t lightCount  = static_cast<uint32_t>(scene.lights.size());
+
+    renderer.entities.resize(entityCount);
+    renderer.lightCount = lightCount;
+
+    renderer.entityBuffer = createStorageBuffer(deviceContext, entityCount * sizeof(EntityBufferData));
+    renderer.lightBuffer  = createStorageBuffer(deviceContext, lightCount * sizeof(LightBufferData));
     createDescriptorSets(deviceContext, renderer);
 
     // concatenate meshes into one vertex and index buffer
@@ -637,14 +661,27 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
     }
     uploadToDeviceBuffer(deviceContext, renderer.indirectDrawBuffer, indirectBuffer.data(), indirectBuffer.size() * sizeof(VkDrawIndexedIndirectCommand));
 
-    std::vector<EntityBufferData> entityData(entities.size());
-    for (uint32_t i = 0; i < entities.size(); i++) {
+    std::vector<EntityBufferData> entityData(entityCount);
+    for (uint32_t i = 0; i < entityCount; i++) {
         const uint32_t meshIndex       = entities[i].modelHandle;
         entityData[i].model            = modelMatrix(entities[i].transform);
         entityData[i].textureIndex     = meshIndex;
         renderer.entities[i].meshIndex = meshIndex;
     }
-    uploadToDeviceBuffer(deviceContext, renderer.entityBuffer, entityData.data(), entityData.size() * sizeof(EntityBufferData));
+    uploadToDeviceBuffer(deviceContext, renderer.entityBuffer, entityData.data(), entityCount * sizeof(EntityBufferData));
+
+    std::vector<LightBufferData> lightData(lightCount);
+    for (uint32_t i = 0; i < lightCount; ++i) {
+        const Vector3 vec = scene.lights[i].vec;
+        lightData[i]      = LightBufferData{
+            .vec    = Vector4{ vec.x, vec.y, vec.z, 1.f },
+            .radius = scene.lights[i].radius,
+            .illum  = scene.lights[i].illum,
+            .type   = static_cast<uint32_t>(scene.lights[i].type),
+            .pad = 0.f
+        };
+    }
+    uploadToDeviceBuffer(deviceContext, renderer.lightBuffer, lightData.data(), lightCount * sizeof(LightBufferData));
 }
 void initVulkanRenderer(DeviceContext &deviceContext, SwapchainContext &swapchainContext, VulkanRenderer &renderer) {
     createSemaphores(deviceContext.device, MAX_SWAPCHAIN_IMAGES, renderer.renderFinishedSemaphores);
@@ -680,6 +717,9 @@ void cleanupVulkanRenderer(DeviceContext &deviceContext, VulkanRenderer &rendere
     }
     if (renderer.entityBuffer.bufferHandle != VK_NULL_HANDLE) {
         cleanupBuffer(deviceContext, renderer.entityBuffer);
+    }
+    if (renderer.lightBuffer.bufferHandle != VK_NULL_HANDLE) {
+        cleanupBuffer(deviceContext, renderer.lightBuffer);
     }
 
     cleanupPipeline(deviceContext, renderer.pipeline);

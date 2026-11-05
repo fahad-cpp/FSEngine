@@ -8,11 +8,19 @@
 struct UniformBufferData {
     alignas(16) Matrix4 view;
     alignas(16) Matrix4 projection;
+    alignas(16) uint32_t numLights;
 };
 struct EntityBufferData {
     Matrix4 model;
     uint32_t textureIndex;
     uint32_t padding[3];
+};
+struct LightBufferData {
+    Vector4 vec;
+    float radius;
+    float illum;
+    uint32_t type;
+    float pad;
 };
 struct Image {
     VkImage image;
@@ -43,7 +51,7 @@ void cleanupBuffer(DeviceContext &deviceContext, Buffer &buffer);
 Buffer createVertexBuffer(DeviceContext &deviceContext, const Vertex *vertices, uint32_t vertexCount);
 Buffer createIndexBuffer(DeviceContext &deviceContext, const uint32_t *indices, uint32_t indexCount);
 MappedBuffer createUniformBuffer(DeviceContext &deviceContext);
-Buffer createEntityStorageBuffer(DeviceContext &deviceContext, const uint32_t entityCount);
+Buffer createStorageBuffer(DeviceContext &deviceContext, const std::size_t entityCount);
 Buffer createIndirectDrawBuffer(DeviceContext &deviceContext, const uint32_t entityCount);
 void uploadToDeviceBuffer(DeviceContext &deviceContext, const Buffer buffer, const void *data, const std::size_t size);
 // image / texture

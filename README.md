@@ -32,7 +32,6 @@ G - lock-unlock mouse<br>
 
 ## todo
 
-- remove hardcoded lights
 - support glTF and better lighting 
 - decouple the engine from vulkan
 - decouple the engine from the game

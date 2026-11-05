@@ -16,7 +16,18 @@ struct Entity {
     ModelHandle modelHandle;
     Transform transform;
 };
+enum class LightType : uint8_t{
+    LT_DIRECTIONAL,
+    LT_POINT
+};
+struct Light{
+    Vector3 vec;
+    float radius;
+    float illum;
+    LightType type;
+};
 struct Scene {
     std::vector<Entity> entities;
+    std::vector<Light> lights;
 };
 #endif
