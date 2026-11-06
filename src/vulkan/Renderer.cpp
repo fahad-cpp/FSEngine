@@ -368,7 +368,7 @@ void updateEntityBuffer(DeviceContext &deviceContext, Buffer entityBuffer, const
     }
     const uint32_t entityCount        = static_cast<uint32_t>(entities.size());
     static const uint32_t threadCount = std::thread::hardware_concurrency();
-    const uint32_t size               = static_cast<uint32_t>(entities.size() * sizeof(EntityBufferData));
+    const uint32_t size               = entityCount * sizeof(EntityBufferData);
 
     const uint32_t ENTITY_MT_THRESHOLD = 64;
     if (entityCount < ENTITY_MT_THRESHOLD) {
@@ -512,7 +512,7 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
 
     vkEndCommandBuffer(frameData.commandBuffer);
 }
-void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer, Camera &camera) {
+void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer,const Camera &camera,const Scene& scene) {
     FS::RenderState &renderState       = window.getRenderState();
     bool windowMinimized               = (renderState.width <= 0) || (renderState.height <= 0);
     uint32_t &frameIndex               = renderer.frameIndex;
@@ -531,7 +531,7 @@ void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContex
 
     vkResetFences(deviceContext.device, 1, &drawFence);
 
-    updateEntityBuffer(deviceContext, renderer.entityBuffer, renderer.scene.entities);
+    updateEntityBuffer(deviceContext, renderer.entityBuffer, scene.entities);
     updateUniformBuffer(swapchainContext, renderer, camera);
     recordCommandBuffer(renderer.frames[frameIndex], swapchainContext, renderer, imageIndex, frameIndex);
 
@@ -583,11 +583,16 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
         }
         renderer.textures.clear();
     }
-
-    if (!renderer.entities.empty()) {
+    if(renderer.descriptorSets[0] != VK_NULL_HANDLE){
         vkFreeDescriptorSets(deviceContext.device, deviceContext.descriptorPool, MAX_FRAMES_IN_FLIGHT, renderer.descriptorSets);
+    }
+    if (!renderer.entities.empty()) {
         cleanupBuffer(deviceContext, renderer.entityBuffer);
         renderer.entities.clear();
+    }
+    if (renderer.lightBuffer.bufferHandle != VK_NULL_HANDLE) {
+        cleanupBuffer(deviceContext, renderer.lightBuffer);
+        renderer.lightCount = 0;
     }
     if (renderer.vertexBuffer.bufferHandle != VK_NULL_HANDLE) {
         cleanupBuffer(deviceContext, renderer.vertexBuffer);
@@ -678,7 +683,7 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
             .radius = scene.lights[i].radius,
             .illum  = scene.lights[i].illum,
             .type   = static_cast<uint32_t>(scene.lights[i].type),
-            .pad = 0.f
+            .pad    = 0.f
         };
     }
     uploadToDeviceBuffer(deviceContext, renderer.lightBuffer, lightData.data(), lightCount * sizeof(LightBufferData));

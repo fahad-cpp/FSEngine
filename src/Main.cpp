@@ -247,7 +247,7 @@ int main() {
     float diff = 16.f;
     while (window.isOpen()) {
         startTimer(timer);
-        renderScene(deviceContext, swapchainContext, window, renderer, camera);
+        renderScene(deviceContext, swapchainContext, window, renderer, camera,scene);
         handleInput(window, camera, diff);
         window.processMessages();
         endTimer(timer);

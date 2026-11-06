@@ -9,14 +9,16 @@ struct UniformBuffer {
     float4x4 projection;
     uint32_t numLights;
 };
-ConstantBuffer<UniformBuffer> ubo;
-
 struct EntityData {
     float4x4 model;
     uint textureIndex;
     uint padding0;
     uint padding1;
     uint padding2;
+};
+enum LightType {
+    LT_DIRECTIONAL,
+    LT_POINT
 };
 struct LightData {
     float4 vec;
@@ -25,12 +27,6 @@ struct LightData {
     uint32_t type;
     float pad;
 };
-enum LightType {
-    LT_DIRECTIONAL,
-    LT_POINT
-};
-[[vk::binding(1, 0)]]
-Sampler2D texture[12];
 struct VSOutput {
     float4 pos : SV_Position;
     float3 wpos;
@@ -38,8 +34,18 @@ struct VSOutput {
     float2 fragTexCoord;
     uint textureIndex;
 };
+
+ConstantBuffer<UniformBuffer> ubo;
+
+[[vk::binding(1, 0)]]
+Sampler2D texture[12];
+
 [[vk::binding(2, 0)]]
 StructuredBuffer<EntityData> entityBuffer;
+
+[[vk::binding(3, 0)]]
+StructuredBuffer<LightData> lightBuffer;
+
 [shader("vertex")]
 VSOutput vertMain(VSInput vertIn, uint baseInstance: SV_StartInstanceLocation) {
     EntityData entity = entityBuffer[baseInstance];
@@ -51,25 +57,6 @@ VSOutput vertMain(VSInput vertIn, uint baseInstance: SV_StartInstanceLocation) {
     output.textureIndex = entity.textureIndex;
     return output;
 }
-// struct DirectionalLight {
-//     float3 direction;
-//     float  intensity;
-// };
-// struct PointLight {
-//     float3 position;
-//     float  radius;
-//     float  intensity;
-// };
-// static DirectionalLight directionalLight = {
-//     { -1.f, -1.f, 1.f },
-//     0.3f
-// };
-
-// static PointLight pointLight = {
-//     { 0.f, 1.f, 0.f },
-//     40.f,
-//     0.4f
-// };
 static float ambient    = 0.01f;
 static float glossiness = 64.f;
 float getPointIllum(float3 normal, float3 point, LightData light) {
@@ -104,7 +91,7 @@ float getPointIllum(float3 normal, float3 point, LightData light) {
     return illum;
 }
 float getDirIllum(float3 normal, LightData light) {
-    float4 direction       = float4(light.vec.xyz,0.0);
+    float4 direction       = float4(light.vec.xyz, 0.0);
     float3 N               = normalize(normal);
     float3 lightDir        = normalize(mul(ubo.view, -direction).xyz);
     float nDotL            = max(dot(N, lightDir), 0.f);
@@ -124,9 +111,6 @@ float getLight(float3 normal, float3 point) {
     illum += ambient;
     return illum;
 }
-
-[[vk::binding(3, 0)]]
-StructuredBuffer<LightData> lightBuffer;
 
 [shader("fragment")]
 float4 fragMain(VSOutput fragIn) : SV_TARGET {
