@@ -385,32 +385,14 @@ VkDescriptorSetLayout createDescriptorSetLayout(DeviceContext &deviceContext) {
     }
     return descriptorSetLayout;
 }
-VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext) {
-    VkDescriptorPoolSize poolSizes[4] = {
-        {
-            .type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = MAX_FRAMES_IN_FLIGHT,
-        },
-        {
-            .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .descriptorCount = MAX_FRAMES_IN_FLIGHT * MAX_TEXTURES,
-        },
-        {
-            .type            = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-            .descriptorCount = MAX_FRAMES_IN_FLIGHT,
-        },
-        {
-            .type            = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-            .descriptorCount = MAX_FRAMES_IN_FLIGHT,
-        },
-    };
+VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext,const std::vector<VkDescriptorPoolSize>& poolSizes) {
     VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
         .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
         .pNext         = nullptr,
         .flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
         .maxSets       = MAX_FRAMES_IN_FLIGHT,
-        .poolSizeCount = sizeof(poolSizes) / sizeof(poolSizes[0]),
-        .pPoolSizes    = poolSizes
+        .poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
+        .pPoolSizes    = poolSizes.data()
     };
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     VkResult result                 = vkCreateDescriptorPool(deviceContext.device, &descriptorPoolCreateInfo, nullptr, &descriptorPool);
@@ -499,7 +481,25 @@ void initDeviceContext(DeviceContext &deviceContext, FS::Window &window) {
     deviceContext.graphicsQueue       = getQueue(deviceContext, VK_QUEUE_GRAPHICS_BIT);
     deviceContext.surface             = createSurface(deviceContext, window);
     deviceContext.commandPool         = createCommandPool(deviceContext, VK_QUEUE_GRAPHICS_BIT);
-    deviceContext.descriptorPool      = createDescriptorPool(deviceContext);
+    std::vector<VkDescriptorPoolSize> poolSizes = {
+        {
+            .type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = MAX_FRAMES_IN_FLIGHT,
+        },
+        {
+            .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .descriptorCount = MAX_FRAMES_IN_FLIGHT * MAX_TEXTURES,
+        },
+        {
+            .type            = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            .descriptorCount = MAX_FRAMES_IN_FLIGHT,
+        },
+        {
+            .type            = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            .descriptorCount = MAX_FRAMES_IN_FLIGHT,
+        },
+    };
+    deviceContext.descriptorPool      = createDescriptorPool(deviceContext,poolSizes);
     deviceContext.descriptorSetLayout = createDescriptorSetLayout(deviceContext);
     deviceContext.sampler             = createTextureSampler(deviceContext);
 }

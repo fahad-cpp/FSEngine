@@ -1,8 +1,10 @@
 #include "AssetManager.h"
+#include "ImGuiLayer.h"
 #include "Timer.h"
 #include "vulkan/Renderer.h"
 #include <algorithm>
 #include <numbers>
+
 
 /*
     TODO(fahad-cpp):
@@ -241,22 +243,32 @@ int main() {
 
     setScene(deviceContext, renderer, scene);
 
+    ImGuiLayer imgui;
+    imgui.init(deviceContext, swapchainContext);
+
     endTimer(initTimer);
     LOG_INFO("Initialization : " << microsecToms(initTimer.diff) << " ms");
 
     float diff = 16.f;
     while (window.isOpen()) {
         startTimer(timer);
-        renderScene(deviceContext, swapchainContext, window, renderer, camera,scene);
+        imgui.handleInput(window);
+        imgui.beginFrame();
+
+        ImGui::ShowDemoWindow();
+
+        renderScene(deviceContext, swapchainContext, window, renderer, imgui, camera, scene);
         handleInput(window, camera, diff);
         window.processMessages();
         endTimer(timer);
         scene.entities[0].transform.rotation.y += radians(90) * (timer.diff / 1000000.f);
         diff = microsecToms(timer.diff);
+        imgui.endFrame();
         LOG_LIVE("FPS: " << microsecToFPS(timer.diff) << " Frame:" << microsecToms(timer.diff) << " ms");
     }
 
     vkDeviceWaitIdle(deviceContext.device);
+    imgui.shutdown();
     cleanupVulkanRenderer(deviceContext, renderer);
     cleanupSwapchainContext(deviceContext, swapchainContext);
     cleanupDeviceContext(deviceContext);

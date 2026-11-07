@@ -7,6 +7,8 @@
 #include <assert.h>
 #include <chrono> // IWYU pragma: keep
 #include <cstring>
+#include <imgui.h>
+#include <imgui_impl_vulkan.h>
 #include <thread>
 
 VkShaderModule createShaderModule(VkDevice &device, const std::vector<char> &code) {
@@ -393,7 +395,7 @@ void updateEntityBuffer(DeviceContext &deviceContext, Buffer entityBuffer, const
     }
     uploadToDeviceBuffer(deviceContext, entityBuffer, entityData.data(), size);
 }
-void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext, VulkanRenderer &renderer, uint32_t imageIndex, uint32_t frameIndex) {
+void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext, VulkanRenderer &renderer, ImGuiLayer &imgui, uint32_t imageIndex, uint32_t frameIndex) {
     VkImage image         = swapchainContext.images[imageIndex];
     VkImageView imageView = swapchainContext.imageViews[imageIndex];
 
@@ -495,6 +497,7 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
         vkCmdBindIndexBuffer(frameData.commandBuffer, renderer.indexBuffer.bufferHandle, 0, VK_INDEX_TYPE_UINT32);
         vkCmdDrawIndexedIndirect(frameData.commandBuffer, renderer.indirectDrawBuffer.bufferHandle, 0, entityCount, sizeof(VkDrawIndexedIndirectCommand));
     }
+    imgui.render(frameData.commandBuffer);
 
     // Rendering END
     vkCmdEndRendering(frameData.commandBuffer);
@@ -512,7 +515,7 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
 
     vkEndCommandBuffer(frameData.commandBuffer);
 }
-void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer,const Camera &camera,const Scene& scene) {
+void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer, ImGuiLayer &imgui, const Camera &camera, const Scene &scene) {
     FS::RenderState &renderState       = window.getRenderState();
     bool windowMinimized               = (renderState.width <= 0) || (renderState.height <= 0);
     uint32_t &frameIndex               = renderer.frameIndex;
@@ -533,7 +536,7 @@ void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContex
 
     updateEntityBuffer(deviceContext, renderer.entityBuffer, scene.entities);
     updateUniformBuffer(swapchainContext, renderer, camera);
-    recordCommandBuffer(renderer.frames[frameIndex], swapchainContext, renderer, imageIndex, frameIndex);
+    recordCommandBuffer(renderer.frames[frameIndex], swapchainContext, renderer, imgui, imageIndex, frameIndex);
 
     VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
     VkSubmitInfo submitInfo               = {
@@ -583,7 +586,7 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
         }
         renderer.textures.clear();
     }
-    if(renderer.descriptorSets[0] != VK_NULL_HANDLE){
+    if (renderer.descriptorSets[0] != VK_NULL_HANDLE) {
         vkFreeDescriptorSets(deviceContext.device, deviceContext.descriptorPool, MAX_FRAMES_IN_FLIGHT, renderer.descriptorSets);
     }
     if (!renderer.entities.empty()) {

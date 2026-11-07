@@ -2,6 +2,7 @@
 #define DEVICECONTEXT_H
 #include "FSWindow.h"
 #include "Vulkan.h" // IWYU pragma: keep
+#include <vector>
 
 #define SELECTED_DEVICE 0
 constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 3;
@@ -35,7 +36,7 @@ VkCommandBuffer startOneTimeCommandBuffer(DeviceContext &deviceContext);
 void endOneTimeCommandBuffer(DeviceContext &deviceContext, VkCommandBuffer &commandBuffer);
 // Descriptors
 VkDescriptorSetLayout createDescriptorSetLayout(DeviceContext &deviceContext);
-VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext);
+VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext,const std::vector<VkDescriptorPoolSize>& poolSizes);
 // synchronization
 VkResult createSemaphores(VkDevice &device, uint32_t count, VkSemaphore *semaphores);
 VkResult createSemaphore(VkDevice &device, VkSemaphore *semaphore);

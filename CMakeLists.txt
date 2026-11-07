@@ -9,12 +9,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED 20)
 find_package(Vulkan REQUIRED)
 set(VULKAN_INCLUDE "$ENV{VULKAN_SDK}/Include")
 
-file(GLOB SOURCES src/*.cpp src/vulkan/*.cpp)
+file(GLOB SOURCES src/*.cpp src/vulkan/*.cpp vendor/imgui/*.cpp)
 
 add_executable(FSEngine ${SOURCES})
 add_subdirectory(vendor/FSWindow)
 
-target_include_directories(FSEngine SYSTEM PRIVATE ${VULKAN_INCLUDE} vendor/stb)
+target_include_directories(FSEngine SYSTEM PRIVATE ${VULKAN_INCLUDE} vendor/stb vendor/imgui)
 
 if(MSVC)
     target_compile_options(

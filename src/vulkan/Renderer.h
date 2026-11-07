@@ -2,6 +2,7 @@
 #define VKRENDERER_H
 #include "../Scene.h"
 #include "SwapchainContext.h"
+#include "../ImGuiLayer.h"
 
 struct FrameData {
     VkCommandBuffer commandBuffer;
@@ -39,8 +40,8 @@ VkResult createDescriptorSets(DeviceContext &deviceContext, VulkanRenderer &rend
 VkShaderModule createShaderModule(VkDevice &device, const std::vector<char> &code);
 void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swapchainContext, GraphicsPipeline &pipeline, const std::string &shaderPath);
 void updateUniformBuffer(const SwapchainContext &swapchainContext, const VulkanRenderer &renderer, const Camera &camera);
-void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext, VulkanRenderer &renderer, uint32_t imageIndex, uint32_t frameIndex);
-void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer,const Camera &camera,const Scene& scene);
+void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext, VulkanRenderer &renderer,ImGuiLayer& imgui, uint32_t imageIndex, uint32_t frameIndex);
+void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer,ImGuiLayer& imgui,const Camera &camera,const Scene& scene);
 void initPipeline(DeviceContext &deviceContext, SwapchainContext &swapchainContext, GraphicsPipeline &pipeline);
 void cleanupPipeline(DeviceContext &deviceContext, GraphicsPipeline &pipeline);
 void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &scene);
