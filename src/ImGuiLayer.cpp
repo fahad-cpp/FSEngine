@@ -28,6 +28,9 @@ void ImGuiLayer::init(DeviceContext &deviceContext, SwapchainContext &swapchainC
     imguiInfo.PipelineInfoMain.PipelineRenderingCreateInfo.depthAttachmentFormat = VK_FORMAT_D32_SFLOAT;
 
     ImGui_ImplVulkan_Init(&imguiInfo);
+
+    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
 }
 void ImGuiLayer::shutdown() {
     ImGui_ImplVulkan_Shutdown();
@@ -37,6 +40,7 @@ void ImGuiLayer::shutdown() {
 void ImGuiLayer::beginFrame() {
     ImGui_ImplVulkan_NewFrame();
     ImGui::NewFrame();
+    ImGui::DockSpaceOverViewport(0,ImGui::GetMainViewport(),ImGuiDockNodeFlags_PassthruCentralNode);
 }
 void ImGuiLayer::endFrame() {
     ImGui::EndFrame();
