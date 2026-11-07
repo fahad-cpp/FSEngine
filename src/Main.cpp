@@ -258,6 +258,9 @@ int main() {
         ImGui::Begin("FSEngine");
         ImGui::Text("%f FPS",1000.f/diff);
         ImGui::Text("Frame:%f ms",diff);
+        if(ImGui::Button("Exit")){
+            window.close();
+        }
         ImGui::End();
         
         renderScene(deviceContext, swapchainContext, window, renderer, imgui, camera, scene);

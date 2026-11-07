@@ -5,7 +5,10 @@ void ImGuiLayer::init(DeviceContext &deviceContext, SwapchainContext &swapchainC
     mDeviceContext                             = deviceContext;
     std::vector<VkDescriptorPoolSize> poolSize = {
         VkDescriptorPoolSize{
-            .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .type            = VK_DESCRIPTOR_TYPE_SAMPLER,
+            .descriptorCount = IMGUI_IMPL_VULKAN_MINIMUM_SAMPLER_POOL_SIZE },
+        VkDescriptorPoolSize{
+            .type            = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
             .descriptorCount = IMGUI_IMPL_VULKAN_MINIMUM_SAMPLED_IMAGE_POOL_SIZE,
         },
     };
@@ -25,12 +28,13 @@ void ImGuiLayer::init(DeviceContext &deviceContext, SwapchainContext &swapchainC
     imguiInfo.PipelineInfoMain.PipelineRenderingCreateInfo.sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
     imguiInfo.PipelineInfoMain.PipelineRenderingCreateInfo.colorAttachmentCount    = 1;
     imguiInfo.PipelineInfoMain.PipelineRenderingCreateInfo.pColorAttachmentFormats = &swapchainContext.surfaceFormat.format;
-    imguiInfo.PipelineInfoMain.PipelineRenderingCreateInfo.depthAttachmentFormat = VK_FORMAT_D32_SFLOAT;
+    imguiInfo.PipelineInfoMain.PipelineRenderingCreateInfo.depthAttachmentFormat   = VK_FORMAT_D32_SFLOAT;
 
     ImGui_ImplVulkan_Init(&imguiInfo);
 
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
+    ImGui::StyleColorsClassic();
 }
 void ImGuiLayer::shutdown() {
     ImGui_ImplVulkan_Shutdown();
@@ -40,7 +44,7 @@ void ImGuiLayer::shutdown() {
 void ImGuiLayer::beginFrame() {
     ImGui_ImplVulkan_NewFrame();
     ImGui::NewFrame();
-    ImGui::DockSpaceOverViewport(0,ImGui::GetMainViewport(),ImGuiDockNodeFlags_PassthruCentralNode);
+    ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
 }
 void ImGuiLayer::endFrame() {
     ImGui::EndFrame();
@@ -51,7 +55,7 @@ void ImGuiLayer::render(VkCommandBuffer commandBuffer) {
 }
 void ImGuiLayer::handleInput(FS::Window &window) {
     FS::RenderState &renderState = window.getRenderState();
-    FS::Input& input = window.getInput();
+    FS::Input &input             = window.getInput();
     ImGuiIO &io                  = ImGui::GetIO();
     io.DisplaySize               = ImVec2(
         static_cast<float>(renderState.width),
@@ -61,9 +65,9 @@ void ImGuiLayer::handleInput(FS::Window &window) {
         1.f, 1.f);
 
     FS::Vector2 cursorPos = window.getCursorPos(true);
-    bool leftMouseDown = isDown(FS::Buttons::MOUSE_BUTTON_LEFT);
-    bool rightMouseDown = isDown(FS::Buttons::MOUSE_BUTTON_RIGHT);
-    io.AddMousePosEvent(cursorPos.x,cursorPos.y);
+    bool leftMouseDown    = isDown(FS::Buttons::MOUSE_BUTTON_LEFT);
+    bool rightMouseDown   = isDown(FS::Buttons::MOUSE_BUTTON_RIGHT);
+    io.AddMousePosEvent(cursorPos.x, cursorPos.y);
     io.AddMouseButtonEvent(0, leftMouseDown);
     io.AddMouseButtonEvent(1, rightMouseDown);
 }
