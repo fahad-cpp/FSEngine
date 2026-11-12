@@ -28,6 +28,7 @@ G - lock-unlock mouse<br>
 - WASD camera system
 - SSBO to send entity orientation
 - MultiDrawIndirect to draw
+- ImGui Scene Management
 
 ## todo
 
@@ -37,4 +38,3 @@ G - lock-unlock mouse<br>
 - implement ECS
 - have software + vulkan + other apis as one click/line change
 - Add MSAA
-- have some ui maybe
