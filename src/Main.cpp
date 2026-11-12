@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <numbers>
 
-
 /*
     TODO(fahad-cpp):
     -Restructure code according to Design.md
@@ -111,6 +110,40 @@ void handleInput(FS::Window &window, Camera &camera, float dt) {
         window.showCursor(!mouseLocked);
     }
     cameraMovementSystem(camera, window, mouseLocked, dt);
+}
+void imguiScenePanel(Scene &scene) {
+    ImGui::Begin("FSEngine");
+    if (ImGui::TreeNode("Entities")) {
+        for (uint32_t i = 0; i < scene.entities.size(); i++) {
+            const std::string label = "Entity " + std::to_string(i);
+            if (ImGui::TreeNode(label.c_str())) {
+                if (ImGui::TreeNode("Transform")) {
+                    Transform &transform = scene.entities[i].transform;
+                    ImGui::DragFloat3("position", &transform.position.x, 1.f / 10.f, -100.f, 100.f);
+                    ImGui::DragFloat3("rotation", &transform.rotation.x, 1.f / radians(360), radians(0), radians(360));
+                    ImGui::DragFloat("scale", &transform.scale, 1.f / 100.f, 0.f, 100.f);
+
+                    ImGui::TreePop();
+                }
+                ImGui::TreePop();
+            }
+        }
+        ImGui::TreePop();
+    }
+    if (ImGui::TreeNode("Lights")) {
+        for (uint32_t i = 0; i < scene.lights.size(); ++i) {
+            const std::string label = "Light " + std::to_string(i);
+            if (ImGui::TreeNode(label.c_str())) {
+                Light &light = scene.lights[i];
+                ImGui::DragFloat3("Vec", &light.vec.x, 1.f / 10.f, -100.f, 100.f);
+                ImGui::DragFloat("radius", &light.radius, 1.f / 10.f, 0.f, 100.f);
+                ImGui::DragFloat("illumination", &light.illum, 1.f / 100.f, 0.f, 1.f);
+                ImGui::TreePop();
+            }
+        }
+        ImGui::TreePop();
+    }
+    ImGui::End();
 }
 int main() {
     Timer timer;
@@ -254,20 +287,13 @@ int main() {
         startTimer(timer);
         imgui.handleInput(window);
         imgui.beginFrame();
+        imguiScenePanel(scene);
 
-        ImGui::Begin("FSEngine");
-        ImGui::Text("%f FPS",1000.f/diff);
-        ImGui::Text("Frame:%f ms",diff);
-        if(ImGui::Button("Exit")){
-            window.close();
-        }
-        ImGui::End();
-        
         renderScene(deviceContext, swapchainContext, window, renderer, imgui, camera, scene);
         handleInput(window, camera, diff);
         window.processMessages();
         endTimer(timer);
-        scene.entities[0].transform.rotation.y += radians(90) * (timer.diff / 1000000.f);
+        // scene.entities[0].transform.rotation.y += radians(90) * (timer.diff / 1000000.f);
         diff = microsecToms(timer.diff);
         imgui.endFrame();
         LOG_LIVE("FPS: " << microsecToFPS(timer.diff) << " Frame:" << microsecToms(timer.diff) << " ms");

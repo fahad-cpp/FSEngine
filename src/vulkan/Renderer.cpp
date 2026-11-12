@@ -395,6 +395,22 @@ void updateEntityBuffer(DeviceContext &deviceContext, Buffer entityBuffer, const
     }
     uploadToDeviceBuffer(deviceContext, entityBuffer, entityData.data(), size);
 }
+void updateLightBuffer(DeviceContext &deviceContext, Buffer lightBuffer, const std::vector<Light> &lights) {
+    const uint32_t lightCount = static_cast<uint32_t>(lights.size());
+    std::vector<LightBufferData> lightData(lightCount);
+    for (uint32_t i = 0; i < lightCount; ++i) {
+        const Light light = lights[i];
+        const Vector3 vec = lights[i].vec;
+        lightData[i]      = LightBufferData{
+            .vec    = Vector4{ vec.x, vec.y, vec.z, 1.f },
+            .radius = light.radius,
+            .illum  = light.illum,
+            .type   = static_cast<uint32_t>(light.type),
+            .pad    = 0.f
+        };
+    }
+    uploadToDeviceBuffer(deviceContext, lightBuffer, lightData.data(), lightCount * sizeof(LightBufferData));
+}
 void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext, VulkanRenderer &renderer, ImGuiLayer &imgui, uint32_t imageIndex, uint32_t frameIndex) {
     VkImage image         = swapchainContext.images[imageIndex];
     VkImageView imageView = swapchainContext.imageViews[imageIndex];
@@ -533,7 +549,7 @@ void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContex
     VkSemaphore renderFinishedSemaphore = renderer.renderFinishedSemaphores[imageIndex];
 
     vkResetFences(deviceContext.device, 1, &drawFence);
-
+    updateLightBuffer(deviceContext, renderer.lightBuffer, scene.lights);
     updateEntityBuffer(deviceContext, renderer.entityBuffer, scene.entities);
     updateUniformBuffer(swapchainContext, renderer, camera);
     recordCommandBuffer(renderer.frames[frameIndex], swapchainContext, renderer, imgui, imageIndex, frameIndex);
@@ -680,12 +696,13 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
 
     std::vector<LightBufferData> lightData(lightCount);
     for (uint32_t i = 0; i < lightCount; ++i) {
+        const Light light = scene.lights[i];
         const Vector3 vec = scene.lights[i].vec;
         lightData[i]      = LightBufferData{
             .vec    = Vector4{ vec.x, vec.y, vec.z, 1.f },
-            .radius = scene.lights[i].radius,
-            .illum  = scene.lights[i].illum,
-            .type   = static_cast<uint32_t>(scene.lights[i].type),
+            .radius = light.radius,
+            .illum  = light.illum,
+            .type   = static_cast<uint32_t>(light.type),
             .pad    = 0.f
         };
     }
