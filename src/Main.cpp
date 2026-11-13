@@ -111,8 +111,28 @@ void handleInput(FS::Window &window, Camera &camera, float dt) {
     }
     cameraMovementSystem(camera, window, mouseLocked, dt);
 }
-void imguiScenePanel(Scene &scene) {
+void imguiScenePanel(Scene &scene, float diff) {
+    // keep frame times in static ring buffer and initialize linear imgui buffer with it
+    constexpr uint32_t FRAMEGRAPH_SIZE = 1024;
+    static float ringBuffer[FRAMEGRAPH_SIZE]{ 0.f };
+    static float imguiFrames[FRAMEGRAPH_SIZE]{ 0.f };
+    static uint32_t ringIndex = 0;
+    
+    std::fill_n(imguiFrames,FRAMEGRAPH_SIZE,0.f);
+    ringBuffer[ringIndex] = diff;
+    ringIndex             = ++ringIndex % FRAMEGRAPH_SIZE;
+
+    uint32_t index = ringIndex + 1;
+    for (uint32_t i = 0; i < FRAMEGRAPH_SIZE; ++i) {
+        imguiFrames[i] = ringBuffer[index];
+        index          = ++index % FRAMEGRAPH_SIZE;
+    }
+
     ImGui::Begin("FSEngine");
+    float scale = FLT_MAX;
+    ImGui::PlotLines(" ", imguiFrames, FRAMEGRAPH_SIZE,0,"FRAMETIME",scale,scale,ImVec2(200,100));
+    ImGui::Text("%.2f ms",diff);
+    ImGui::Text("%.2f FPS",(1000.f / diff));
     if (ImGui::TreeNode("Entities")) {
         for (uint32_t i = 0; i < scene.entities.size(); i++) {
             const std::string label = "Entity " + std::to_string(i);
@@ -173,8 +193,8 @@ int main() {
     window.focus();
 
     Camera camera{
-        .position = { 0.f, 0.f, 0.f },
-        .rotation = { 0.f, 0.f, 0.f },
+        .position = { 0.f, 10.f, 0.f },
+        .rotation = { 0.f, radians(-90), 0.f },
     };
     Scene scene{
         .entities{
@@ -287,13 +307,13 @@ int main() {
         startTimer(timer);
         imgui.handleInput(window);
         imgui.beginFrame();
-        imguiScenePanel(scene);
+        imguiScenePanel(scene, diff);
 
         renderScene(deviceContext, swapchainContext, window, renderer, imgui, camera, scene);
         handleInput(window, camera, diff);
         window.processMessages();
         endTimer(timer);
-        // scene.entities[0].transform.rotation.y += radians(90) * (timer.diff / 1000000.f);
+        scene.entities[0].transform.rotation.y += radians(90) * (timer.diff / 1000000.f);
         diff = microsecToms(timer.diff);
         imgui.endFrame();
         LOG_LIVE("FPS: " << microsecToFPS(timer.diff) << " Frame:" << microsecToms(timer.diff) << " ms");

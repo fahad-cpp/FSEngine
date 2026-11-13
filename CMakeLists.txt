@@ -11,6 +11,10 @@ set(VULKAN_INCLUDE "$ENV{VULKAN_SDK}/Include")
 
 file(GLOB SOURCES src/*.cpp src/vulkan/*.cpp vendor/imgui/*.cpp)
 
+if(WIN32)
+list(APPEND SOURCES
+    FSEngine.rc)
+endif()
 add_executable(FSEngine ${SOURCES})
 add_subdirectory(vendor/FSWindow)
 
