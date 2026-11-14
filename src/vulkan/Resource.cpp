@@ -5,6 +5,7 @@
 #include "VulkanUtils.h"
 #include <algorithm>
 #include <cstring>
+#include <filesystem>
 
 std::string bufferUsageString(VkBufferUsageFlags usage) {
     std::vector<std::pair<VkBufferUsageFlags, std::string>> map{
@@ -25,9 +26,6 @@ std::string bufferUsageString(VkBufferUsageFlags usage) {
     return "Unhandled";
 }
 Buffer createBuffer(DeviceContext &deviceContext, const VkBufferUsageFlags usage, const VkDeviceSize size, const VkMemoryPropertyFlags memoryProperty) {
-    // static int bufferCount = 0;
-    // bufferCount++;
-    // std::cout << "Buffer created: " << bufferCount << " : " << bufferUsageString(usage) << "\n";
     Buffer buffer                 = {};
     VkBufferCreateInfo createInfo = {
         .sType                 = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -297,16 +295,20 @@ void generateMipMaps(VkCommandBuffer commandBuffer, VkImage image, int32_t texWi
 }
 Texture createTexture(DeviceContext &deviceContext, const std::string &filepath) {
     Texture texture = {};
+    const bool exists = std::filesystem::exists(filepath);
     int texWidth, texHeight, texChannels;
-    uint8_t *pixels        = AssetManager::loadTexture(filepath, &texWidth, &texHeight, &texChannels);
-    VkDeviceSize imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * 4);
-
-    if (!pixels) {
+    uint8_t *pixels        = nullptr;
+    if(exists){
+        pixels = AssetManager::loadTexture(filepath, &texWidth, &texHeight, &texChannels);
+    } else {
         LOG_ERROR("Failed to load texture: " << filepath);
-        pixels    = AssetManager::loadTexture("textures/invalid.png", &texWidth, &texHeight, &texChannels);
-        imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * 4);
+        if(std::filesystem::exists("textures/invalid.png")){
+            pixels = AssetManager::loadTexture("textures/invalid.png", &texWidth, &texHeight, &texChannels);
+        }else{
+            return {};
+        }
     }
-
+    VkDeviceSize imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * 4);
     Buffer stagingBuffer = createBuffer(deviceContext, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, imageSize, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
     void *data           = nullptr;
     vkMapMemory(deviceContext.device, stagingBuffer.memoryHandle, 0, imageSize, 0, &data);

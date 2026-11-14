@@ -1,7 +1,7 @@
 @echo off
 setlocal
 set "EXENAME=FSEngine.exe"
-set "PRESET=clang-debug"
+set "PRESET=clang-release"
 
 if not exist build mkdir build >nul 2>nul
 if not exist build/%PRESET%/CMakeCache.txt set "CLEANBUILD=YES"

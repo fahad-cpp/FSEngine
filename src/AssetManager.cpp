@@ -73,7 +73,7 @@ static ModelHandle loadCachedModel(uint64_t hash, const std::string &texturePath
 }
 static void cacheTexture(uint8_t *texture, const int width, const int height, const int channelSize, const uint64_t hash) {
     textureCache.insert(hash);
-
+    std::filesystem::create_directory("cache");
     const std::string filepath = "cache/" + std::to_string(hash) + ".fstex";
     std::ofstream ofs(filepath, std::ios::binary);
     ofs.write(reinterpret_cast<const char *>(&width), sizeof(int));
@@ -109,6 +109,10 @@ ModelHandle loadModel(const std::string &filepath, const std::string &texturePat
         return model;
     }
 
+    if(!std::filesystem::exists(filepath)){
+        LOG_WARN("File " << filepath << " does not exist.");
+        return INVALID_MODEL_HANDLE;
+    }
     Model model = loadOBJ(filepath, flipYZ);
     cacheModel(model, hash);
     endTimer(timer);
@@ -131,7 +135,9 @@ uint8_t *loadTexture(const std::string &filepath, int *texWidth, int *texHeight,
         LOG_INFO("Loaded cached texture: " << hash << ".fstex" << " : (" << filepath << ") : " << microsecToms(timer.diff) << " ms");
         return texture;
     }
-
+    if(!std::filesystem::exists(filepath)){
+        return nullptr;
+    }
     uint8_t *texture = stbi_load(filepath.c_str(), texWidth, texHeight, channelSize, STBI_rgb_alpha);
     if (!texture) {
         return nullptr;
@@ -144,13 +150,20 @@ uint8_t *loadTexture(const std::string &filepath, int *texWidth, int *texHeight,
 void unloadTexture(uint8_t *texture) {
     free(texture);
 }
-Model getModel(uint32_t index) {
-    return models[index];
+Model getModel(ModelHandle handle) {
+    if (handle == INVALID_MODEL_HANDLE) {
+        LOG_WARN("Accessing Invalid Model");
+        return Model{};
+    }
+    return models[handle];
 }
 const std::vector<Model> &getModels() {
     return models;
 }
 uint32_t getModelCount() {
     return static_cast<uint32_t>(models.size());
+}
+uint32_t getTextureCount(){
+    return static_cast<uint32_t>(textureCache.size());
 }
 } // namespace AssetManager

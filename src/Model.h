@@ -22,5 +22,6 @@ struct Model {
     std::string texturePath;
 };
 using ModelHandle = uint32_t;
+constexpr uint32_t INVALID_MODEL_HANDLE = UINT32_MAX;
 Model loadOBJ(const std::string &filepath, bool flipYZ = false);
 #endif

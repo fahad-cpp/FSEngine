@@ -5,8 +5,8 @@
 #include <algorithm>
 #include <numbers>
 
+// TODO:
 /*
-    TODO(fahad-cpp):
     -Restructure code according to Design.md
     -Find a better way to update dirty entities
     -MSAA

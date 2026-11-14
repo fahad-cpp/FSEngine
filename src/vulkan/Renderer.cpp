@@ -10,6 +10,7 @@
 #include <imgui.h>
 #include <imgui_impl_vulkan.h>
 #include <thread>
+#include <filesystem>
 
 VkShaderModule createShaderModule(VkDevice &device, const std::vector<char> &code) {
     VkShaderModuleCreateInfo shaderModuleCreateInfo = {
@@ -165,6 +166,12 @@ VkResult createDescriptorSets(DeviceContext &deviceContext, VulkanRenderer &rend
 void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swapchainContext, GraphicsPipeline &pipeline, const std::string &shaderPath) {
     VkSurfaceCapabilitiesKHR surfaceCaps;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(deviceContext.physicalDevice, deviceContext.surface, &surfaceCaps);
+    if(!std::filesystem::exists(shaderPath.c_str())){
+        LOG_ERROR("Shader file not found");
+        assert(false && "Shader file not found");
+        std::exit(1);
+        return;
+    }
     const std::vector<char> code                              = readFile(shaderPath);
     VkShaderModule module                                     = createShaderModule(deviceContext.device, code);
     const VkPipelineShaderStageCreateInfo vertShaderStageInfo = {
@@ -411,7 +418,7 @@ void updateLightBuffer(DeviceContext &deviceContext, Buffer lightBuffer, const s
     }
     uploadToDeviceBuffer(deviceContext, lightBuffer, lightData.data(), lightCount * sizeof(LightBufferData));
 }
-void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext, VulkanRenderer &renderer,ImGuiLayer& imgui, uint32_t imageIndex, uint32_t frameIndex) {
+void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext, VulkanRenderer &renderer, ImGuiLayer &imgui, uint32_t imageIndex, uint32_t frameIndex) {
     VkImage image         = swapchainContext.images[imageIndex];
     VkImageView imageView = swapchainContext.imageViews[imageIndex];
 
@@ -531,7 +538,7 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
 
     vkEndCommandBuffer(frameData.commandBuffer);
 }
-void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer,ImGuiLayer& imgui, const Camera &camera, const Scene &scene) {
+void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer, ImGuiLayer &imgui, const Camera &camera, const Scene &scene) {
     FS::RenderState &renderState       = window.getRenderState();
     bool windowMinimized               = (renderState.width <= 0) || (renderState.height <= 0);
     uint32_t &frameIndex               = renderer.frameIndex;
@@ -552,7 +559,7 @@ void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContex
     updateLightBuffer(deviceContext, renderer.lightBuffer, scene.lights);
     updateEntityBuffer(deviceContext, renderer.entityBuffer, scene.entities);
     updateUniformBuffer(swapchainContext, renderer, camera);
-    recordCommandBuffer(renderer.frames[frameIndex], swapchainContext, renderer,imgui, imageIndex, frameIndex);
+    recordCommandBuffer(renderer.frames[frameIndex], swapchainContext, renderer, imgui, imageIndex, frameIndex);
 
     VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
     VkSubmitInfo submitInfo               = {
@@ -584,7 +591,7 @@ void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContex
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
         recreateSwapchain(deviceContext, swapchainContext, window);
     }
-    vkWaitForFences(deviceContext.device, 1, &drawFence, VK_TRUE,UINT64_MAX);
+    vkWaitForFences(deviceContext.device, 1, &drawFence, VK_TRUE, UINT64_MAX);
     frameIndex = (frameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
@@ -667,25 +674,31 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
             indexInd += model.indices.size();
         }
     }
-    renderer.vertexBuffer = createVertexBuffer(deviceContext, vertices.data(), static_cast<uint32_t>(vertices.size()));
-    renderer.indexBuffer  = createIndexBuffer(deviceContext, indices.data(), static_cast<uint32_t>(indices.size()));
+    if((!vertices.empty()) && (!indices.empty())){
+        renderer.vertexBuffer = createVertexBuffer(deviceContext, vertices.data(), static_cast<uint32_t>(vertices.size()));
+        renderer.indexBuffer  = createIndexBuffer(deviceContext, indices.data(), static_cast<uint32_t>(indices.size()));
+    }
 
     // build up indirect draw buffer of entities and upload it
     std::vector<VkDrawIndexedIndirectCommand> indirectBuffer(entities.size());
     for (uint32_t i = 0; i < entities.size(); i++) {
         const Entity &entity      = entities[i];
-        const uint32_t indexCount = static_cast<uint32_t>(models[entity.modelHandle].indices.size());
+        const uint32_t indexCount = static_cast<uint32_t>(AssetManager::getModel(entity.modelHandle).indices.size());
+        const uint32_t indexOffset = (entity.modelHandle != INVALID_MODEL_HANDLE)?indexOffsets[entity.modelHandle]:0;
+        const uint32_t vertexOffset = (entity.modelHandle != INVALID_MODEL_HANDLE)?vertexOffsets[entity.modelHandle]:0;
         VkDrawIndexedIndirectCommand command{
             .indexCount    = indexCount,
             .instanceCount = 1,
-            .firstIndex    = indexOffsets[entity.modelHandle],
-            .vertexOffset  = static_cast<int32_t>(vertexOffsets[entity.modelHandle]),
+            .firstIndex    = indexOffset,
+            .vertexOffset  = static_cast<int32_t>(vertexOffset),
             .firstInstance = i
         };
         indirectBuffer[i] = command;
     }
     uploadToDeviceBuffer(deviceContext, renderer.indirectDrawBuffer, indirectBuffer.data(), indirectBuffer.size() * sizeof(VkDrawIndexedIndirectCommand));
 
+    // TODO(fahad-cpp): have textureIndex and modelIndex in Entity instead of a combined meshIndex
+    // to avoid duplicated textures like we have now
     std::vector<EntityBufferData> entityData(entityCount);
     for (uint32_t i = 0; i < entityCount; i++) {
         const uint32_t meshIndex       = entities[i].modelHandle;
@@ -723,7 +736,6 @@ void initVulkanRenderer(DeviceContext &deviceContext, SwapchainContext &swapchai
     }
 
     initPipeline(deviceContext, swapchainContext, renderer.pipeline);
-
     renderer.cameraUniform      = createUniformBuffer(deviceContext);
     renderer.indirectDrawBuffer = createIndirectDrawBuffer(deviceContext, MAX_ENTITIES);
 }
