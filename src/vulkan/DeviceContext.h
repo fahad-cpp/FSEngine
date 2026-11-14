@@ -36,7 +36,7 @@ VkCommandBuffer startOneTimeCommandBuffer(DeviceContext &deviceContext);
 void endOneTimeCommandBuffer(DeviceContext &deviceContext, VkCommandBuffer &commandBuffer);
 // Descriptors
 VkDescriptorSetLayout createDescriptorSetLayout(DeviceContext &deviceContext);
-VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext,const std::vector<VkDescriptorPoolSize>& poolSizes);
+VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext,const std::vector<VkDescriptorPoolSize>& poolSizes,const uint32_t maxSets);
 // synchronization
 VkResult createSemaphores(VkDevice &device, uint32_t count, VkSemaphore *semaphores);
 VkResult createSemaphore(VkDevice &device, VkSemaphore *semaphore);

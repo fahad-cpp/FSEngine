@@ -385,12 +385,12 @@ VkDescriptorSetLayout createDescriptorSetLayout(DeviceContext &deviceContext) {
     }
     return descriptorSetLayout;
 }
-VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext,const std::vector<VkDescriptorPoolSize>& poolSizes) {
+VkDescriptorPool createDescriptorPool(DeviceContext &deviceContext, const std::vector<VkDescriptorPoolSize> &poolSizes, const uint32_t maxSets) {
     VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
         .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
         .pNext         = nullptr,
         .flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-        .maxSets       = MAX_FRAMES_IN_FLIGHT,
+        .maxSets       = maxSets,
         .poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
         .pPoolSizes    = poolSizes.data()
     };
@@ -475,12 +475,12 @@ void copyBufferToImage(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImag
     vkCmdCopyBufferToImage(commandBuffer, srcBuffer, dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 }
 void initDeviceContext(DeviceContext &deviceContext, FS::Window &window) {
-    deviceContext.instance            = createInstance(deviceContext);
-    deviceContext.physicalDevice      = getPhysicalDevice(deviceContext);
-    deviceContext.device              = createDevice(deviceContext);
-    deviceContext.graphicsQueue       = getQueue(deviceContext, VK_QUEUE_GRAPHICS_BIT);
-    deviceContext.surface             = createSurface(deviceContext, window);
-    deviceContext.commandPool         = createCommandPool(deviceContext, VK_QUEUE_GRAPHICS_BIT);
+    deviceContext.instance                      = createInstance(deviceContext);
+    deviceContext.physicalDevice                = getPhysicalDevice(deviceContext);
+    deviceContext.device                        = createDevice(deviceContext);
+    deviceContext.graphicsQueue                 = getQueue(deviceContext, VK_QUEUE_GRAPHICS_BIT);
+    deviceContext.surface                       = createSurface(deviceContext, window);
+    deviceContext.commandPool                   = createCommandPool(deviceContext, VK_QUEUE_GRAPHICS_BIT);
     std::vector<VkDescriptorPoolSize> poolSizes = {
         {
             .type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -499,7 +499,7 @@ void initDeviceContext(DeviceContext &deviceContext, FS::Window &window) {
             .descriptorCount = MAX_FRAMES_IN_FLIGHT,
         },
     };
-    deviceContext.descriptorPool      = createDescriptorPool(deviceContext,poolSizes);
+    deviceContext.descriptorPool      = createDescriptorPool(deviceContext, poolSizes, MAX_FRAMES_IN_FLIGHT);
     deviceContext.descriptorSetLayout = createDescriptorSetLayout(deviceContext);
     deviceContext.sampler             = createTextureSampler(deviceContext);
 }

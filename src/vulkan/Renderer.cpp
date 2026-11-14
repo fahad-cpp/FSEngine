@@ -81,32 +81,32 @@ VkResult createDescriptorSets(DeviceContext &deviceContext, VulkanRenderer &rend
         return result;
     }
 
+    const VkDescriptorBufferInfo bufferInfo = {
+        .buffer = renderer.cameraUniform.buffer.bufferHandle,
+        .offset = 0,
+        .range  = sizeof(UniformBufferData)
+    };
+    const VkDescriptorBufferInfo storageBufferInfo = {
+        .buffer = renderer.entityBuffer.bufferHandle,
+        .offset = 0,
+        .range  = sizeof(EntityBufferData) * renderer.entities.size()
+    };
+    VkDescriptorImageInfo imageInfo[MAX_TEXTURES];
+    for (uint32_t i = 0; i < renderer.textures.size(); i++) {
+        imageInfo[i] = {
+            .sampler     = deviceContext.sampler,
+            .imageView   = renderer.textures[i].imageView,
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        };
+    }
+    const VkDescriptorBufferInfo lightBufferInfo = {
+        .buffer = renderer.lightBuffer.bufferHandle,
+        .offset = 0,
+        .range  = sizeof(LightBufferData) * renderer.lightCount,
+    };
     for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-        VkDescriptorBufferInfo bufferInfo = {
-            .buffer = renderer.cameraUniform.buffer.bufferHandle,
-            .offset = 0,
-            .range  = sizeof(UniformBufferData)
-        };
-        VkDescriptorBufferInfo storageBufferInfo = {
-            .buffer = renderer.entityBuffer.bufferHandle,
-            .offset = 0,
-            .range  = sizeof(EntityBufferData) * renderer.entities.size()
-        };
-        VkDescriptorImageInfo imageInfo[MAX_TEXTURES];
-        for (uint32_t i = 0; i < renderer.textures.size(); i++) {
-            imageInfo[i] = {
-                .sampler     = deviceContext.sampler,
-                .imageView   = renderer.textures[i].imageView,
-                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            };
-        }
-        VkDescriptorBufferInfo lightBufferInfo = {
-            .buffer = renderer.lightBuffer.bufferHandle,
-            .offset = 0,
-            .range  = sizeof(LightBufferData) * renderer.lightCount,
-        };
         VkWriteDescriptorSet descriptorWrites[4] = {
-            {
+            VkWriteDescriptorSet{
                 .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                 .pNext            = nullptr,
                 .dstSet           = renderer.descriptorSets[i],
@@ -118,7 +118,7 @@ VkResult createDescriptorSets(DeviceContext &deviceContext, VulkanRenderer &rend
                 .pBufferInfo      = &bufferInfo,
                 .pTexelBufferView = nullptr,
             },
-            {
+            VkWriteDescriptorSet{
                 .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                 .pNext            = nullptr,
                 .dstSet           = renderer.descriptorSets[i],
@@ -130,7 +130,7 @@ VkResult createDescriptorSets(DeviceContext &deviceContext, VulkanRenderer &rend
                 .pBufferInfo      = nullptr,
                 .pTexelBufferView = nullptr,
             },
-            {
+            VkWriteDescriptorSet{
                 .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                 .pNext            = nullptr,
                 .dstSet           = renderer.descriptorSets[i],
@@ -142,7 +142,7 @@ VkResult createDescriptorSets(DeviceContext &deviceContext, VulkanRenderer &rend
                 .pBufferInfo      = &storageBufferInfo,
                 .pTexelBufferView = nullptr,
             },
-            {
+            VkWriteDescriptorSet{
                 .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                 .pNext            = nullptr,
                 .dstSet           = renderer.descriptorSets[i],
@@ -155,7 +155,7 @@ VkResult createDescriptorSets(DeviceContext &deviceContext, VulkanRenderer &rend
                 .pTexelBufferView = nullptr,
             },
         };
-
+        assert(descriptorWrites[0].dstSet != VK_NULL_HANDLE);
         vkUpdateDescriptorSets(deviceContext.device, (sizeof(descriptorWrites) / sizeof(descriptorWrites[0])), descriptorWrites, 0, nullptr);
     }
 
@@ -411,7 +411,7 @@ void updateLightBuffer(DeviceContext &deviceContext, Buffer lightBuffer, const s
     }
     uploadToDeviceBuffer(deviceContext, lightBuffer, lightData.data(), lightCount * sizeof(LightBufferData));
 }
-void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext, VulkanRenderer &renderer, ImGuiLayer &imgui, uint32_t imageIndex, uint32_t frameIndex) {
+void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext, VulkanRenderer &renderer,ImGuiLayer& imgui, uint32_t imageIndex, uint32_t frameIndex) {
     VkImage image         = swapchainContext.images[imageIndex];
     VkImageView imageView = swapchainContext.imageViews[imageIndex];
 
@@ -531,7 +531,7 @@ void recordCommandBuffer(FrameData frameData, SwapchainContext &swapchainContext
 
     vkEndCommandBuffer(frameData.commandBuffer);
 }
-void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer, ImGuiLayer &imgui, const Camera &camera, const Scene &scene) {
+void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContext, FS::Window &window, VulkanRenderer &renderer,ImGuiLayer& imgui, const Camera &camera, const Scene &scene) {
     FS::RenderState &renderState       = window.getRenderState();
     bool windowMinimized               = (renderState.width <= 0) || (renderState.height <= 0);
     uint32_t &frameIndex               = renderer.frameIndex;
@@ -552,7 +552,7 @@ void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContex
     updateLightBuffer(deviceContext, renderer.lightBuffer, scene.lights);
     updateEntityBuffer(deviceContext, renderer.entityBuffer, scene.entities);
     updateUniformBuffer(swapchainContext, renderer, camera);
-    recordCommandBuffer(renderer.frames[frameIndex], swapchainContext, renderer, imgui, imageIndex, frameIndex);
+    recordCommandBuffer(renderer.frames[frameIndex], swapchainContext, renderer,imgui, imageIndex, frameIndex);
 
     VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
     VkSubmitInfo submitInfo               = {
@@ -584,6 +584,7 @@ void renderScene(DeviceContext &deviceContext, SwapchainContext &swapchainContex
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
         recreateSwapchain(deviceContext, swapchainContext, window);
     }
+    vkWaitForFences(deviceContext.device, 1, &drawFence, VK_TRUE,UINT64_MAX);
     frameIndex = (frameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 

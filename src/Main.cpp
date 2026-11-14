@@ -113,7 +113,7 @@ void handleInput(FS::Window &window, Camera &camera, float dt) {
 }
 void imguiScenePanel(Scene &scene, float diff) {
     // keep frame times in static ring buffer and initialize linear imgui buffer with it
-    constexpr uint32_t FRAMEGRAPH_SIZE = 1024;
+    constexpr uint32_t FRAMEGRAPH_SIZE = 256;
     static float ringBuffer[FRAMEGRAPH_SIZE]{ 0.f };
     static float imguiFrames[FRAMEGRAPH_SIZE]{ 0.f };
     static uint32_t ringIndex = 0;
@@ -129,8 +129,7 @@ void imguiScenePanel(Scene &scene, float diff) {
     }
 
     ImGui::Begin("FSEngine");
-    float scale = FLT_MAX;
-    ImGui::PlotLines(" ", imguiFrames, FRAMEGRAPH_SIZE,0,"FRAMETIME",scale,scale,ImVec2(200,100));
+    ImGui::PlotLines(" ", imguiFrames, FRAMEGRAPH_SIZE,0,"FRAMETIME",FLT_MIN,FLT_MAX,ImVec2(256,100));
     ImGui::Text("%.2f ms",diff);
     ImGui::Text("%.2f FPS",(1000.f / diff));
     if (ImGui::TreeNode("Entities")) {
@@ -309,7 +308,7 @@ int main() {
         imgui.beginFrame();
         imguiScenePanel(scene, diff);
 
-        renderScene(deviceContext, swapchainContext, window, renderer, imgui, camera, scene);
+        renderScene(deviceContext, swapchainContext, window, renderer,imgui, camera, scene);
         handleInput(window, camera, diff);
         window.processMessages();
         endTimer(timer);

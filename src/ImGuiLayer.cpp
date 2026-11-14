@@ -6,13 +6,15 @@ void ImGuiLayer::init(DeviceContext &deviceContext, SwapchainContext &swapchainC
     std::vector<VkDescriptorPoolSize> poolSize = {
         VkDescriptorPoolSize{
             .type            = VK_DESCRIPTOR_TYPE_SAMPLER,
-            .descriptorCount = IMGUI_IMPL_VULKAN_MINIMUM_SAMPLER_POOL_SIZE },
+            .descriptorCount = MAX_FRAMES_IN_FLIGHT * IMGUI_IMPL_VULKAN_MINIMUM_SAMPLER_POOL_SIZE,
+        },
         VkDescriptorPoolSize{
             .type            = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-            .descriptorCount = IMGUI_IMPL_VULKAN_MINIMUM_SAMPLED_IMAGE_POOL_SIZE,
+            .descriptorCount = MAX_FRAMES_IN_FLIGHT * IMGUI_IMPL_VULKAN_MINIMUM_SAMPLED_IMAGE_POOL_SIZE,
         },
     };
-    mDescriptorPool = createDescriptorPool(deviceContext, poolSize);
+    const uint32_t maxSets = IMGUI_IMPL_VULKAN_MINIMUM_SAMPLED_IMAGE_POOL_SIZE + IMGUI_IMPL_VULKAN_MINIMUM_SAMPLER_POOL_SIZE;
+    mDescriptorPool = createDescriptorPool(deviceContext, poolSize,maxSets);
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui_ImplVulkan_InitInfo imguiInfo{};
