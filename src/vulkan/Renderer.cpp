@@ -7,10 +7,10 @@
 #include <assert.h>
 #include <chrono> // IWYU pragma: keep
 #include <cstring>
+#include <filesystem>
 #include <imgui.h>
 #include <imgui_impl_vulkan.h>
 #include <thread>
-#include <filesystem>
 
 VkShaderModule createShaderModule(VkDevice &device, const std::vector<char> &code) {
     VkShaderModuleCreateInfo shaderModuleCreateInfo = {
@@ -166,7 +166,7 @@ VkResult createDescriptorSets(DeviceContext &deviceContext, VulkanRenderer &rend
 void createGraphicsPipeline(DeviceContext &deviceContext, SwapchainContext &swapchainContext, GraphicsPipeline &pipeline, const std::string &shaderPath) {
     VkSurfaceCapabilitiesKHR surfaceCaps;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(deviceContext.physicalDevice, deviceContext.surface, &surfaceCaps);
-    if(!std::filesystem::exists(shaderPath.c_str())){
+    if (!std::filesystem::exists(shaderPath.c_str())) {
         LOG_ERROR("Shader file not found");
         assert(false && "Shader file not found");
         std::exit(1);
@@ -674,7 +674,7 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
             indexInd += model.indices.size();
         }
     }
-    if((!vertices.empty()) && (!indices.empty())){
+    if ((!vertices.empty()) && (!indices.empty())) {
         renderer.vertexBuffer = createVertexBuffer(deviceContext, vertices.data(), static_cast<uint32_t>(vertices.size()));
         renderer.indexBuffer  = createIndexBuffer(deviceContext, indices.data(), static_cast<uint32_t>(indices.size()));
     }
@@ -682,10 +682,10 @@ void setScene(DeviceContext &deviceContext, VulkanRenderer &renderer, Scene &sce
     // build up indirect draw buffer of entities and upload it
     std::vector<VkDrawIndexedIndirectCommand> indirectBuffer(entities.size());
     for (uint32_t i = 0; i < entities.size(); i++) {
-        const Entity &entity      = entities[i];
-        const uint32_t indexCount = static_cast<uint32_t>(AssetManager::getModel(entity.modelHandle).indices.size());
-        const uint32_t indexOffset = (entity.modelHandle != INVALID_MODEL_HANDLE)?indexOffsets[entity.modelHandle]:0;
-        const uint32_t vertexOffset = (entity.modelHandle != INVALID_MODEL_HANDLE)?vertexOffsets[entity.modelHandle]:0;
+        const Entity &entity        = entities[i];
+        const uint32_t indexCount   = static_cast<uint32_t>(AssetManager::getModel(entity.modelHandle).indices.size());
+        const uint32_t indexOffset  = (entity.modelHandle != INVALID_MODEL_HANDLE) ? indexOffsets[entity.modelHandle] : 0;
+        const uint32_t vertexOffset = (entity.modelHandle != INVALID_MODEL_HANDLE) ? vertexOffsets[entity.modelHandle] : 0;
         VkDrawIndexedIndirectCommand command{
             .indexCount    = indexCount,
             .instanceCount = 1,

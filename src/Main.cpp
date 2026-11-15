@@ -23,7 +23,7 @@ static Vector2 getMouseDiff(FS::Window &window) {
     static FS::RenderState &renderState = window.getRenderState();
     FS::Vector2 windowPos               = window.getWindowPos();
     FS::Vector2 mousePos                = window.getCursorPos();
-    FS::Vector2 centerPos               = { windowPos.x + std::floor(static_cast<float>(renderState.width) / 2.f), (windowPos.y + std::floor(static_cast<float>(renderState.height)) / 2.f) };
+    FS::Vector2 centerPos               = { windowPos.x + std::floor(static_cast<float>(renderState.width) / 2.f), windowPos.y + std::floor(static_cast<float>(renderState.height) / 2.f) };
     FS::Vector2 diff                    = mousePos - centerPos;
     window.setCursorPos(static_cast<uint32_t>(centerPos.x), static_cast<uint32_t>(centerPos.y));
     return { diff.x, diff.y };
