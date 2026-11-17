@@ -38,74 +38,71 @@ void cameraMovementSystem(Camera &camera, FS::Window &window, bool mouseLocked, 
 
     camera.rotation.y -= mouseDiff.x * 0.001f;
 
-    if (isDown(FS::Buttons::BUTTON_SHIFT)) {
+    if (input.isDown(FS::BUTTON_SHIFT)) {
         moveSpeed *= 2.f;
     }
-    if (isDown(FS::Buttons::BUTTON_W)) {
+    if (input.isDown(FS::BUTTON_W)) {
         Vector3 rotated = rotate(Vector3{ 0.f, 0.f, moveSpeed }, camera.rotation.y, Vector3{ 0.f, 1.f, 0.f });
         camera.position.x += rotated.x;
         camera.position.y += rotated.y;
         camera.position.z += rotated.z;
     }
-    if (isDown(FS::Buttons::BUTTON_S)) {
+    if (input.isDown(FS::BUTTON_S)) {
         Vector3 rotated = rotate(Vector3{ 0.f, 0.f, -moveSpeed }, camera.rotation.y, Vector3{ 0.f, 1.f, 0.f });
         camera.position.x += rotated.x;
         camera.position.y += rotated.y;
         camera.position.z += rotated.z;
     }
-    if (isDown(FS::Buttons::BUTTON_A)) {
+    if (input.isDown(FS::BUTTON_A)) {
         Vector3 rotated = rotate(Vector3{ -moveSpeed, 0.f, 0.f }, camera.rotation.y, Vector3{ 0.f, 1.f, 0.f });
         camera.position.x += rotated.x;
         camera.position.y += rotated.y;
         camera.position.z += rotated.z;
     }
-    if (isDown(FS::Buttons::BUTTON_D)) {
+    if (input.isDown(FS::BUTTON_D)) {
         Vector3 rotated = rotate(Vector3{ moveSpeed, 0.f, 0.f }, camera.rotation.y, Vector3{ 0.f, 1.f, 0.f });
         camera.position.x += rotated.x;
         camera.position.y += rotated.y;
         camera.position.z += rotated.z;
     }
 
-    if (isDown(FS::Buttons::BUTTON_SPACE)) {
+    if (input.isDown(FS::BUTTON_SPACE)) {
         camera.position.y += moveSpeed;
     }
-    if (isDown(FS::Buttons::BUTTON_CTRL)) {
+    if (input.isDown(FS::BUTTON_CTRL)) {
         camera.position.y -= moveSpeed;
     }
 
     float pi          = static_cast<float>(std::numbers::pi);
     float rotateSpeed = 0.05f;
-    if (isDown(FS::Buttons::BUTTON_UP)) {
+    if (input.isDown(FS::BUTTON_UP)) {
         camera.rotation.x -= rotateSpeed / pi;
         camera.rotation.x = std::clamp(camera.rotation.x, radians(-89.f), radians(89.f));
     }
-    if (isDown(FS::Buttons::BUTTON_DOWN)) {
+    if (input.isDown(FS::BUTTON_DOWN)) {
         camera.rotation.x += rotateSpeed / pi;
         camera.rotation.x = std::clamp(camera.rotation.x, radians(-89.f), radians(89.f));
     }
-    if (isDown(FS::Buttons::BUTTON_LEFT)) {
+    if (input.isDown(FS::BUTTON_LEFT)) {
         camera.rotation.y += rotateSpeed / pi;
     }
-    if (isDown(FS::Buttons::BUTTON_RIGHT)) {
+    if (input.isDown(FS::BUTTON_RIGHT)) {
         camera.rotation.y -= rotateSpeed / pi;
     }
 
-    if (isDown(FS::Buttons::BUTTON_Q)) {
+    if (input.isDown(FS::BUTTON_Q)) {
         camera.position = { 0.f, 0.f, 0.f };
         camera.rotation = { 0.f, 0.f, 0.f };
     }
 }
 void handleInput(FS::Window &window, Camera &camera, float dt) {
-#define pressed(button) \
-    (input.buttons[button].isDown && input.buttons[button].changed)
-
     FS::Input &input        = window.getInput();
     static bool mouseLocked = true;
 
-    if (isDown(FS::Buttons::BUTTON_ESC)) {
+    if (input.isDown(FS::BUTTON_ESC)) {
         window.close();
     }
-    if (pressed(FS::Buttons::BUTTON_G)) {
+    if (input.pressed(FS::BUTTON_G)) {
         mouseLocked = !mouseLocked;
         window.showCursor(!mouseLocked);
     }
@@ -117,8 +114,8 @@ void imguiScenePanel(Scene &scene, float diff) {
     static float ringBuffer[FRAMEGRAPH_SIZE]{ 0.f };
     static float imguiFrames[FRAMEGRAPH_SIZE]{ 0.f };
     static uint32_t ringIndex = 0;
-    
-    std::fill_n(imguiFrames,FRAMEGRAPH_SIZE,0.f);
+
+    std::fill_n(imguiFrames, FRAMEGRAPH_SIZE, 0.f);
     ringBuffer[ringIndex] = diff;
     ringIndex             = ++ringIndex % FRAMEGRAPH_SIZE;
 
@@ -129,9 +126,9 @@ void imguiScenePanel(Scene &scene, float diff) {
     }
 
     ImGui::Begin("FSEngine");
-    ImGui::PlotLines(" ", imguiFrames, FRAMEGRAPH_SIZE,0,"FRAMETIME",FLT_MIN,FLT_MAX,ImVec2(256,100));
-    ImGui::Text("%.2f ms",diff);
-    ImGui::Text("%.2f FPS",(1000.f / diff));
+    ImGui::PlotLines(" ", imguiFrames, FRAMEGRAPH_SIZE, 0, "FRAMETIME", FLT_MIN, FLT_MAX, ImVec2(256, 100));
+    ImGui::Text("%.2f ms", diff);
+    ImGui::Text("%.2f FPS", (1000.f / diff));
     if (ImGui::TreeNode("Entities")) {
         for (uint32_t i = 0; i < scene.entities.size(); i++) {
             const std::string label = "Entity " + std::to_string(i);
@@ -308,7 +305,7 @@ int main() {
         imgui.beginFrame();
         imguiScenePanel(scene, diff);
 
-        renderScene(deviceContext, swapchainContext, window, renderer,imgui, camera, scene);
+        renderScene(deviceContext, swapchainContext, window, renderer, imgui, camera, scene);
         handleInput(window, camera, diff);
         window.processMessages();
         endTimer(timer);
