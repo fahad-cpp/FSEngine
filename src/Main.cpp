@@ -33,37 +33,37 @@ void cameraMovementSystem(Camera &camera, FS::Window &window, bool mouseLocked, 
     FS::Input &input  = window.getInput();
     Vector2 mouseDiff = ((!mouseLocked) ? Vector2{ 0, 0 } : getMouseDiff(window));
 
-    camera.rotation.x += mouseDiff.y * 0.001f;
+    camera.rotation.x += mouseDiff.y * 0.0002f * dt;
     camera.rotation.x = std::clamp(camera.rotation.x, radians(-89.f), radians(89.f));
 
-    camera.rotation.y -= mouseDiff.x * 0.001f;
+    camera.rotation.y -= mouseDiff.x * 0.0002f * dt;
 
     if (isDown(FS::Buttons::BUTTON_SHIFT)) {
         moveSpeed *= 2.f;
     }
     if (isDown(FS::Buttons::BUTTON_W)) {
-        Vector3 rotated = rotate(Vector3{ 0.f, 0.f, moveSpeed }, camera.rotation.y, Vector3{ 0.f, 1.f, 0.f });
-        camera.position.x += rotated.x;
-        camera.position.y += rotated.y;
-        camera.position.z += rotated.z;
+        Vector3 rotated = rotate(Vector3{ 0.f, 0.f, 1.f }, camera.rotation.y, Vector3{ 0.f, 1.f, 0.f });
+        camera.position.x += rotated.x * moveSpeed;
+        camera.position.y += rotated.y * moveSpeed;
+        camera.position.z += rotated.z * moveSpeed;
     }
     if (isDown(FS::Buttons::BUTTON_S)) {
-        Vector3 rotated = rotate(Vector3{ 0.f, 0.f, -moveSpeed }, camera.rotation.y, Vector3{ 0.f, 1.f, 0.f });
-        camera.position.x += rotated.x;
-        camera.position.y += rotated.y;
-        camera.position.z += rotated.z;
+        Vector3 rotated = rotate(Vector3{ 0.f, 0.f, -1.f }, camera.rotation.y, Vector3{ 0.f, 1.f, 0.f });
+        camera.position.x += rotated.x * moveSpeed;
+        camera.position.y += rotated.y * moveSpeed;
+        camera.position.z += rotated.z * moveSpeed;
     }
     if (isDown(FS::Buttons::BUTTON_A)) {
-        Vector3 rotated = rotate(Vector3{ -moveSpeed, 0.f, 0.f }, camera.rotation.y, Vector3{ 0.f, 1.f, 0.f });
-        camera.position.x += rotated.x;
-        camera.position.y += rotated.y;
-        camera.position.z += rotated.z;
+        Vector3 rotated = rotate(Vector3{ -1.f, 0.f, 0.f }, camera.rotation.y, Vector3{ 0.f, 1.f, 0.f });
+        camera.position.x += rotated.x * moveSpeed;
+        camera.position.y += rotated.y * moveSpeed;
+        camera.position.z += rotated.z * moveSpeed;
     }
     if (isDown(FS::Buttons::BUTTON_D)) {
-        Vector3 rotated = rotate(Vector3{ moveSpeed, 0.f, 0.f }, camera.rotation.y, Vector3{ 0.f, 1.f, 0.f });
-        camera.position.x += rotated.x;
-        camera.position.y += rotated.y;
-        camera.position.z += rotated.z;
+        Vector3 rotated = rotate(Vector3{ 1.f, 0.f, 0.f }, camera.rotation.y, Vector3{ 0.f, 1.f, 0.f });
+        camera.position.x += rotated.x * moveSpeed;
+        camera.position.y += rotated.y * moveSpeed;
+        camera.position.z += rotated.z * moveSpeed;
     }
 
     if (isDown(FS::Buttons::BUTTON_SPACE)) {
@@ -74,7 +74,7 @@ void cameraMovementSystem(Camera &camera, FS::Window &window, bool mouseLocked, 
     }
 
     float pi          = static_cast<float>(std::numbers::pi);
-    float rotateSpeed = 0.05f;
+    float rotateSpeed = 0.004f * dt;
     if (isDown(FS::Buttons::BUTTON_UP)) {
         camera.rotation.x -= rotateSpeed / pi;
         camera.rotation.x = std::clamp(camera.rotation.x, radians(-89.f), radians(89.f));
@@ -307,14 +307,14 @@ int main() {
         imgui.handleInput(window);
         imgui.beginFrame();
         imguiScenePanel(scene, diff);
-
+        
         renderScene(deviceContext, swapchainContext, window, renderer,imgui, camera, scene);
         handleInput(window, camera, diff);
         window.processMessages();
-        endTimer(timer);
         scene.entities[0].transform.rotation.y += radians(90) * (timer.diff / 1000000.f);
-        diff = microsecToms(timer.diff);
         imgui.endFrame();
+        endTimer(timer);
+        diff = microsecToms(timer.diff);
         LOG_LIVE("FPS: " << microsecToFPS(timer.diff) << " Frame:" << microsecToms(timer.diff) << " ms");
     }
 
