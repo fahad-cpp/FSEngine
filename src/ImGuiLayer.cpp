@@ -14,7 +14,7 @@ void ImGuiLayer::init(DeviceContext &deviceContext, SwapchainContext &swapchainC
         },
     };
     const uint32_t maxSets = IMGUI_IMPL_VULKAN_MINIMUM_SAMPLED_IMAGE_POOL_SIZE + IMGUI_IMPL_VULKAN_MINIMUM_SAMPLER_POOL_SIZE;
-    mDescriptorPool = createDescriptorPool(deviceContext, poolSize,maxSets);
+    mDescriptorPool        = createDescriptorPool(deviceContext, poolSize, maxSets);
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui_ImplVulkan_InitInfo imguiInfo{};
@@ -67,8 +67,8 @@ void ImGuiLayer::handleInput(FS::Window &window) {
         1.f, 1.f);
 
     FS::Vector2 cursorPos = window.getCursorPos(true);
-    bool leftMouseDown    = isDown(FS::Buttons::MOUSE_BUTTON_LEFT);
-    bool rightMouseDown   = isDown(FS::Buttons::MOUSE_BUTTON_RIGHT);
+    bool leftMouseDown    = input.isDown(FS::MOUSE_BUTTON_LEFT);
+    bool rightMouseDown   = input.isDown(FS::MOUSE_BUTTON_RIGHT);
     io.AddMousePosEvent(cursorPos.x, cursorPos.y);
     io.AddMouseButtonEvent(0, leftMouseDown);
     io.AddMouseButtonEvent(1, rightMouseDown);
