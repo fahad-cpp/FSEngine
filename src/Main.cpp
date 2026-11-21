@@ -110,23 +110,23 @@ void handleInput(FS::Window &window, Camera &camera, float dt) {
 }
 void imguiScenePanel(Scene &scene, float diff) {
     // keep frame times in static ring buffer and initialize linear imgui buffer with it
-    constexpr uint32_t FRAMEGRAPH_SIZE = 256;
-    static float ringBuffer[FRAMEGRAPH_SIZE]{ 0.f };
-    static float imguiFrames[FRAMEGRAPH_SIZE]{ 0.f };
+    constexpr uint32_t FRAME_COUNT = 256;
+    static float ringBuffer[FRAME_COUNT]{ 0.f };
+    static float imguiFrames[FRAME_COUNT]{ 0.f };
     static uint32_t ringIndex = 0;
 
-    std::fill_n(imguiFrames, FRAMEGRAPH_SIZE, 0.f);
+    std::fill_n(imguiFrames, FRAME_COUNT, 0.f);
     ringBuffer[ringIndex] = diff;
-    ringIndex             = ++ringIndex % FRAMEGRAPH_SIZE;
+    ringIndex             = ++ringIndex % FRAME_COUNT;
 
     uint32_t index = ringIndex + 1;
-    for (uint32_t i = 0; i < FRAMEGRAPH_SIZE; ++i) {
+    for (uint32_t i = 0; i < FRAME_COUNT; ++i) {
         imguiFrames[i] = ringBuffer[index];
-        index          = ++index % FRAMEGRAPH_SIZE;
+        index          = ++index % FRAME_COUNT;
     }
 
     ImGui::Begin("FSEngine");
-    ImGui::PlotLines(" ", imguiFrames, FRAMEGRAPH_SIZE, 0, "FRAMETIME", FLT_MIN, FLT_MAX, ImVec2(256, 100));
+    ImGui::PlotLines(" ", imguiFrames, FRAME_COUNT, 0, "FRAMETIME", FLT_MIN, FLT_MAX, ImVec2(256, 100));
     ImGui::Text("%.2f ms", diff);
     ImGui::Text("%.2f FPS", (1000.f / diff));
     if (ImGui::TreeNode("Entities")) {
